@@ -1,5 +1,7 @@
 use indicatif::{ProgressBar, ProgressStyle};
 
+pub mod vector;
+
 fn main() {
     let pb = ProgressBar::new(800 * 600);
     pb.set_style(
