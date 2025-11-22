@@ -1,5 +1,5 @@
 use crate::{
-    object::{HitRecord, Object},
+    object::{HitRecord, Node},
     ray::Ray,
     vector::Vector3,
 };
@@ -9,7 +9,7 @@ pub struct Sphere {
     pub radius: f64,
 }
 
-impl Object for Sphere {
+impl Node for Sphere {
     fn hit(&self, ray: &Ray, ray_tmin: f64, ray_tmax: f64) -> Option<HitRecord> {
         let oc = self.center - ray.origin;
         let a = ray.direction.length_squared();

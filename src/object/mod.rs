@@ -24,6 +24,6 @@ impl HitRecord {
     }
 }
 
-pub trait Object {
+pub trait Node {
     fn hit(&self, ray: &Ray, ray_tmin: f64, ray_tmax: f64) -> Option<HitRecord>;
 }

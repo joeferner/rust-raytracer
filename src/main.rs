@@ -5,7 +5,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::{
     color::Color,
-    object::{Object, Sphere},
+    object::{Node, Sphere},
     ray::Ray,
     vector::Vector3,
 };
