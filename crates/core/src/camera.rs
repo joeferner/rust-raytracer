@@ -7,6 +7,8 @@ pub struct Camera {
     pixel00_loc: Vector3,
     pixel_delta_u: Vector3,
     pixel_delta_v: Vector3,
+    /// Maximum number of ray bounces into scene
+    max_depth: u32,
 }
 
 impl Camera {
@@ -40,13 +42,18 @@ impl Camera {
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
+            max_depth: 10,
         }
     }
 
-    fn ray_color(&self, ctx: &RenderContext, ray: Ray, node: &dyn Node) -> Color {
+    fn ray_color(&self, ctx: &RenderContext, ray: Ray, depth: u32, node: &dyn Node) -> Color {
+        if depth == 0 {
+            return Color::BLACK;
+        }
+
         if let Some(rec) = node.hit(&ray, Interval::new(0.0, f64::INFINITY)) {
             let direction = Vector3::random_on_hemisphere(ctx, rec.normal);
-            return 0.5 * self.ray_color(ctx, Ray::new(rec.pt, direction), node);
+            return 0.5 * self.ray_color(ctx, Ray::new(rec.pt, direction), depth - 1, node);
         }
 
         // create a blue gradient sky
@@ -60,7 +67,7 @@ impl Camera {
             self.pixel00_loc + (x as f64 * self.pixel_delta_u) + (y as f64 * self.pixel_delta_v);
         let ray_direction = pixel_center - self.center;
         let r = Ray::new(self.center, ray_direction);
-        self.ray_color(ctx, r, node)
+        self.ray_color(ctx, r, self.max_depth, node)
     }
 
     pub fn image_width(&self) -> u32 {
