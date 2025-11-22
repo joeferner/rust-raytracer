@@ -1,8 +1,10 @@
 use crate::{ray::Ray, vector::Vector3};
 
 pub mod sphere;
+pub mod group;
 
 pub use sphere::Sphere;
+pub use group::Group;
 
 pub struct HitRecord {
     pub pt: Vector3,

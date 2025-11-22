@@ -1,8 +1,14 @@
 use core::f64;
+use std::sync::Arc;
 
 use image;
 use indicatif::{ProgressBar, ProgressStyle};
-use rust_raytracer_core::{color::Color, object::Node, object::Sphere, ray::Ray, vector::Vector3};
+use rust_raytracer_core::{
+    color::Color,
+    object::{Group, Node, Sphere},
+    ray::Ray,
+    vector::Vector3,
+};
 
 fn main() {
     let aspect_ratio: f64 = 16.0 / 9.0;
@@ -10,6 +16,17 @@ fn main() {
 
     let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
     let image_height: u32 = if image_height < 1 { 1 } else { image_height };
+
+    // World
+    let mut group = Group::new();
+    group.push(Arc::new(Sphere {
+        center: Vector3::new(0.0, 0.0, -1.0),
+        radius: 0.5,
+    }));
+    group.push(Arc::new(Sphere {
+        center: Vector3::new(0.0, -100.5, -1.0),
+        radius: 100.0,
+    }));
 
     // Camera
     let focal_length = 1.0;
@@ -53,7 +70,7 @@ fn main() {
                     pixel00_loc + (x as f64 * pixel_delta_u) + (y as f64 * pixel_delta_v);
                 let ray_direction = pixel_center - camera_center;
                 let r = Ray::new(camera_center, ray_direction);
-                let pixel_color = ray_color(r);
+                let pixel_color = ray_color(r, &group);
                 *pixel = color_to_image_rgb(pixel_color);
             }
         }
@@ -64,12 +81,8 @@ fn main() {
     pb.finish_with_message("Done!");
 }
 
-fn ray_color(ray: Ray) -> Color {
-    let sphere = Sphere {
-        center: Vector3::new(0.0, 0.0, -1.0),
-        radius: 0.5,
-    };
-    if let Some(rec) = sphere.hit(&ray, 0.0, f64::INFINITY) {
+fn ray_color(ray: Ray, node: &dyn Node) -> Color {
+    if let Some(rec) = node.hit(&ray, 0.0, f64::INFINITY) {
         let n = (ray.at(rec.t) - Vector3::new(0.0, 0.0, -1.0)).unit();
         return 0.5 * Color::new(n.x + 1.0, n.y + 1.0, n.z + 1.0);
     }
