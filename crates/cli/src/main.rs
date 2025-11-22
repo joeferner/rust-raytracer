@@ -3,10 +3,15 @@ use std::sync::Arc;
 use image;
 use indicatif::{ProgressBar, ProgressStyle};
 use rust_raytracer_core::{
-    Camera, Color, Vector3, object::{Group, Sphere},
+    Camera, Color, Random, RenderContext, Vector3,
+    object::{Group, Sphere},
 };
 
 fn main() {
+    let ctx = RenderContext {
+        random: &RandRandom::new(),
+    };
+
     // World
     let mut group = Group::new();
     group.push(Arc::new(Sphere {
@@ -40,7 +45,7 @@ fn main() {
     for y in 0..img.height() {
         for x in 0..img.width() {
             if let Some(pixel) = img.get_pixel_mut_checked(x, y) {
-                let pixel_color = camera.render(x, y, &group);
+                let pixel_color = camera.render(&ctx, x, y, &group);
                 *pixel = color_to_image_rgb(pixel_color);
             }
         }
@@ -56,4 +61,22 @@ fn color_to_image_rgb(color: Color) -> image::Rgb<u8> {
     let g = (color.g * 255.999) as u8;
     let b = (color.b * 255.999) as u8;
     image::Rgb([r, g, b])
+}
+
+pub struct RandRandom {}
+
+impl RandRandom {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Random for RandRandom {
+    fn rand(&self) -> f64 {
+        rand::random()
+    }
+
+    fn rand_interval(&self, min: f64, max: f64) -> f64 {
+        rand::random_range(min..max)
+    }
 }

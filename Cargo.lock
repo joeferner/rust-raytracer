@@ -834,6 +834,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "indicatif",
+ "rand",
  "rust-raytracer-core",
 ]
 

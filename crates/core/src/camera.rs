@@ -1,4 +1,4 @@
-use crate::{Color, Interval, Ray, Vector3, object::Node};
+use crate::{Color, Interval, Ray, RenderContext, Vector3, object::Node};
 
 pub struct Camera {
     image_width: u32,
@@ -43,23 +43,24 @@ impl Camera {
         }
     }
 
-    fn ray_color(&self, ray: Ray, node: &dyn Node) -> Color {
+    fn ray_color(&self, ctx: &RenderContext, ray: Ray, node: &dyn Node) -> Color {
         if let Some(rec) = node.hit(&ray, Interval::new(0.0, f64::INFINITY)) {
-            let n = (ray.at(rec.t) - Vector3::new(0.0, 0.0, -1.0)).unit();
-            return 0.5 * Color::new(n.x + 1.0, n.y + 1.0, n.z + 1.0);
+            let direction = Vector3::random_on_hemisphere(ctx, rec.normal);
+            return 0.5 * self.ray_color(ctx, Ray::new(rec.pt, direction), node);
         }
 
+        // create a blue gradient sky
         let unit_direction = ray.direction.unit();
         let a = 0.5 * (unit_direction.y + 1.0);
         (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
     }
 
-    pub fn render(&self, x: u32, y: u32, node: &dyn Node) -> Color {
+    pub fn render(&self, ctx: &RenderContext, x: u32, y: u32, node: &dyn Node) -> Color {
         let pixel_center =
             self.pixel00_loc + (x as f64 * self.pixel_delta_u) + (y as f64 * self.pixel_delta_v);
         let ray_direction = pixel_center - self.center;
         let r = Ray::new(self.center, ray_direction);
-        self.ray_color(r, node)
+        self.ray_color(ctx, r, node)
     }
 
     pub fn image_width(&self) -> u32 {

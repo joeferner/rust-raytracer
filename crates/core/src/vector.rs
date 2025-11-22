@@ -3,6 +3,8 @@ use std::{
     ops::{Add, Div, Mul, Neg, Sub},
 };
 
+use crate::RenderContext;
+
 #[derive(Clone, Copy)]
 pub struct Vector3 {
     pub x: f64,
@@ -15,17 +17,37 @@ impl Vector3 {
         Vector3 { x, y, z }
     }
 
-    // pub fn random() -> Self {
-    //     Vector3::new(random_double(), random_double(), random_double())
-    // }
+    pub fn random(ctx: &RenderContext) -> Self {
+        Vector3::new(ctx.random.rand(), ctx.random.rand(), ctx.random.rand())
+    }
 
-    // pub fn random_interval(interval: Interval) -> Self {
-    //     Vector3::new(
-    //         random_double(min, max),
-    //         random_double(min, max),
-    //         random_double(min, max),
-    //     )
-    // }
+    pub fn random_interval(ctx: &RenderContext, min: f64, max: f64) -> Self {
+        Vector3::new(
+            ctx.random.rand_interval(min, max),
+            ctx.random.rand_interval(min, max),
+            ctx.random.rand_interval(min, max),
+        )
+    }
+
+    pub fn random_unit(ctx: &RenderContext) -> Self {
+        loop {
+            let p = Self::random_interval(ctx, -1.0, 1.0);
+            let len_sq = p.length_squared();
+            if 1e-160 < len_sq && len_sq <= 1.0 {
+                return p / len_sq.sqrt();
+            }
+        }
+    }
+
+    pub fn random_on_hemisphere(ctx: &RenderContext, normal: Vector3) -> Self {
+        let on_unit_sphere = Self::random_unit(ctx);
+        // In the same hemisphere as the normal
+        if on_unit_sphere.dot(&normal) > 0.0 {
+            on_unit_sphere
+        } else {
+            -on_unit_sphere
+        }
+    }
 
     pub fn length(&self) -> f64 {
         self.length_squared().sqrt()
