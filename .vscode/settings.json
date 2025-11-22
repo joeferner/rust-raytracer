@@ -1,7 +1,9 @@
 {
     "cSpell.words": [
+        "bindgen",
         "indicatif",
         "raytracer",
+        "serde",
         "tmax",
         "tmin"
     ]

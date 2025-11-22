@@ -15,6 +15,18 @@ impl Vector3 {
         Vector3 { x, y, z }
     }
 
+    // pub fn random() -> Self {
+    //     Vector3::new(random_double(), random_double(), random_double())
+    // }
+
+    // pub fn random_interval(interval: Interval) -> Self {
+    //     Vector3::new(
+    //         random_double(min, max),
+    //         random_double(min, max),
+    //         random_double(min, max),
+    //     )
+    // }
+
     pub fn length(&self) -> f64 {
         self.length_squared().sqrt()
     }

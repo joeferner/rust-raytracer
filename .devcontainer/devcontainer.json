@@ -10,7 +10,8 @@
         "streetsidesoftware.code-spell-checker",
         "rust-lang.rust-analyzer",
         "bierner.markdown-emoji",
-        "ms-vscode.hexeditor"
+        "ms-vscode.hexeditor",
+        "ritwickdey.liveserver"
       ]
     }
   }
