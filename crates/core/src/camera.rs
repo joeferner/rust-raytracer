@@ -51,7 +51,12 @@ impl Camera {
             return Color::BLACK;
         }
 
-        if let Some(rec) = node.hit(&ray, Interval::new(0.0, f64::INFINITY)) {
+        // The previous intersection might be just above the surface or might be just below the surface.
+        // If the ray's origin is just below the surface then it could intersect with that surface again.
+        // Which means that it will find the nearest surface at t=0.00000001 or whatever floating point
+        // approximation the hit function gives us. To address this raise the ray just a little bit off
+        // the surface.
+        if let Some(rec) = node.hit(&ray, Interval::new(0.00001, f64::INFINITY)) {
             let direction = Vector3::random_on_hemisphere(ctx, rec.normal);
             return 0.5 * self.ray_color(ctx, Ray::new(rec.pt, direction), depth - 1, node);
         }
