@@ -8,6 +8,9 @@ use rust_raytracer_core::{
 };
 
 fn main() {
+    let aspect_ratio = 16.0 / 9.0;
+    let image_height = 400;
+
     let ctx = RenderContext {
         random: &RandRandom::new(),
     };
@@ -24,7 +27,7 @@ fn main() {
     }));
 
     // Camera
-    let camera = Camera::new(16.0 / 9.0, 400);
+    let camera = Camera::new(aspect_ratio, image_height);
 
     // Setup progress bar
     let pb = ProgressBar::new(camera.image_height() as u64);

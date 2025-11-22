@@ -57,7 +57,7 @@ impl Camera {
         // approximation the hit function gives us. To address this raise the ray just a little bit off
         // the surface.
         if let Some(rec) = node.hit(&ray, Interval::new(0.00001, f64::INFINITY)) {
-            let direction = Vector3::random_on_hemisphere(ctx, rec.normal);
+            let direction = rec.normal + Vector3::random_unit(ctx);
             return 0.5 * self.ray_color(ctx, Ray::new(rec.pt, direction), depth - 1, node);
         }
 
@@ -72,7 +72,7 @@ impl Camera {
             self.pixel00_loc + (x as f64 * self.pixel_delta_u) + (y as f64 * self.pixel_delta_v);
         let ray_direction = pixel_center - self.center;
         let r = Ray::new(self.center, ray_direction);
-        self.ray_color(ctx, r, self.max_depth, node)
+        self.ray_color(ctx, r, self.max_depth, node).linear_to_gamma()
     }
 
     pub fn image_width(&self) -> u32 {

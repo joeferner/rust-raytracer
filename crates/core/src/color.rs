@@ -13,6 +13,18 @@ impl Color {
     pub const fn new(r: f64, g: f64, b: f64) -> Self {
         Self { r, g, b }
     }
+
+    pub fn linear_to_gamma(&self) -> Self {
+        Self {
+            r: linear_to_gamma(self.r).clamp(0.0, 0.999),
+            g: linear_to_gamma(self.g).clamp(0.0, 0.999),
+            b: linear_to_gamma(self.b).clamp(0.0, 0.999),
+        }
+    }
+}
+
+fn linear_to_gamma(v: f64) -> f64 {
+    if v > 0.0 { v.sqrt() } else { 0.0 }
 }
 
 impl Mul<f64> for Color {
