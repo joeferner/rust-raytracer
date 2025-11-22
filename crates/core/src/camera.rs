@@ -1,0 +1,72 @@
+use crate::{Color, Interval, Ray, Vector3, object::Node};
+
+pub struct Camera {
+    image_width: u32,
+    image_height: u32,
+    center: Vector3,
+    pixel00_loc: Vector3,
+    pixel_delta_u: Vector3,
+    pixel_delta_v: Vector3,
+}
+
+impl Camera {
+    pub fn new(aspect_ratio: f64, image_width: u32) -> Self {
+        let center = Vector3::new(0.0, 0.0, 0.0);
+
+        let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
+        let image_height: u32 = if image_height < 1 { 1 } else { image_height };
+
+        let focal_length = 1.0;
+        let viewport_height: f64 = 2.0;
+        let viewport_width: f64 = viewport_height * (image_width as f64 / image_height as f64);
+
+        // Calculate the vectors across the horizontal and down the vertical viewport edges.
+        let viewport_u = Vector3::new(viewport_width, 0.0, 0.0);
+        let viewport_v = Vector3::new(0.0, -viewport_height, 0.0);
+
+        // Calculate the horizontal and vertical delta vectors from pixel to pixel.
+        let pixel_delta_u = viewport_u / image_width as f64;
+        let pixel_delta_v = viewport_v / image_height as f64;
+
+        // Calculate the location of the upper left pixel.
+        let viewport_upper_left =
+            center - Vector3::new(0.0, 0.0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
+        let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+        Self {
+            image_width,
+            image_height,
+            center,
+            pixel00_loc,
+            pixel_delta_u,
+            pixel_delta_v,
+        }
+    }
+
+    fn ray_color(&self, ray: Ray, node: &dyn Node) -> Color {
+        if let Some(rec) = node.hit(&ray, Interval::new(0.0, f64::INFINITY)) {
+            let n = (ray.at(rec.t) - Vector3::new(0.0, 0.0, -1.0)).unit();
+            return 0.5 * Color::new(n.x + 1.0, n.y + 1.0, n.z + 1.0);
+        }
+
+        let unit_direction = ray.direction.unit();
+        let a = 0.5 * (unit_direction.y + 1.0);
+        (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
+    }
+
+    pub fn render(&self, x: u32, y: u32, node: &dyn Node) -> Color {
+        let pixel_center =
+            self.pixel00_loc + (x as f64 * self.pixel_delta_u) + (y as f64 * self.pixel_delta_v);
+        let ray_direction = pixel_center - self.center;
+        let r = Ray::new(self.center, ray_direction);
+        self.ray_color(r, node)
+    }
+
+    pub fn image_width(&self) -> u32 {
+        self.image_width
+    }
+
+    pub fn image_height(&self) -> u32 {
+        self.image_height
+    }
+}
