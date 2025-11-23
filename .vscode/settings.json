@@ -4,6 +4,7 @@
         "indicatif",
         "lambertian",
         "raytracer",
+        "Schlick's",
         "serde",
         "tmax",
         "tmin"

@@ -15,10 +15,17 @@ impl Refractive {
     pub fn new(refraction_index: f64) -> Self {
         Self { refraction_index }
     }
+
+    /// Use Schlick's approximation for reflectance.
+    fn reflectance(&self, cosine: f64, refraction_index: f64) -> f64 {
+        let r0 = (1.0 - refraction_index) / (1.0 + refraction_index);
+        let r0 = r0 * r0;
+        r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+    }
 }
 
 impl Material for Refractive {
-    fn scatter(&self, _ctx: &RenderContext, r_in: &Ray, hit: &HitRecord) -> Option<ScatterResult> {
+    fn scatter(&self, ctx: &RenderContext, r_in: &Ray, hit: &HitRecord) -> Option<ScatterResult> {
         let ri = if hit.front_face {
             1.0 / self.refraction_index
         } else {
@@ -30,7 +37,7 @@ impl Material for Refractive {
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
 
         let cannot_refract = ri * sin_theta > 1.0;
-        let direction = if cannot_refract {
+        let direction = if cannot_refract || self.reflectance(cos_theta, ri) > ctx.random.rand() {
             unit_direction.reflect(hit.normal)
         } else {
             unit_direction.refract(hit.normal, ri)
