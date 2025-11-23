@@ -1,5 +1,70 @@
 use crate::{Color, Interval, Ray, RenderContext, Vector3, object::Node};
 
+#[derive(Debug)]
+pub struct CameraBuilder {
+    // Vertical view angle (field of view)
+    pub vertical_fov: f64,
+    pub aspect_ratio: f64,
+    pub image_width: u32,
+}
+
+impl CameraBuilder {
+    pub fn new() -> Self {
+        CameraBuilder {
+            vertical_fov: 90.0,
+            aspect_ratio: 16.0 / 9.0,
+            image_width: 600,
+        }
+    }
+
+    pub fn build(&self) -> Camera {
+        let vertical_fov: f64 = 90.0;
+        let center = Vector3::new(0.0, 0.0, 0.0);
+
+        let image_height: u32 = (self.image_width as f64 / self.aspect_ratio) as u32;
+        let image_height: u32 = if image_height < 1 { 1 } else { image_height };
+
+        let focal_length = 1.0;
+        let theta = vertical_fov.to_radians();
+        let h = (theta / 2.0).tan();
+        let viewport_height = 2.0 * h * focal_length;
+        let viewport_width: f64 = viewport_height * (self.image_width as f64 / image_height as f64);
+
+        // Calculate the vectors across the horizontal and down the vertical viewport edges.
+        let viewport_u = Vector3::new(viewport_width, 0.0, 0.0);
+        let viewport_v = Vector3::new(0.0, -viewport_height, 0.0);
+
+        // Calculate the horizontal and vertical delta vectors from pixel to pixel.
+        let pixel_delta_u = viewport_u / self.image_width as f64;
+        let pixel_delta_v = viewport_v / image_height as f64;
+
+        // Calculate the location of the upper left pixel.
+        let viewport_upper_left =
+            center - Vector3::new(0.0, 0.0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
+        let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+        let samples_per_pixel = 10.0;
+
+        Camera {
+            image_width: self.image_width,
+            image_height,
+            center,
+            pixel00_loc,
+            pixel_delta_u,
+            pixel_delta_v,
+            max_depth: 10,
+            samples_per_pixel: samples_per_pixel as u32,
+            pixel_samples_scale: 1.0 / samples_per_pixel,
+        }
+    }
+}
+
+impl Default for CameraBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct Camera {
     image_width: u32,
     image_height: u32,
@@ -16,44 +81,6 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: u32) -> Self {
-        let center = Vector3::new(0.0, 0.0, 0.0);
-
-        let image_height: u32 = (image_width as f64 / aspect_ratio) as u32;
-        let image_height: u32 = if image_height < 1 { 1 } else { image_height };
-
-        let focal_length = 1.0;
-        let viewport_height: f64 = 2.0;
-        let viewport_width: f64 = viewport_height * (image_width as f64 / image_height as f64);
-
-        // Calculate the vectors across the horizontal and down the vertical viewport edges.
-        let viewport_u = Vector3::new(viewport_width, 0.0, 0.0);
-        let viewport_v = Vector3::new(0.0, -viewport_height, 0.0);
-
-        // Calculate the horizontal and vertical delta vectors from pixel to pixel.
-        let pixel_delta_u = viewport_u / image_width as f64;
-        let pixel_delta_v = viewport_v / image_height as f64;
-
-        // Calculate the location of the upper left pixel.
-        let viewport_upper_left =
-            center - Vector3::new(0.0, 0.0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
-        let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
-
-        let samples_per_pixel = 10.0;
-
-        Self {
-            image_width,
-            image_height,
-            center,
-            pixel00_loc,
-            pixel_delta_u,
-            pixel_delta_v,
-            max_depth: 10,
-            samples_per_pixel: samples_per_pixel as u32,
-            pixel_samples_scale: 1.0 / samples_per_pixel,
-        }
-    }
-
     #[allow(clippy::only_used_in_recursion)]
     fn ray_color(&self, ctx: &RenderContext, ray: Ray, depth: u32, node: &dyn Node) -> Color {
         if depth == 0 {

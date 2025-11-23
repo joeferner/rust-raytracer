@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use rust_raytracer_core::{
-    Camera, Color, Random, RenderContext, Vector3,
+    Color, Random, RenderContext, Vector3,
+    camera::CameraBuilder,
     material::{Lambertian, Metal},
     object::{Group, Sphere},
 };
@@ -43,7 +44,10 @@ pub fn render(aspect_ratio: f64, image_width: u32, x: u32, y: u32) -> Result<JsV
     }));
 
     // Camera
-    let camera = Camera::new(aspect_ratio, image_width);
+    let mut camera_builder = CameraBuilder::new();
+    camera_builder.aspect_ratio = aspect_ratio;
+    camera_builder.image_width = image_width;
+    let camera = camera_builder.build();
 
     let pixel_color = camera.render(&ctx, x, y, &group);
     let color = WasmColor::from(pixel_color);

@@ -2,15 +2,13 @@ use std::sync::Arc;
 
 use indicatif::{ProgressBar, ProgressStyle};
 use rust_raytracer_core::{
-    Camera, Color, Random, RenderContext, Vector3,
+    Color, Random, RenderContext, Vector3,
+    camera::CameraBuilder,
     material::{Lambertian, Metal, Refractive},
     object::{Group, Sphere},
 };
 
 fn main() {
-    let aspect_ratio = 16.0 / 9.0;
-    let image_height = 600;
-
     let ctx = RenderContext {
         random: &RandRandom::new(),
     };
@@ -50,7 +48,7 @@ fn main() {
     }));
 
     // Camera
-    let camera = Camera::new(aspect_ratio, image_height);
+    let camera = CameraBuilder::new().build();
 
     // Setup progress bar
     let pb = ProgressBar::new(camera.image_height() as u64);
