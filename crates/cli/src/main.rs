@@ -48,7 +48,12 @@ fn main() {
     }));
 
     // Camera
-    let camera = CameraBuilder::new().build();
+    let mut camera_builder = CameraBuilder::new();
+    camera_builder.look_from = Vector3::new(-2.0, 2.0, 1.0);
+    camera_builder.look_at = Vector3::new(0.0, 0.0, -1.0);
+    camera_builder.up = Vector3::new(0.0, 1.0, 0.0);
+    camera_builder.vertical_fov = 20.0;
+    let camera = camera_builder.build();
 
     // Setup progress bar
     let pb = ProgressBar::new(camera.image_height() as u64);
