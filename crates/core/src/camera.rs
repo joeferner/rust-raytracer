@@ -19,6 +19,8 @@ pub struct CameraBuilder {
     // Distance from camera look_from point to plane of perfect focus
     pub focus_distance: f64,
     pub samples_per_pixel: u32,
+    /// Maximum number of ray bounces into scene
+    pub max_depth: u32,
 }
 
 impl CameraBuilder {
@@ -33,6 +35,7 @@ impl CameraBuilder {
             defocus_angle: 0.0,
             focus_distance: 10.0,
             samples_per_pixel: 10,
+            max_depth: 10,
         }
     }
 
@@ -77,7 +80,7 @@ impl CameraBuilder {
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
-            max_depth: 10,
+            max_depth: self.max_depth,
             samples_per_pixel: self.samples_per_pixel,
             pixel_samples_scale: 1.0 / self.samples_per_pixel as f64,
             defocus_angle: self.defocus_angle,
@@ -107,7 +110,7 @@ pub struct Camera {
     /// Color scale factor for a sum of pixel samples
     pixel_samples_scale: f64,
     /// Variation angle of rays through each pixel (degrees)
-    pub defocus_angle: f64,
+    defocus_angle: f64,
     /// Defocus disk horizontal radius
     defocus_disk_u: Vector3,
     /// Defocus disk vertical radius

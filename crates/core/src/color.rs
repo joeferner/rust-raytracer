@@ -1,5 +1,7 @@
 use std::ops::{Add, AddAssign, Mul};
 
+use crate::Random;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Color {
     pub r: f64,
@@ -13,6 +15,22 @@ impl Color {
 
     pub const fn new(r: f64, g: f64, b: f64) -> Self {
         Self { r, g, b }
+    }
+
+    pub fn random(random: &dyn Random) -> Self {
+        Self {
+            r: random.rand(),
+            g: random.rand(),
+            b: random.rand(),
+        }
+    }
+
+    pub fn random_interval(random: &dyn Random, from: f64, to: f64) -> Self {
+        Self {
+            r: random.rand_interval(from, to),
+            g: random.rand_interval(from, to),
+            b: random.rand_interval(from, to),
+        }
     }
 
     pub fn linear_to_gamma(&self) -> Self {
