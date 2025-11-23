@@ -3,7 +3,7 @@ use std::sync::Arc;
 use indicatif::{ProgressBar, ProgressStyle};
 use rust_raytracer_core::{
     Camera, Color, Random, RenderContext, Vector3,
-    material::{Lambertian, Metal},
+    material::{Lambertian, Metal, Refractive},
     object::{Group, Sphere},
 };
 
@@ -17,7 +17,7 @@ fn main() {
 
     let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
     let material_center = Arc::new(Lambertian::new(Color::new(0.1, 0.2, 0.5)));
-    let material_left = Arc::new(Metal::new(Color::new(0.8, 0.8, 0.8), 0.3));
+    let material_left = Arc::new(Refractive::new(1.5));
     let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 1.0));
 
     // World
