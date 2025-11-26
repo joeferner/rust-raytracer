@@ -1,21 +1,35 @@
 use std::sync::Arc;
 
 use crate::{
-    Interval,
+    AxisAlignedBoundingBox, Interval,
     object::{HitRecord, Node},
 };
 
 pub struct Group {
     nodes: Vec<Arc<dyn Node>>,
+    bbox: AxisAlignedBoundingBox,
 }
 
 impl Group {
     pub fn new() -> Self {
-        Self { nodes: vec![] }
+        Self {
+            nodes: vec![],
+            bbox: AxisAlignedBoundingBox::new(),
+        }
+    }
+
+    pub fn from_list(nodes: &[Arc<dyn Node>]) -> Self {
+        let mut results = Self::new();
+        for node in nodes {
+            results.push(node.clone());
+        }
+        results
     }
 
     pub fn push(&mut self, node: Arc<dyn Node>) {
+        let node_bbox = *node.bounding_box();
         self.nodes.push(node);
+        self.bbox = AxisAlignedBoundingBox::new_from_bbox(self.bbox, node_bbox);
     }
 }
 
@@ -36,5 +50,9 @@ impl Node for Group {
             }
         }
         closest_hit
+    }
+
+    fn bounding_box(&self) -> &AxisAlignedBoundingBox {
+        &self.bbox
     }
 }

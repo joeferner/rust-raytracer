@@ -3,7 +3,7 @@ use std::{
     ops::{Add, Div, Mul, Neg, Sub},
 };
 
-use crate::Random;
+use crate::{Axis, Random};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vector3 {
@@ -108,6 +108,14 @@ impl Vector3 {
         let r_out_perp = etai_over_etat * (*self + cos_theta * n);
         let r_out_parallel = -((1.0 - r_out_perp.length_squared()).abs()).sqrt() * n;
         r_out_perp + r_out_parallel
+    }
+
+    pub fn axis_value(&self, axis: Axis) -> f64 {
+        match axis {
+            Axis::X => self.x,
+            Axis::Y => self.y,
+            Axis::Z => self.z,
+        }
     }
 }
 

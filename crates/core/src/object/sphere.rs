@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    Interval, Vector3,
+    AxisAlignedBoundingBox, Interval, Vector3,
     material::Material,
     object::{HitRecord, Node},
     ray::Ray,
@@ -9,9 +9,40 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Sphere {
-    pub center: Ray,
-    pub radius: f64,
+    center: Ray,
+    radius: f64,
     pub material: Arc<dyn Material>,
+    bbox: AxisAlignedBoundingBox,
+}
+
+impl Sphere {
+    pub fn new(center: Vector3, radius: f64, material: Arc<dyn Material>) -> Self {
+        let radius_vec = Vector3::new(radius, radius, radius);
+        Self {
+            center: Ray::new(center, Vector3::ZERO),
+            radius,
+            material,
+            bbox: AxisAlignedBoundingBox::new_from_points(center - radius_vec, center + radius_vec),
+        }
+    }
+
+    pub fn set_direction(&mut self, direction: Vector3) {
+        self.center = Ray::new(self.center.origin, direction);
+        self.update_bbox();
+    }
+
+    fn update_bbox(&mut self) {
+        let rvec = Vector3::new(self.radius, self.radius, self.radius);
+        let box1 = AxisAlignedBoundingBox::new_from_points(
+            self.center.at(0.0) - rvec,
+            self.center.at(0.0) + rvec,
+        );
+        let box2 = AxisAlignedBoundingBox::new_from_points(
+            self.center.at(1.0) - rvec,
+            self.center.at(1.0) + rvec,
+        );
+        self.bbox = AxisAlignedBoundingBox::new_from_bbox(box1, box2);
+    }
 }
 
 impl Node for Sphere {
@@ -50,5 +81,9 @@ impl Node for Sphere {
         rec.set_face_normal(ray, outward_normal);
 
         Some(rec)
+    }
+
+    fn bounding_box(&self) -> &AxisAlignedBoundingBox {
+        &self.bbox
     }
 }

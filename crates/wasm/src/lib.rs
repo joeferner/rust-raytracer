@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rust_raytracer_core::{
-    Color, Random, Ray, RenderContext, Vector3,
+    Color, Random, RenderContext, Vector3,
     camera::CameraBuilder,
     material::{Lambertian, Metal},
     object::{Group, Sphere},
@@ -22,26 +22,26 @@ pub fn render(aspect_ratio: f64, image_width: u32, x: u32, y: u32) -> Result<JsV
 
     // World
     let mut group = Group::new();
-    group.push(Arc::new(Sphere {
-        center: Ray::new(Vector3::new(0.0, -100.5, -1.0), Vector3::ZERO),
-        radius: 100.0,
-        material: material_ground,
-    }));
-    group.push(Arc::new(Sphere {
-        center: Ray::new(Vector3::new(0.0, 0.0, -1.2), Vector3::ZERO),
-        radius: 0.5,
-        material: material_center,
-    }));
-    group.push(Arc::new(Sphere {
-        center: Ray::new(Vector3::new(-1.0, 0.0, -1.0), Vector3::ZERO),
-        radius: 0.5,
-        material: material_left,
-    }));
-    group.push(Arc::new(Sphere {
-        center: Ray::new(Vector3::new(1.0, 0.0, -1.0), Vector3::ZERO),
-        radius: 0.5,
-        material: material_right,
-    }));
+    group.push(Arc::new(Sphere::new(
+        Vector3::new(0.0, -100.5, -1.0),
+        100.0,
+        material_ground,
+    )));
+    group.push(Arc::new(Sphere::new(
+        Vector3::new(0.0, 0.0, -1.2),
+        0.5,
+        material_center,
+    )));
+    group.push(Arc::new(Sphere::new(
+        Vector3::new(-1.0, 0.0, -1.0),
+        0.5,
+        material_left,
+    )));
+    group.push(Arc::new(Sphere::new(
+        Vector3::new(1.0, 0.0, -1.0),
+        0.5,
+        material_right,
+    )));
 
     // Camera
     let mut camera_builder = CameraBuilder::new();
@@ -77,6 +77,11 @@ impl Random for WasmRandom {
     fn rand_interval(&self, min: f64, max: f64) -> f64 {
         let delta = max - min;
         (random() * delta) + min
+    }
+
+    fn rand_int_interval(&self, min: i64, max: i64) -> i64 {
+        let delta = max - min + 1; // inclusive range
+        (self.rand() * delta as f64).floor() as i64 + min
     }
 }
 
