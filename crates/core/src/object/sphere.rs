@@ -75,6 +75,8 @@ impl Node for Sphere {
             pt,
             normal: Vector3::ZERO, // set by set_face_normal
             t,
+            u: 0.0,
+            v: 0.0,
             front_face: false,
             material: self.material.clone(),
         };

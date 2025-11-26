@@ -6,6 +6,7 @@ pub mod material;
 pub mod object;
 pub mod random;
 pub mod ray;
+pub mod texture;
 pub mod vector;
 
 pub use axis_aligned_bounding_box::AxisAlignedBoundingBox;
