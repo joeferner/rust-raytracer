@@ -1,4 +1,4 @@
-pub trait Random {
+pub trait Random: Send + Sync {
     fn rand(&self) -> f64;
     fn rand_int_interval(&self, min: i64, max: i64) -> i64;
     fn rand_interval(&self, min: f64, max: f64) -> f64;

@@ -1,14 +1,20 @@
 #![allow(clippy::vec_init_then_push)]
-use std::{env, sync::Arc};
+
+pub mod scene;
+
+use std::{
+    env,
+    sync::{Arc, Mutex, mpsc},
+    thread,
+};
 
 use indicatif::{ProgressBar, ProgressStyle};
-use rust_raytracer_core::{
-    Camera, Color, RenderContext, Vector3,
-    camera::CameraBuilder,
-    material::{Lambertian, Metal, Refractive},
-    object::{BoundingVolumeHierarchy, Node, Sphere},
-    random_new,
-};
+use rust_raytracer_core::{Camera, Color, RenderContext, object::Node, random_new};
+use scene::Scene;
+
+use crate::scene::get_scene;
+
+const BLOCK_SIZE: u32 = 10;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -31,8 +37,40 @@ fn main() {
 
     let (camera, world) = get_scene(&ctx, scene);
 
+    // render image
+    let mut img: image::ImageBuffer<
+        image::Rgb<u8>,
+        Vec<<image::Rgb<u8> as image::Pixel>::Subpixel>,
+    > = image::ImageBuffer::new(camera.image_width(), camera.image_height());
+
+    // generate work
+    let mut work: Vec<Work> = vec![];
+    let mut y = 0;
+    loop {
+        let mut x = 0;
+        loop {
+            work.push(Work {
+                camera: camera.clone(),
+                world: world.clone(),
+                xmin: x,
+                xmax: (x + BLOCK_SIZE).min(img.width()),
+                ymin: y,
+                ymax: (y + BLOCK_SIZE).min(img.height()),
+            });
+            if x > img.width() {
+                break;
+            }
+            x += BLOCK_SIZE;
+        }
+        if y > img.height() {
+            break;
+        }
+        y += BLOCK_SIZE;
+    }
+    let work_count = work.len();
+
     // Setup progress bar
-    let pb = ProgressBar::new(camera.image_height() as u64);
+    let pb = ProgressBar::new(work_count as u64);
     pb.set_style(
         ProgressStyle::default_bar()
             .template(
@@ -41,20 +79,62 @@ fn main() {
             .unwrap(),
     );
 
-    // render image
-    let mut img: image::ImageBuffer<
-        image::Rgb<u8>,
-        Vec<<image::Rgb<u8> as image::Pixel>::Subpixel>,
-    > = image::ImageBuffer::new(camera.image_width(), camera.image_height());
+    // start work
+    let threads = num_cpus::get();
+    let work = Arc::new(Mutex::new(work));
+    let (results_send, results_recv) = mpsc::channel();
+    let mut handles = Vec::with_capacity(threads);
+    for _ in 0..threads {
+        let work = work.clone();
+        let results_send = results_send.clone();
+        handles.push(thread::spawn(move || {
+            let ctx = RenderContext {
+                random: &random_new(),
+            };
+            loop {
+                let item = { work.lock().unwrap().pop() };
+                match item {
+                    Some(item) => {
+                        let mut pixels = vec![];
+                        for y in item.ymin..item.ymax {
+                            for x in item.xmin..item.xmax {
+                                let pixel_color = item.camera.render(&ctx, x, y, &*item.world);
+                                pixels.push(pixel_color);
+                            }
+                        }
+                        results_send
+                            .send(WorkResult {
+                                xmin: item.xmin,
+                                xmax: item.xmax,
+                                ymin: item.ymin,
+                                ymax: item.ymax,
+                                pixels,
+                            })
+                            .unwrap();
+                    }
+                    None => break,
+                }
+            }
+        }));
+    }
 
-    for y in 0..img.height() {
-        for x in 0..img.width() {
-            if let Some(pixel) = img.get_pixel_mut_checked(x, y) {
-                let pixel_color = camera.render(&ctx, x, y, &*world);
-                *pixel = color_to_image_rgb(pixel_color);
+    for _ in 0..work_count {
+        let result = results_recv.recv().unwrap();
+        let mut i = 0;
+        for y in result.ymin..result.ymax {
+            for x in result.xmin..result.xmax {
+                if let Some(pixel) = img.get_pixel_mut_checked(x, y) {
+                    let pixel_color = result.pixels[i];
+                    *pixel = color_to_image_rgb(pixel_color);
+                    i += 1;
+                }
             }
         }
         pb.inc(1);
+    }
+
+    for h in handles {
+        h.join().unwrap();
     }
 
     img.save("../../target/out.png").unwrap();
@@ -68,151 +148,19 @@ fn color_to_image_rgb(color: Color) -> image::Rgb<u8> {
     image::Rgb([r, g, b])
 }
 
-enum Scene {
-    ThreeSpheres,
-    RandomSpheres,
+pub struct Work {
+    pub camera: Arc<Camera>,
+    pub world: Arc<dyn Node>,
+    pub xmin: u32,
+    pub xmax: u32,
+    pub ymin: u32,
+    pub ymax: u32,
 }
 
-fn get_scene(ctx: &RenderContext, scene: Scene) -> (Camera, Arc<dyn Node>) {
-    match scene {
-        Scene::ThreeSpheres => get_scene_three_spheres(ctx),
-        Scene::RandomSpheres => get_scene_random_spheres(ctx),
-    }
-}
-
-fn get_scene_three_spheres(_ctx: &RenderContext) -> (Camera, Arc<dyn Node>) {
-    let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
-    let material_center = Arc::new(Lambertian::new(Color::new(0.1, 0.2, 0.5)));
-    let material_left = Arc::new(Refractive::new(1.5));
-    let material_bubble = Arc::new(Refractive::new(1.0 / 1.5));
-    let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 1.0));
-
-    // World
-    let mut world: Vec<Arc<dyn Node>> = vec![];
-
-    world.push(Arc::new(Sphere::new(
-        Vector3::new(0.0, -100.5, -1.0),
-        100.0,
-        material_ground,
-    )));
-    world.push(Arc::new(Sphere::new(
-        Vector3::new(0.0, 0.0, -1.2),
-        0.5,
-        material_center,
-    )));
-    world.push(Arc::new(Sphere::new(
-        Vector3::new(-1.0, 0.0, -1.0),
-        0.5,
-        material_left,
-    )));
-    world.push(Arc::new(Sphere::new(
-        Vector3::new(-1.0, 0.0, -1.0),
-        0.4,
-        material_bubble,
-    )));
-    world.push(Arc::new(Sphere::new(
-        Vector3::new(1.0, 0.0, -1.0),
-        0.5,
-        material_right,
-    )));
-
-    let world = Arc::new(BoundingVolumeHierarchy::new(&world));
-
-    // Camera
-    let mut camera_builder = CameraBuilder::new();
-    camera_builder.aspect_ratio = 16.0 / 9.0;
-    camera_builder.image_width = 300;
-    camera_builder.samples_per_pixel = 50;
-    camera_builder.max_depth = 50;
-    camera_builder.defocus_angle = 0.6;
-    camera_builder.focus_distance = 1.0;
-    let camera = camera_builder.build();
-
-    (camera, world)
-}
-
-fn get_scene_random_spheres(ctx: &RenderContext) -> (Camera, Arc<dyn Node>) {
-    let mut world: Vec<Arc<dyn Node>> = vec![];
-
-    let ground_material = Arc::new(Lambertian::new(Color::new(0.5, 0.5, 0.5)));
-    world.push(Arc::new(Sphere::new(
-        Vector3::new(0.0, -1000.0, 0.0),
-        1000.0,
-        ground_material,
-    )));
-
-    for a in -11..11 {
-        for b in -11..11 {
-            let choose_mat = ctx.random.rand();
-            let center = Vector3::new(
-                a as f64 + 0.9 * ctx.random.rand(),
-                0.2,
-                b as f64 + 0.9 * ctx.random.rand(),
-            );
-
-            if (center - Vector3::new(4.0, 0.2, 0.0)).length() > 0.9 {
-                if choose_mat < 0.8 {
-                    // diffuse
-                    let albedo = Color::random(ctx.random) * Color::random(ctx.random);
-                    let sphere_material = Arc::new(Lambertian::new(albedo));
-                    let mut sphere = Sphere::new(center, 0.2, sphere_material);
-                    sphere.set_direction(Vector3::new(
-                        0.0,
-                        ctx.random.rand_interval(0.0, 0.5),
-                        0.0,
-                    ));
-                    world.push(Arc::new(sphere));
-                } else if choose_mat < 0.95 {
-                    // metal
-                    let albedo = Color::random_interval(ctx.random, 0.5, 1.0);
-                    let fuzz = ctx.random.rand_interval(0.0, 0.5);
-                    let sphere_material = Arc::new(Metal::new(albedo, fuzz));
-                    world.push(Arc::new(Sphere::new(center, 0.2, sphere_material)));
-                } else {
-                    // glass
-                    let sphere_material = Arc::new(Refractive::new(1.5));
-                    world.push(Arc::new(Sphere::new(center, 0.2, sphere_material)));
-                }
-            }
-        }
-    }
-
-    let material1 = Arc::new(Refractive::new(1.5));
-    world.push(Arc::new(Sphere::new(
-        Vector3::new(0.0, 1.0, 0.0),
-        1.0,
-        material1,
-    )));
-
-    let material2 = Arc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
-    world.push(Arc::new(Sphere::new(
-        Vector3::new(-4.0, 1.0, 0.0),
-        1.0,
-        material2,
-    )));
-
-    let material3 = Arc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
-    world.push(Arc::new(Sphere::new(
-        Vector3::new(4.0, 1.0, 0.0),
-        1.0,
-        material3,
-    )));
-
-    let world = Arc::new(BoundingVolumeHierarchy::new(&world));
-
-    // Camera
-    let mut camera_builder = CameraBuilder::new();
-    camera_builder.aspect_ratio = 16.0 / 9.0;
-    camera_builder.image_width = 300;
-    camera_builder.samples_per_pixel = 10;
-    camera_builder.max_depth = 50;
-    camera_builder.vertical_fov = 20.0;
-    camera_builder.look_from = Vector3::new(13.0, 2.0, 3.0);
-    camera_builder.look_at = Vector3::new(0.0, 0.0, 0.0);
-    camera_builder.up = Vector3::new(0.0, 1.0, 0.0);
-    camera_builder.defocus_angle = 0.6;
-    camera_builder.focus_distance = 10.0;
-    let camera = camera_builder.build();
-
-    (camera, world)
+pub struct WorkResult {
+    pub xmin: u32,
+    pub xmax: u32,
+    pub ymin: u32,
+    pub ymax: u32,
+    pub pixels: Vec<Color>,
 }
