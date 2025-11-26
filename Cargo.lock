@@ -834,13 +834,16 @@ version = "0.1.0"
 dependencies = [
  "image",
  "indicatif",
- "rand",
  "rust-raytracer-core",
 ]
 
 [[package]]
 name = "rust-raytracer-core"
 version = "0.1.0"
+dependencies = [
+ "rand",
+ "wasm-bindgen",
+]
 
 [[package]]
 name = "rust-raytracer-wasm"

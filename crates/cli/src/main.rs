@@ -2,15 +2,16 @@ use std::sync::Arc;
 
 use indicatif::{ProgressBar, ProgressStyle};
 use rust_raytracer_core::{
-    Color, Random, RenderContext, Vector3,
+    Color, RenderContext, Vector3,
     camera::CameraBuilder,
     material::{Lambertian, Metal, Refractive},
     object::{BoundingVolumeHierarchy, Node, Sphere},
+    random_new,
 };
 
 fn main() {
     let ctx = RenderContext {
-        random: &RandRandom::new(),
+        random: &random_new(),
     };
 
     let mut world: Vec<Arc<dyn Node>> = vec![];
@@ -164,26 +165,4 @@ fn color_to_image_rgb(color: Color) -> image::Rgb<u8> {
     let g = (color.g * 255.999) as u8;
     let b = (color.b * 255.999) as u8;
     image::Rgb([r, g, b])
-}
-
-pub struct RandRandom {}
-
-impl RandRandom {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Random for RandRandom {
-    fn rand(&self) -> f64 {
-        rand::random()
-    }
-
-    fn rand_interval(&self, min: f64, max: f64) -> f64 {
-        rand::random_range(min..max)
-    }
-
-    fn rand_int_interval(&self, min: i64, max: i64) -> i64 {
-        rand::random_range(min..max)
-    }
 }

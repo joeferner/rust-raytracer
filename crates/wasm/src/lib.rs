@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use rust_raytracer_core::{
-    Color, Random, RenderContext, Vector3,
+    Color, RenderContext, Vector3,
     camera::CameraBuilder,
     material::{Lambertian, Metal},
     object::{Group, Sphere},
+    random_new,
 };
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
@@ -12,7 +13,7 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub fn render(aspect_ratio: f64, image_width: u32, x: u32, y: u32) -> Result<JsValue, JsValue> {
     let ctx = RenderContext {
-        random: &WasmRandom::new(),
+        random: &random_new(),
     };
 
     let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
@@ -53,36 +54,6 @@ pub fn render(aspect_ratio: f64, image_width: u32, x: u32, y: u32) -> Result<JsV
     let color = WasmColor::from(pixel_color);
 
     serde_wasm_bindgen::to_value(&color).map_err(|e| JsValue::from_str(&format!("{}", e)))
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = Math)]
-    fn random() -> f64;
-}
-
-pub struct WasmRandom {}
-
-impl WasmRandom {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Random for WasmRandom {
-    fn rand(&self) -> f64 {
-        random()
-    }
-
-    fn rand_interval(&self, min: f64, max: f64) -> f64 {
-        let delta = max - min;
-        (random() * delta) + min
-    }
-
-    fn rand_int_interval(&self, min: i64, max: i64) -> i64 {
-        let delta = max - min + 1; // inclusive range
-        (self.rand() * delta as f64).floor() as i64 + min
-    }
 }
 
 #[derive(Serialize)]
