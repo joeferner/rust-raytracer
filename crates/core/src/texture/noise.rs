@@ -53,6 +53,11 @@ impl Perlin {
         let v = pt.y - pt.y.floor();
         let w = pt.z - pt.z.floor();
 
+        // Hermitian Smoothing
+        let u = u * u * (3.0 - 2.0 * u);
+        let v = v * v * (3.0 - 2.0 * v);
+        let w = w * w * (3.0 - 2.0 * w);
+
         let i = pt.x.floor() as isize;
         let j = pt.y.floor() as isize;
         let k = pt.z.floor() as isize;
