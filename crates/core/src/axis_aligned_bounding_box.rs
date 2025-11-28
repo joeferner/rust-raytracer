@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use crate::{Axis, Interval, Ray, Vector3};
 
 #[derive(Debug, Clone, Copy)]
@@ -117,6 +119,18 @@ impl AxisAlignedBoundingBox {
             aabb.z = aabb.z.expand(delta);
         }
         aabb
+    }
+}
+
+impl Add<Vector3> for AxisAlignedBoundingBox {
+    type Output = Self;
+
+    fn add(self, rhs: Vector3) -> Self::Output {
+        AxisAlignedBoundingBox {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
     }
 }
 

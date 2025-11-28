@@ -117,6 +117,14 @@ impl Vector3 {
             Axis::Z => self.z,
         }
     }
+
+    pub fn axis_value_mut(&mut self, axis: Axis) -> &mut f64 {
+        match axis {
+            Axis::X => &mut self.x,
+            Axis::Y => &mut self.y,
+            Axis::Z => &mut self.z,
+        }
+    }
 }
 
 impl Mul<f64> for Vector3 {

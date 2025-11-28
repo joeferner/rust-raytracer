@@ -4,7 +4,7 @@ use rust_raytracer_core::{
     Camera, Color, Node, RenderContext, Vector3,
     camera::CameraBuilder,
     material::{DiffuseLight, Lambertian},
-    object::{BoundingVolumeHierarchy, Box, Quad},
+    object::{BoundingVolumeHierarchy, Box, Quad, RotateY, Translate},
 };
 
 pub fn create_cornell_box_scene(_ctx: &RenderContext) -> (Arc<Camera>, Arc<dyn Node>) {
@@ -53,30 +53,37 @@ pub fn create_cornell_box_scene(_ctx: &RenderContext) -> (Arc<Camera>, Arc<dyn N
         white_material.clone(),
     )));
 
-    world.push(Arc::new(Box::new(
-        Vector3::new(130.0, 0.0, 65.0),
-        Vector3::new(295.0, 165.0, 230.0),
+    let box1 = Arc::new(Box::new(
+        Vector3::new(0.0, 0.0, 0.0),
+        Vector3::new(165.0, 330.0, 165.0),
         white_material.clone(),
-    )));
+    ));
+    let box1 = Arc::new(RotateY::new(box1, 15.0));
+    let box1 = Arc::new(Translate::new(box1, Vector3::new(265.0, 0.0, 295.0)));
+    world.push(box1);
 
-    world.push(Arc::new(Box::new(
-        Vector3::new(265.0, 0.0, 295.0),
-        Vector3::new(430.0, 330.0, 460.0),
+    let box2 = Arc::new(Box::new(
+        Vector3::new(0.0, 0.0, 0.0),
+        Vector3::new(165.0, 165.0, 165.0),
         white_material,
-    )));
+    ));
+    let box2 = Arc::new(RotateY::new(box2, -18.0));
+    let box2 = Arc::new(Translate::new(box2, Vector3::new(130.0, 0.0, 65.0)));
+    world.push(box2);
 
     let world = Arc::new(BoundingVolumeHierarchy::new(&world));
 
     // Camera
     let mut camera_builder = CameraBuilder::new();
     camera_builder.aspect_ratio = 1.0;
-    camera_builder.image_width = 400;
-    camera_builder.samples_per_pixel = 50;
+    camera_builder.image_width = 600;
+    camera_builder.samples_per_pixel = 200;
     camera_builder.max_depth = 10;
     camera_builder.vertical_fov = 40.0;
     camera_builder.look_from = Vector3::new(278.0, 278.0, -800.0);
     camera_builder.look_at = Vector3::new(278.0, 278.0, 0.0);
     camera_builder.up = Vector3::new(0.0, 1.0, 0.0);
+    camera_builder.background = Color::BLACK;
     camera_builder.defocus_angle = 0.0;
     let camera = Arc::new(camera_builder.build());
 

@@ -6,13 +6,17 @@ pub mod bounding_volume_hierarchy;
 pub mod box_node;
 pub mod group;
 pub mod quad;
+pub mod rotate_y;
 pub mod sphere;
+pub mod translate;
 
 pub use bounding_volume_hierarchy::BoundingVolumeHierarchy;
 pub use box_node::Box;
 pub use group::Group;
 pub use quad::Quad;
+pub use rotate_y::RotateY;
 pub use sphere::Sphere;
+pub use translate::Translate;
 
 pub struct HitRecord {
     pub pt: Vector3,
