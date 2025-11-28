@@ -1,25 +1,4 @@
-use crate::{Color, Random, Vector3, texture::Texture};
-
-#[derive(Debug)]
-pub struct NoiseTexture {
-    noise: Perlin,
-    scale: f64,
-}
-
-impl NoiseTexture {
-    pub fn new(random: &dyn Random, scale: f64) -> Self {
-        Self {
-            noise: Perlin::new(random),
-            scale,
-        }
-    }
-}
-
-impl Texture for NoiseTexture {
-    fn value(&self, _u: f64, _v: f64, pt: Vector3) -> Color {
-        Color::new(1.0, 1.0, 1.0) * 0.5 * (1.0 + self.noise.noise(self.scale * pt))
-    }
-}
+use crate::{Random, Vector3};
 
 #[derive(Debug)]
 pub struct Perlin {
@@ -73,6 +52,20 @@ impl Perlin {
         }
 
         Perlin::trilinear_interpolation(c, u, v, w)
+    }
+
+    pub fn turbulence(&self, pt: Vector3, depth: u32) -> f64 {
+        let mut acc = 0.0;
+        let mut temp_p = pt;
+        let mut weight = 1.0;
+
+        for _ in 0..depth {
+            acc += weight * self.noise(temp_p);
+            weight *= 0.5;
+            temp_p = temp_p * 2.0;
+        }
+
+        return acc.abs();
     }
 
     fn trilinear_interpolation(c: [[[Vector3; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {

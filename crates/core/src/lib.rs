@@ -8,6 +8,7 @@ pub mod object;
 pub mod random;
 pub mod ray;
 pub mod texture;
+pub mod utils;
 pub mod vector;
 
 use std::sync::Arc;
