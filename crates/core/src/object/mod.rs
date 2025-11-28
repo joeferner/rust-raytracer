@@ -3,11 +3,13 @@ use std::sync::Arc;
 use crate::{AxisAlignedBoundingBox, Interval, material::Material, ray::Ray, vector::Vector3};
 
 pub mod bounding_volume_hierarchy;
+pub mod box_node;
 pub mod group;
 pub mod quad;
 pub mod sphere;
 
 pub use bounding_volume_hierarchy::BoundingVolumeHierarchy;
+pub use box_node::Box;
 pub use group::Group;
 pub use quad::Quad;
 pub use sphere::Sphere;
