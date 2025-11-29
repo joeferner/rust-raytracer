@@ -17,7 +17,7 @@ pub fn create_three_spheres_scene(_ctx: &RenderContext) -> (Arc<Camera>, Arc<dyn
     let material_center = Arc::new(Lambertian::new_from_color(Color::new(0.1, 0.2, 0.5)));
     let material_left = Arc::new(Refractive::new(1.5));
     let material_bubble = Arc::new(Refractive::new(1.0 / 1.5));
-    let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 1.0));
+    let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.2));
 
     // World
     let mut world: Vec<Arc<dyn Node>> = vec![];
@@ -53,7 +53,7 @@ pub fn create_three_spheres_scene(_ctx: &RenderContext) -> (Arc<Camera>, Arc<dyn
     // Camera
     let mut camera_builder = CameraBuilder::new();
     camera_builder.aspect_ratio = 16.0 / 9.0;
-    camera_builder.image_width = 300;
+    camera_builder.image_width = 600;
     camera_builder.samples_per_pixel = 100;
     camera_builder.max_depth = 50;
     camera_builder.defocus_angle = 0.6;
