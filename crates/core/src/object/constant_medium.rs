@@ -60,7 +60,7 @@ impl Node for ConstantMedium {
 
         let ray_length = ray.direction.length();
         let distance_inside_boundary = (hit2.t - hit1.t) * ray_length;
-        let hit_distance = self.neg_inv_density * ctx.random.rand().log(10.0);
+        let hit_distance = self.neg_inv_density * ctx.random.rand().ln();
 
         if hit_distance > distance_inside_boundary {
             return None;

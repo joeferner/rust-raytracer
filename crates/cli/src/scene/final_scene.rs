@@ -135,8 +135,8 @@ pub fn create_final_scene(ctx: &RenderContext) -> (Arc<Camera>, Arc<dyn Node>) {
     let mut camera_builder = CameraBuilder::new();
     camera_builder.aspect_ratio = 1.0;
     camera_builder.image_width = 400;
-    camera_builder.samples_per_pixel = 50;
-    camera_builder.max_depth = 4;
+    camera_builder.samples_per_pixel = 500;
+    camera_builder.max_depth = 10;
     camera_builder.vertical_fov = 40.0;
     camera_builder.look_from = Vector3::new(478.0, 278.0, -600.0);
     camera_builder.look_at = Vector3::new(278.0, 278.0, 0.0);
