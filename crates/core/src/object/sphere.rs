@@ -2,7 +2,7 @@ use core::f64;
 use std::{f64::consts::PI, sync::Arc};
 
 use crate::{
-    AxisAlignedBoundingBox, Interval, Vector3,
+    AxisAlignedBoundingBox, Interval, RenderContext, Vector3,
     material::Material,
     object::{HitRecord, Node},
     ray::Ray,
@@ -83,7 +83,7 @@ impl Sphere {
 }
 
 impl Node for Sphere {
-    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
+    fn hit(&self, _ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let current_center = self.center.at(ray.time);
         let oc = current_center - ray.origin;
         let a = ray.direction.length_squared();

@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, sync::Arc};
 
 use crate::{
-    Axis, AxisAlignedBoundingBox, Interval, Ray,
+    Axis, AxisAlignedBoundingBox, Interval, Ray, RenderContext,
     object::{HitRecord, Node},
 };
 
@@ -42,19 +42,19 @@ impl BoundingVolumeHierarchy {
 }
 
 impl Node for BoundingVolumeHierarchy {
-    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
+    fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         if !self.bbox.hit(ray, ray_t) {
             return None;
         }
 
-        let hit_left = self.left.hit(ray, ray_t);
+        let hit_left = self.left.hit(ctx, ray, ray_t);
 
         // check to see if right is closer
         let mut t = ray_t.max;
         if let Some(hit_left) = &hit_left {
             t = hit_left.t;
         }
-        let hit_right = self.right.hit(ray, Interval::new(ray_t.min, t));
+        let hit_right = self.right.hit(ctx, ray, Interval::new(ray_t.min, t));
         if hit_right.is_some() {
             return hit_right;
         }

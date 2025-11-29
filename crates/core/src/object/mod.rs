@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
-use crate::{AxisAlignedBoundingBox, Interval, material::Material, ray::Ray, vector::Vector3};
+use crate::{
+    AxisAlignedBoundingBox, Interval, RenderContext, material::Material, ray::Ray, vector::Vector3,
+};
 
 pub mod bounding_volume_hierarchy;
 pub mod box_node;
+pub mod constant_medium;
 pub mod group;
 pub mod quad;
 pub mod rotate_y;
@@ -12,6 +15,7 @@ pub mod translate;
 
 pub use bounding_volume_hierarchy::BoundingVolumeHierarchy;
 pub use box_node::Box;
+pub use constant_medium::ConstantMedium;
 pub use group::Group;
 pub use quad::Quad;
 pub use rotate_y::RotateY;
@@ -42,7 +46,7 @@ impl HitRecord {
 }
 
 pub trait Node: Send + Sync {
-    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord>;
+    fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord>;
 
     fn bounding_box(&self) -> &AxisAlignedBoundingBox;
 }

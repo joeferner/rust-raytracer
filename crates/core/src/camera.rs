@@ -131,7 +131,7 @@ impl Camera {
         }
 
         // If the ray hits nothing, return the background color.
-        let Some(hit) = node.hit(&ray, Interval::new(0.001, f64::INFINITY)) else {
+        let Some(hit) = node.hit(ctx, &ray, Interval::new(0.001, f64::INFINITY)) else {
             return self.background;
         };
 
@@ -172,17 +172,8 @@ impl Camera {
         let ray_direction = pixel_sample - ray_origin;
         let ray_time = ctx.random.rand();
 
-        let mut ray = Ray::new(ray_origin, ray_direction);
-        ray.time = ray_time;
-        ray
+        Ray::new_with_time(ray_origin, ray_direction, ray_time)
     }
-
-    // let pixel_center =
-    //     self.pixel00_loc + (x as f64 * self.pixel_delta_u) + (y as f64 * self.pixel_delta_v);
-    // let ray_direction = pixel_center - self.center;
-    // let r = Ray::new(self.center, ray_direction);
-    // self.ray_color(ctx, r, self.max_depth, node)
-    //     .linear_to_gamma()
 
     pub fn image_width(&self) -> u32 {
         self.image_width

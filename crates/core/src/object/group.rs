@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    AxisAlignedBoundingBox, Interval,
+    AxisAlignedBoundingBox, Interval, Ray, RenderContext,
     object::{HitRecord, Node},
 };
 
@@ -40,11 +40,11 @@ impl Default for Group {
 }
 
 impl Node for Group {
-    fn hit(&self, ray: &crate::ray::Ray, mut ray_t: Interval) -> Option<HitRecord> {
+    fn hit(&self, ctx: &RenderContext, ray: &Ray, mut ray_t: Interval) -> Option<HitRecord> {
         let mut closest_hit: Option<HitRecord> = None;
 
         for node in &self.nodes {
-            if let Some(hit) = node.hit(ray, ray_t) {
+            if let Some(hit) = node.hit(ctx, ray, ray_t) {
                 ray_t.max = hit.t;
                 closest_hit = Some(hit);
             }

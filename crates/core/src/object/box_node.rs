@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    AxisAlignedBoundingBox, Interval, Node, Ray, Vector3,
+    AxisAlignedBoundingBox, Interval, Node, Ray, RenderContext, Vector3,
     material::Material,
     object::{Group, HitRecord, Quad},
 };
@@ -74,8 +74,8 @@ impl Box {
 }
 
 impl Node for Box {
-    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
-        self.group.hit(ray, ray_t)
+    fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
+        self.group.hit(ctx, ray, ray_t)
     }
 
     fn bounding_box(&self) -> &AxisAlignedBoundingBox {

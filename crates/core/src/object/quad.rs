@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
-    AxisAlignedBoundingBox, Interval, Node, Ray, Vector3, material::Material, object::HitRecord,
+    AxisAlignedBoundingBox, Interval, Node, Ray, RenderContext, Vector3, material::Material,
+    object::HitRecord,
 };
 
 #[derive(Debug)]
@@ -56,7 +57,7 @@ impl Quad {
 }
 
 impl Node for Quad {
-    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
+    fn hit(&self, _ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let denom = self.normal.dot(&ray.direction);
 
         // No hit if the ray is parallel to the plane.

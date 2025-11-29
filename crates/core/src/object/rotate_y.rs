@@ -1,7 +1,9 @@
 use core::f64;
 use std::sync::Arc;
 
-use crate::{Axis, AxisAlignedBoundingBox, Interval, Node, Ray, Vector3, object::HitRecord};
+use crate::{
+    Axis, AxisAlignedBoundingBox, Interval, Node, Ray, RenderContext, Vector3, object::HitRecord,
+};
 
 pub struct RotateY {
     object: Arc<dyn Node>,
@@ -61,7 +63,7 @@ impl RotateY {
 }
 
 impl Node for RotateY {
-    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
+    fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         // Transform the ray from world space to object space.
         let rotated_r = {
             let origin = Vector3::new(
@@ -76,13 +78,11 @@ impl Node for RotateY {
                 (self.sin_theta * ray.direction.x) + (self.cos_theta * ray.direction.z),
             );
 
-            let mut rotated_r = Ray::new(origin, direction);
-            rotated_r.time = ray.time;
-            rotated_r
+            Ray::new_with_time(origin, direction, ray.time)
         };
 
         // Determine whether an intersection exists in object space (and if so, where).
-        let mut hit = self.object.hit(&rotated_r, ray_t)?;
+        let mut hit = self.object.hit(ctx, &rotated_r, ray_t)?;
 
         // Transform the intersection from object space back to world space.
         hit.pt = Vector3::new(
