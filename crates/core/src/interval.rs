@@ -163,6 +163,35 @@ impl Interval {
     pub fn size(&self) -> f64 {
         self.max - self.min
     }
+
+    /// Checks if the interval is empty.
+    ///
+    /// An interval is considered empty if `max <= min`, meaning it contains no values.
+    /// This occurs when the interval is invalid or represents an empty range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_raytracer_core::Interval;
+    ///
+    /// // Empty interval where max < min
+    /// let empty = Interval::new(5.0, 3.0);
+    /// assert!(empty.is_empty());
+    ///
+    /// // The EMPTY constant is empty
+    /// assert!(Interval::EMPTY.is_empty());
+    ///
+    /// // Single-point interval (max == min) is considered empty
+    /// let point = Interval::new(5.0, 5.0);
+    /// assert!(point.is_empty());
+    ///
+    /// // Valid interval is not empty
+    /// let valid = Interval::new(3.0, 5.0);
+    /// assert!(!valid.is_empty());
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.max <= self.min
+    }
 }
 
 /// Implements addition of a scalar value to an interval.

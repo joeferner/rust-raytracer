@@ -2,6 +2,23 @@ use std::ops::Add;
 
 use crate::{Axis, Interval, Ray, Vector3};
 
+/// An axis-aligned bounding box (AABB) in 3D space.
+///
+/// An AABB is defined by three intervals along the x, y, and z axes. It represents
+/// the smallest box aligned with the coordinate axes that can contain a given object
+/// or set of objects. AABBs are commonly used for efficient intersection testing and
+/// spatial partitioning.
+///
+/// # Examples
+///
+/// ```
+/// use rust_raytracer_core::{AxisAlignedBoundingBox, Vector3};
+///
+/// // Create a bounding box from two corner points
+/// let min_point = Vector3::new(0.0, 0.0, 0.0);
+/// let max_point = Vector3::new(1.0, 1.0, 1.0);
+/// let bbox = AxisAlignedBoundingBox::new_from_points(min_point, max_point);
+/// ```
 #[derive(Debug, Clone, Copy)]
 pub struct AxisAlignedBoundingBox {
     x: Interval,
@@ -10,6 +27,17 @@ pub struct AxisAlignedBoundingBox {
 }
 
 impl AxisAlignedBoundingBox {
+    /// Creates an empty AABB with all intervals set to empty.
+    ///
+    /// The resulting bounding box is padded to ensure a minimum size along each axis.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_raytracer_core::AxisAlignedBoundingBox;
+    ///
+    /// let bbox = AxisAlignedBoundingBox::new();
+    /// ```
     pub fn new() -> Self {
         AxisAlignedBoundingBox::pad_to_minimums(Self {
             x: Interval::EMPTY,
@@ -18,8 +46,27 @@ impl AxisAlignedBoundingBox {
         })
     }
 
-    /// Treat the two points a and b as extrema for the bounding box, so we don't require a
-    /// particular minimum/maximum coordinate order.
+    /// Creates an AABB from two corner points.
+    ///
+    /// The points `a` and `b` are treated as opposite corners of the bounding box.
+    /// The order doesn't matter - the constructor will determine the minimum and
+    /// maximum extents automatically.
+    ///
+    /// # Arguments
+    ///
+    /// * `a` - First corner point
+    /// * `b` - Opposite corner point
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Vector3};
+    ///
+    /// let bbox = AxisAlignedBoundingBox::new_from_points(
+    ///     Vector3::new(0.0, 0.0, 0.0),
+    ///     Vector3::new(2.0, 2.0, 2.0)
+    /// );
+    /// ```
     pub fn new_from_points(a: Vector3, b: Vector3) -> Self {
         AxisAlignedBoundingBox::pad_to_minimums(Self {
             x: if a.x <= b.x {
@@ -40,6 +87,31 @@ impl AxisAlignedBoundingBox {
         })
     }
 
+    /// Creates an AABB that encloses two existing bounding boxes.
+    ///
+    /// The resulting AABB is the smallest box that completely contains both
+    /// input boxes.
+    ///
+    /// # Arguments
+    ///
+    /// * `box1` - First bounding box
+    /// * `box2` - Second bounding box
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Vector3};
+    ///
+    /// let bbox1 = AxisAlignedBoundingBox::new_from_points(
+    ///     Vector3::new(0.0, 0.0, 0.0),
+    ///     Vector3::new(1.0, 1.0, 1.0)
+    /// );
+    /// let bbox2 = AxisAlignedBoundingBox::new_from_points(
+    ///     Vector3::new(0.5, 0.5, 0.5),
+    ///     Vector3::new(2.0, 2.0, 2.0)
+    /// );
+    /// let combined = AxisAlignedBoundingBox::new_from_bbox(bbox1, bbox2);
+    /// ```
     pub fn new_from_bbox(box1: AxisAlignedBoundingBox, box2: AxisAlignedBoundingBox) -> Self {
         AxisAlignedBoundingBox::pad_to_minimums(Self {
             x: Interval::new_from_intervals(box1.x, box2.x),
@@ -48,6 +120,23 @@ impl AxisAlignedBoundingBox {
         })
     }
 
+    /// Returns the interval for the specified axis.
+    ///
+    /// # Arguments
+    ///
+    /// * `axis` - The axis to query (X, Y, or Z)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Axis, Vector3};
+    ///
+    /// let bbox = AxisAlignedBoundingBox::new_from_points(
+    ///     Vector3::new(0.0, 0.0, 0.0),
+    ///     Vector3::new(1.0, 2.0, 3.0)
+    /// );
+    /// let x_interval = bbox.axis_interval(Axis::X);
+    /// ```
     pub fn axis_interval(&self, axis: Axis) -> Interval {
         match axis {
             Axis::X => self.x,
@@ -56,6 +145,34 @@ impl AxisAlignedBoundingBox {
         }
     }
 
+    /// Tests whether a ray intersects this bounding box within the given interval.
+    ///
+    /// This uses the slab method for ray-box intersection testing, which is efficient
+    /// and numerically stable. The method checks if the ray intersects the box within
+    /// the parameter range specified by `ray_t`.
+    ///
+    /// # Arguments
+    ///
+    /// * `ray` - The ray to test for intersection
+    /// * `ray_t` - The valid parameter interval for the ray (typically representing time/distance)
+    ///
+    /// # Returns
+    ///
+    /// `true` if the ray intersects the box within the specified interval, `false` otherwise
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Ray, Vector3, Interval};
+    ///
+    /// let bbox = AxisAlignedBoundingBox::new_from_points(
+    ///     Vector3::new(0.0, 0.0, 0.0),
+    ///     Vector3::new(1.0, 1.0, 1.0)
+    /// );
+    /// let ray = Ray::new(Vector3::new(-1.0, 0.5, 0.5), Vector3::new(1.0, 0.0, 0.0));
+    /// let hits = bbox.hit(&ray, Interval::new(0.0, f64::INFINITY));
+    /// assert!(hits);
+    /// ```
     pub fn hit(&self, ray: &Ray, ray_t: Interval) -> bool {
         let ray_orig = ray.origin;
         let ray_dir = ray.direction;
@@ -91,7 +208,22 @@ impl AxisAlignedBoundingBox {
         true
     }
 
-    /// Returns the index of the longest axis of the bounding box.
+    /// Returns the axis along which the bounding box is longest.
+    ///
+    /// This is useful for spatial partitioning algorithms like BVH construction,
+    /// where splitting along the longest axis often produces better results.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Axis, Vector3};
+    ///
+    /// let bbox = AxisAlignedBoundingBox::new_from_points(
+    ///     Vector3::new(0.0, 0.0, 0.0),
+    ///     Vector3::new(5.0, 2.0, 3.0)
+    /// );
+    /// assert_eq!(bbox.longest_axis(), Axis::X);
+    /// ```
     pub fn longest_axis(&self) -> Axis {
         if self.x.size() > self.y.size() {
             if self.x.size() > self.z.size() {
@@ -106,7 +238,19 @@ impl AxisAlignedBoundingBox {
         }
     }
 
-    /// Adjust the AABB so that no side is narrower than some delta, padding if necessary.
+    /// Adjusts the AABB to ensure no dimension is narrower than a minimum threshold.
+    ///
+    /// This prevents degenerate bounding boxes (like infinitely thin planes) from
+    /// causing numerical issues in intersection tests. If any dimension is smaller
+    /// than `delta` (0.0001), it's expanded symmetrically.
+    ///
+    /// # Arguments
+    ///
+    /// * `aabb` - The bounding box to pad
+    ///
+    /// # Returns
+    ///
+    /// A new AABB with minimum dimensions enforced
     fn pad_to_minimums(mut aabb: AxisAlignedBoundingBox) -> AxisAlignedBoundingBox {
         let delta = 0.0001;
         if aabb.x.size() < delta {
@@ -125,6 +269,22 @@ impl AxisAlignedBoundingBox {
 impl Add<Vector3> for AxisAlignedBoundingBox {
     type Output = Self;
 
+    /// Translates the bounding box by a vector offset.
+    ///
+    /// This shifts the entire bounding box in space without changing its size.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Vector3};
+    ///
+    /// let bbox = AxisAlignedBoundingBox::new_from_points(
+    ///     Vector3::new(0.0, 0.0, 0.0),
+    ///     Vector3::new(1.0, 1.0, 1.0)
+    /// );
+    /// let offset = Vector3::new(5.0, 5.0, 5.0);
+    /// let translated = bbox + offset;
+    /// ```
     fn add(self, rhs: Vector3) -> Self::Output {
         AxisAlignedBoundingBox {
             x: self.x + rhs.x,
@@ -137,5 +297,197 @@ impl Add<Vector3> for AxisAlignedBoundingBox {
 impl Default for AxisAlignedBoundingBox {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_creates_empty_bbox() {
+        let bbox = AxisAlignedBoundingBox::new();
+        assert!(bbox.x.is_empty());
+        assert!(bbox.y.is_empty());
+        assert!(bbox.z.is_empty());
+    }
+
+    #[test]
+    fn test_new_from_points_orders_correctly() {
+        let a = Vector3::new(5.0, 3.0, 7.0);
+        let b = Vector3::new(1.0, 8.0, 2.0);
+        let bbox = AxisAlignedBoundingBox::new_from_points(a, b);
+
+        assert_eq!(bbox.x.min, 1.0);
+        assert_eq!(bbox.x.max, 5.0);
+        assert_eq!(bbox.y.min, 3.0);
+        assert_eq!(bbox.y.max, 8.0);
+        assert_eq!(bbox.z.min, 2.0);
+        assert_eq!(bbox.z.max, 7.0);
+    }
+
+    #[test]
+    fn test_new_from_points_same_point() {
+        let point = Vector3::new(1.0, 2.0, 3.0);
+        let bbox = AxisAlignedBoundingBox::new_from_points(point, point);
+
+        // Should be padded to minimum size
+        assert!(bbox.x.size() >= 0.0000999999);
+        assert!(bbox.y.size() >= 0.0000999999);
+        assert!(bbox.z.size() >= 0.0000999999);
+    }
+
+    #[test]
+    fn test_new_from_bbox_combines_boxes() {
+        let bbox1 = AxisAlignedBoundingBox::new_from_points(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(1.0, 1.0, 1.0),
+        );
+        let bbox2 = AxisAlignedBoundingBox::new_from_points(
+            Vector3::new(0.5, 0.5, 0.5),
+            Vector3::new(2.0, 2.0, 2.0),
+        );
+
+        let combined = AxisAlignedBoundingBox::new_from_bbox(bbox1, bbox2);
+
+        assert_eq!(combined.x.min, 0.0);
+        assert_eq!(combined.x.max, 2.0);
+        assert_eq!(combined.y.min, 0.0);
+        assert_eq!(combined.y.max, 2.0);
+        assert_eq!(combined.z.min, 0.0);
+        assert_eq!(combined.z.max, 2.0);
+    }
+
+    #[test]
+    fn test_axis_interval() {
+        let bbox = AxisAlignedBoundingBox::new_from_points(
+            Vector3::new(1.0, 2.0, 3.0),
+            Vector3::new(4.0, 5.0, 6.0),
+        );
+
+        let x_interval = bbox.axis_interval(Axis::X);
+        let y_interval = bbox.axis_interval(Axis::Y);
+        let z_interval = bbox.axis_interval(Axis::Z);
+
+        assert_eq!(x_interval.min, 1.0);
+        assert_eq!(x_interval.max, 4.0);
+        assert_eq!(y_interval.min, 2.0);
+        assert_eq!(y_interval.max, 5.0);
+        assert_eq!(z_interval.min, 3.0);
+        assert_eq!(z_interval.max, 6.0);
+    }
+
+    #[test]
+    fn test_hit_ray_intersects() {
+        let bbox = AxisAlignedBoundingBox::new_from_points(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(1.0, 1.0, 1.0),
+        );
+
+        // Ray shooting through the center
+        let ray = Ray::new(Vector3::new(-1.0, 0.5, 0.5), Vector3::new(1.0, 0.0, 0.0));
+        let interval = Interval::new(0.0, f64::INFINITY);
+
+        assert!(bbox.hit(&ray, interval));
+    }
+
+    #[test]
+    fn test_hit_ray_misses() {
+        let bbox = AxisAlignedBoundingBox::new_from_points(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(1.0, 1.0, 1.0),
+        );
+
+        // Ray parallel to box but missing
+        let ray = Ray::new(Vector3::new(-1.0, 2.0, 0.5), Vector3::new(1.0, 0.0, 0.0));
+        let interval = Interval::new(0.0, f64::INFINITY);
+
+        assert!(!bbox.hit(&ray, interval));
+    }
+
+    #[test]
+    fn test_hit_ray_behind_origin() {
+        let bbox = AxisAlignedBoundingBox::new_from_points(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(1.0, 1.0, 1.0),
+        );
+
+        // Ray pointing away from box
+        let ray = Ray::new(Vector3::new(2.0, 0.5, 0.5), Vector3::new(1.0, 0.0, 0.0));
+        let interval = Interval::new(0.0, f64::INFINITY);
+
+        assert!(!bbox.hit(&ray, interval));
+    }
+
+    #[test]
+    fn test_longest_axis_x() {
+        let bbox = AxisAlignedBoundingBox::new_from_points(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(5.0, 2.0, 3.0),
+        );
+        assert_eq!(bbox.longest_axis(), Axis::X);
+    }
+
+    #[test]
+    fn test_longest_axis_y() {
+        let bbox = AxisAlignedBoundingBox::new_from_points(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(2.0, 5.0, 3.0),
+        );
+        assert_eq!(bbox.longest_axis(), Axis::Y);
+    }
+
+    #[test]
+    fn test_longest_axis_z() {
+        let bbox = AxisAlignedBoundingBox::new_from_points(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(2.0, 3.0, 5.0),
+        );
+        assert_eq!(bbox.longest_axis(), Axis::Z);
+    }
+
+    #[test]
+    fn test_add_vector_translation() {
+        let bbox = AxisAlignedBoundingBox::new_from_points(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(1.0, 1.0, 1.0),
+        );
+
+        let offset = Vector3::new(5.0, 3.0, -2.0);
+        let translated = bbox + offset;
+
+        assert_eq!(translated.x.min, 5.0);
+        assert_eq!(translated.x.max, 6.0);
+        assert_eq!(translated.y.min, 3.0);
+        assert_eq!(translated.y.max, 4.0);
+        assert_eq!(translated.z.min, -2.0);
+        assert_eq!(translated.z.max, -1.0);
+    }
+
+    #[test]
+    fn test_padding_applied_to_thin_box() {
+        let bbox = AxisAlignedBoundingBox::new_from_points(
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(0.00001, 1.0, 1.0),
+        );
+
+        // X dimension should be padded to at least delta
+        assert!(bbox.x.size() >= 0.0001);
+        // Y and Z should remain unchanged
+        assert!((bbox.y.size() - 1.0).abs() < 1e-10);
+        assert!((bbox.z.size() - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_default_same_as_new() {
+        let default_bbox = AxisAlignedBoundingBox::default();
+        let new_bbox = AxisAlignedBoundingBox::new();
+
+        assert_eq!(default_bbox.x.min, new_bbox.x.min);
+        assert_eq!(default_bbox.x.max, new_bbox.x.max);
+        assert_eq!(default_bbox.y.min, new_bbox.y.min);
+        assert_eq!(default_bbox.y.max, new_bbox.y.max);
+        assert_eq!(default_bbox.z.min, new_bbox.z.min);
+        assert_eq!(default_bbox.z.max, new_bbox.z.max);
     }
 }
