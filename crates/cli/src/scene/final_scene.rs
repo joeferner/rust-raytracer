@@ -132,11 +132,19 @@ pub fn create_final_scene(ctx: &RenderContext) -> (Arc<Camera>, Arc<dyn Node>) {
     let world = Arc::new(BoundingVolumeHierarchy::new(&world));
 
     // Camera
+    // let image_width = 400;
+    // let samples_per_pixel = 500;
+    // let max_depth = 10;
+
+    let image_width = 800;
+    let samples_per_pixel = 5000;
+    let max_depth = 40;
+
     let mut camera_builder = CameraBuilder::new();
     camera_builder.aspect_ratio = 1.0;
-    camera_builder.image_width = 400;
-    camera_builder.samples_per_pixel = 500;
-    camera_builder.max_depth = 10;
+    camera_builder.image_width = image_width;
+    camera_builder.samples_per_pixel = samples_per_pixel;
+    camera_builder.max_depth = max_depth;
     camera_builder.vertical_fov = 40.0;
     camera_builder.look_from = Vector3::new(478.0, 278.0, -600.0);
     camera_builder.look_at = Vector3::new(278.0, 278.0, 0.0);

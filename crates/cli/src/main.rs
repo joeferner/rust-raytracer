@@ -1,11 +1,11 @@
-#![allow(clippy::vec_init_then_push)]
+use thread_priority::ThreadBuilderExt;
+use thread_priority::*;
 
 pub mod scene;
 
 use std::{
     env,
     sync::{Arc, Mutex, mpsc},
-    thread,
 };
 
 use indicatif::{ProgressBar, ProgressStyle};
@@ -20,7 +20,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     println!("{:?}", args);
 
-    let mut scene = Scene::ThreeSpheres;
+    let mut scene = Scene::CornellBox;
     if let Some(scene_name) = args.get(1) {
         scene = if scene_name == "ThreeSpheres" {
             Scene::ThreeSpheres
@@ -100,36 +100,39 @@ fn main() {
     let work = Arc::new(Mutex::new(work));
     let (results_send, results_recv) = mpsc::channel();
     let mut handles = Vec::with_capacity(threads);
-    for _ in 0..threads {
+    for i in 0..threads {
         let work = work.clone();
         let results_send = results_send.clone();
         let ctx = ctx.clone();
-        handles.push(thread::spawn(move || {
-            loop {
-                let item = { work.lock().unwrap().pop() };
-                match item {
-                    Some(item) => {
-                        let mut pixels = vec![];
-                        for y in item.ymin..item.ymax {
-                            for x in item.xmin..item.xmax {
-                                let pixel_color = item.camera.render(&ctx, x, y, &*item.world);
-                                pixels.push(pixel_color);
+        let thread = std::thread::Builder::new()
+            .name(format!("RenderThread-{i}"))
+            .spawn_with_priority(ThreadPriority::Min, move |_| {
+                loop {
+                    let item = { work.lock().unwrap().pop() };
+                    match item {
+                        Some(item) => {
+                            let mut pixels = vec![];
+                            for y in item.ymin..item.ymax {
+                                for x in item.xmin..item.xmax {
+                                    let pixel_color = item.camera.render(&ctx, x, y, &*item.world);
+                                    pixels.push(pixel_color);
+                                }
                             }
+                            results_send
+                                .send(WorkResult {
+                                    xmin: item.xmin,
+                                    xmax: item.xmax,
+                                    ymin: item.ymin,
+                                    ymax: item.ymax,
+                                    pixels,
+                                })
+                                .unwrap();
                         }
-                        results_send
-                            .send(WorkResult {
-                                xmin: item.xmin,
-                                xmax: item.xmax,
-                                ymin: item.ymin,
-                                ymax: item.ymax,
-                                pixels,
-                            })
-                            .unwrap();
+                        None => break,
                     }
-                    None => break,
                 }
-            }
-        }));
+            });
+        handles.push(thread.unwrap());
     }
 
     for _ in 0..work_count {

@@ -8,3 +8,4 @@ image = "0.25.9"
 indicatif = "0.18.3"
 num_cpus = "1.17.0"
 rust-raytracer-core = { path = "../core" }
+thread-priority = "3.0.0"
