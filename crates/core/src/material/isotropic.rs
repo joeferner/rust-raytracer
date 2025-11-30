@@ -1,3 +1,4 @@
+use core::f64;
 use std::sync::Arc;
 
 use crate::{
@@ -29,6 +30,17 @@ impl Material for Isotropic {
         Some(ScatterResult {
             attenuation: self.texture.value(hit.u, hit.v, hit.pt),
             scattered: Ray::new_with_time(hit.pt, Vector3::random_unit(&*ctx.random), r_in.time),
+            pdf: 1.0 / (4.0 / f64::consts::PI),
         })
+    }
+
+    fn scattering_pdf(
+        &self,
+        _ctx: &RenderContext,
+        _r_in: &Ray,
+        _hit: &HitRecord,
+        _scattered: &Ray,
+    ) -> f64 {
+        1.0 / (4.0 / f64::consts::PI)
     }
 }

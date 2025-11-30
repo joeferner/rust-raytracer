@@ -34,7 +34,11 @@ impl Material for DiffuseLight {
         None
     }
 
-    fn emitted(&self, u: f64, v: f64, pt: Vector3) -> Color {
-        self.texture.value(u, v, pt)
+    fn emitted(&self, _r_in: &Ray, hit: &HitRecord, u: f64, v: f64, pt: Vector3) -> Color {
+        if hit.front_face {
+            self.texture.value(u, v, pt)
+        } else {
+            Color::BLACK
+        }
     }
 }

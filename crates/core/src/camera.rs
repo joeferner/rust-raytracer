@@ -135,14 +135,46 @@ impl Camera {
             return self.background;
         };
 
-        let color_from_emission = hit.material.emitted(hit.u, hit.v, hit.pt);
+        let color_from_emission = hit.material.emitted(&ray, &hit, hit.u, hit.v, hit.pt);
 
-        let Some(scatter_result) = hit.material.scatter(ctx, &ray, &hit) else {
-            return color_from_emission;
+        let (scattered, attenuation, pdf_value) = {
+            let Some(scatter_result) = hit.material.scatter(ctx, &ray, &hit) else {
+                return color_from_emission;
+            };
+            (
+                scatter_result.scattered,
+                scatter_result.attenuation,
+                scatter_result.pdf,
+            )
         };
 
-        let color_from_scatter = scatter_result.attenuation
-            * self.ray_color(ctx, scatter_result.scattered, depth - 1, node);
+        let on_light = Vector3::new(
+            ctx.random.rand_interval(213.0, 343.0),
+            554.0,
+            ctx.random.rand_interval(227.0, 332.0),
+        );
+        let to_light = on_light - hit.pt;
+        let distance_squared = to_light.length_squared();
+        let to_light = to_light.unit();
+
+        if to_light.dot(&hit.normal) < 0.0 {
+            return color_from_emission;
+        }
+
+        let light_area = (343.0 - 213.0) * (332.0 - 227.0);
+        let light_cosine = to_light.y.abs();
+        if light_cosine < 0.000001 {
+            return color_from_emission;
+        }
+
+        let pdf_value = distance_squared / (light_cosine * light_area);
+        let scattered = Ray::new_with_time(hit.pt, to_light, ray.time);
+
+        let scattering_pdf = hit.material.scattering_pdf(ctx, &ray, &hit, &scattered);
+
+        let color_from_scatter =
+            (attenuation * scattering_pdf * self.ray_color(ctx, scattered, depth - 1, node))
+                / pdf_value;
 
         color_from_emission + color_from_scatter
     }

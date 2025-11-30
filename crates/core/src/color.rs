@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Mul};
+use std::ops::{Add, AddAssign, Div, Mul};
 
 use crate::Random;
 
@@ -78,6 +78,18 @@ impl Mul<Color> for f64 {
             r: self * v.r,
             g: self * v.g,
             b: self * v.b,
+        }
+    }
+}
+
+impl Div<f64> for Color {
+    type Output = Self;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        Color {
+            r: self.r / rhs,
+            g: self.g / rhs,
+            b: self.b / rhs,
         }
     }
 }

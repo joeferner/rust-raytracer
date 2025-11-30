@@ -26,6 +26,7 @@ impl Material for Metal {
             Some(ScatterResult {
                 attenuation: self.albedo,
                 scattered,
+                pdf: 0.0,
             })
         } else {
             None

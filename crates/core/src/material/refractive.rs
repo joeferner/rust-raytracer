@@ -1,3 +1,5 @@
+use core::f64;
+
 use crate::{
     Color, Ray, RenderContext,
     material::{Material, ScatterResult},
@@ -46,6 +48,7 @@ impl Material for Refractive {
         Some(ScatterResult {
             attenuation: Color::WHITE,
             scattered: Ray::new_with_time(hit.pt, direction, r_in.time),
+            pdf: 0.0,
         })
     }
 }

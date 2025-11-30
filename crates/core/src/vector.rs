@@ -1,3 +1,4 @@
+use core::f64;
 use std::{
     fmt::Display,
     ops::{Add, Div, Mul, Neg, Sub},
@@ -64,6 +65,18 @@ impl Vector3 {
         }
     }
 
+    pub fn random_cosine_direction(random: &dyn Random) -> Vector3 {
+        let r1 = random.rand();
+        let r2 = random.rand();
+
+        let phi = 2.0 * f64::consts::PI * r1;
+        let x = phi.cos() * r2.sqrt();
+        let y = phi.sin() * r2.sqrt();
+        let z = (1.0 - r2).sqrt();
+
+        Vector3::new(x, y, z)
+    }
+
     /// Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
     pub fn sample_square(random: &dyn Random) -> Vector3 {
         Vector3::new(random.rand() - 0.5, random.rand() - 0.5, 0.0)
@@ -94,7 +107,7 @@ impl Vector3 {
     }
 
     /// Return true if the vector is close to zero in all dimensions.
-    pub fn is_near_near(&self) -> bool {
+    pub fn is_near_zero(&self) -> bool {
         let s = 1e-8;
         (self.x.abs() < s) && (self.y.abs() < s) && (self.z.abs() < s)
     }
