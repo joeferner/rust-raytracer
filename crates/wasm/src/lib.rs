@@ -2,8 +2,7 @@
 use std::sync::Arc;
 
 use rust_raytracer_core::{
-    Camera, Color, Node, RenderContext, Vector3,
-    camera::CameraBuilder,
+    Camera, CameraBuilder, Color, Node, RenderContext, Vector3,
     image::HtmlImage,
     material::{Lambertian, Metal},
     object::{BoundingVolumeHierarchy, Group, Sphere},

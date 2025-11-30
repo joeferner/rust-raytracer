@@ -17,7 +17,7 @@ use std::sync::Arc;
 
 pub use axis::Axis;
 pub use axis_aligned_bounding_box::AxisAlignedBoundingBox;
-pub use camera::Camera;
+pub use camera::{Camera, CameraBuilder};
 pub use color::Color;
 pub use image::Image;
 pub use interval::Interval;

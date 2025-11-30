@@ -302,6 +302,15 @@ impl AddAssign for Color {
     }
 }
 
+impl PartialEq for Color {
+    fn eq(&self, other: &Self) -> bool {
+        const EPSILON: f64 = 1e-10;
+        (self.r - other.r).abs() < EPSILON
+            && (self.g - other.g).abs() < EPSILON
+            && (self.b - other.b).abs() < EPSILON
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use assert_eq_float::assert_eq_float;

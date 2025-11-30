@@ -5,33 +5,104 @@ use crate::{
     material::PdfOrRay, object::Node, probability_density_function::MixturePdf,
 };
 
+/// Builder for configuring and constructing a [`Camera`].
+///
+/// The `CameraBuilder` uses the builder pattern to configure camera parameters
+/// before creating the camera. It provides sensible defaults for all parameters,
+/// which can be overridden as needed.
+///
+/// # Examples
+///
+/// ```
+/// use rust_raytracer_core::{CameraBuilder, Vector3, Color};
+///
+/// let mut camera_builder = CameraBuilder::new();
+/// camera_builder.aspect_ratio = 16.0 / 9.0;
+/// camera_builder.image_width = 1920;
+/// camera_builder.samples_per_pixel = 100;
+/// camera_builder.max_depth = 50;
+/// camera_builder.vertical_fov = 20.0;
+/// camera_builder.look_from = Vector3::new(13.0, 2.0, 3.0);
+/// camera_builder.look_at = Vector3::new(0.0, 0.0, 0.0);
+/// camera_builder.up = Vector3::new(0.0, 1.0, 0.0);
+/// camera_builder.defocus_angle = 0.6;
+/// camera_builder.focus_distance = 10.0;
+/// camera_builder.background = Color::new(0.7, 0.8, 1.0);
+/// let camera = camera_builder.build();
+/// ```
 #[derive(Debug)]
 pub struct CameraBuilder {
-    /// Vertical view angle (field of view) (degrees)
+    /// Vertical view angle (field of view) in degrees.
+    ///
+    /// Controls the camera's zoom level. Smaller values create a "zoomed in" effect,
+    /// while larger values create a wide-angle view.
     pub vertical_fov: f64,
-    /// Ratio of image width over height
+
+    /// Ratio of image width over height.
+    ///
+    /// Common aspect ratios include 16:9 (1.777...), 4:3 (1.333...), and 1:1.
     pub aspect_ratio: f64,
-    /// Rendered image width in pixel count
+
+    /// Rendered image width in pixel count.
+    ///
+    /// The image height is automatically calculated from the aspect ratio.
     pub image_width: u32,
-    /// Point camera is looking from
+
+    /// Point camera is looking from (camera position).
     pub look_from: Vector3,
-    /// Point camera is looking at
+
+    /// Point camera is looking at (target position).
     pub look_at: Vector3,
-    /// Camera-relative "up" direction
+
+    /// Camera-relative "up" direction.
+    ///
+    /// Defines the camera's roll orientation. Typically (0, 1, 0) for an upright camera.
     pub up: Vector3,
-    /// Variation angle of rays through each pixel (degrees)
+
+    /// Variation angle of rays through each pixel in degrees.
+    ///
+    /// Controls depth of field blur. A value of 0 means everything is in focus.
+    /// Larger values create more pronounced depth of field effects.
     pub defocus_angle: f64,
-    // Distance from camera look_from point to plane of perfect focus
+
+    /// Distance from camera look_from point to plane of perfect focus.
+    ///
+    /// Objects at this distance will be perfectly sharp, while objects closer
+    /// or farther will be progressively blurred based on the defocus_angle.
     pub focus_distance: f64,
-    /// Count of random samples for each pixel
+
+    /// Count of random samples for each pixel.
+    ///
+    /// Higher values produce smoother, less noisy images but take longer to render.
     pub samples_per_pixel: u32,
-    /// Maximum number of ray bounces into scene
+
+    /// Maximum number of ray bounces into scene.
+    ///
+    /// Limits recursion depth to prevent infinite loops and control render time.
+    /// Higher values allow more light bounces but increase computation.
     pub max_depth: u32,
-    /// Scene background color
+
+    /// Scene background color.
+    ///
+    /// Color returned when a ray doesn't hit any objects in the scene.
     pub background: Color,
 }
 
 impl CameraBuilder {
+    /// Creates a new `CameraBuilder` with default values.
+    ///
+    /// # Default Values
+    /// - aspect_ratio: 1.0 (square)
+    /// - image_width: 100 pixels
+    /// - samples_per_pixel: 10
+    /// - max_depth: 10 bounces
+    /// - background: black (0, 0, 0)
+    /// - vertical_fov: 90 degrees
+    /// - look_from: (0, 0, 0)
+    /// - look_at: (0, 0, -1)
+    /// - up: (0, 1, 0)
+    /// - defocus_angle: 0 (no depth of field)
+    /// - focus_distance: 10
     pub fn new() -> Self {
         CameraBuilder {
             aspect_ratio: 1.0,
@@ -48,16 +119,22 @@ impl CameraBuilder {
         }
     }
 
+    /// Constructs a [`Camera`] from the current builder configuration.
+    ///
+    /// # Returns
+    /// A fully configured [`Camera`] ready for rendering.
     pub fn build(&self) -> Camera {
         let image_height: u32 = (self.image_width as f64 / self.aspect_ratio) as u32;
         let image_height: u32 = if image_height < 1 { 1 } else { image_height };
 
+        // Calculate stratified sampling parameters
         let sqrt_spp = (self.samples_per_pixel as f64).sqrt();
         let pixel_samples_scale = 1.0 / (sqrt_spp * sqrt_spp);
         let reciprocal_sqrt_spp = 1.0 / sqrt_spp;
 
         let center = self.look_from;
 
+        // Calculate viewport dimensions based on field of view
         let theta = self.vertical_fov.to_radians();
         let h = (theta / 2.0).tan();
         let viewport_height = 2.0 * h * self.focus_distance;
@@ -111,37 +188,63 @@ impl Default for CameraBuilder {
     }
 }
 
+/// A camera that renders 3D scenes.
+///
+/// The `Camera` struct represents a configured camera ready to render images.
+/// It supports features like:
+/// - Configurable field of view
+/// - Depth of field effects (defocus blur)
+/// - Stratified sampling for anti-aliasing
+/// - Path tracing with importance sampling
+///
+/// Use [`CameraBuilder`] to construct a `Camera` instance.
 pub struct Camera {
+    /// Rendered image width in pixels
     image_width: u32,
-    /// Rendered image height
+    /// Rendered image height in pixels
     image_height: u32,
-    /// Camera center
+    /// Camera center position in world space
     center: Vector3,
-    /// Location of pixel 0, 0
+    /// Location of pixel (0, 0) in world space
     pixel00_loc: Vector3,
-    /// Offset to pixel to the right
+    /// Offset vector to pixel to the right
     pixel_delta_u: Vector3,
-    /// Offset to pixel below
+    /// Offset vector to pixel below
     pixel_delta_v: Vector3,
     /// Maximum number of ray bounces into scene
     max_depth: u32,
-    /// Color scale factor for a sum of pixel samples
+    /// Color scale factor for a sum of pixel samples (1 / samples_per_pixel)
     pixel_samples_scale: f64,
-    /// Variation angle of rays through each pixel (degrees)
+    /// Variation angle of rays through each pixel in degrees
     defocus_angle: f64,
-    /// Defocus disk horizontal radius
+    /// Defocus disk horizontal radius vector
     defocus_disk_u: Vector3,
-    /// Defocus disk vertical radius
+    /// Defocus disk vertical radius vector
     defocus_disk_v: Vector3,
-    /// Scene background color
+    /// Scene background color for rays that miss all objects
     background: Color,
     /// Square root of number of samples per pixel
     sqrt_spp: u32,
-    /// 1 / sqrt_spp
+    /// Reciprocal of sqrt_spp (1 / sqrt_spp)
     reciprocal_sqrt_spp: f64,
 }
 
 impl Camera {
+    /// Traces a ray through the scene and calculates its color.
+    ///
+    /// This method recursively traces rays through the scene, accumulating color
+    /// from emissive materials and scattered light. It uses importance sampling
+    /// with a mixture of material and light PDFs for efficient rendering.
+    ///
+    /// # Parameters
+    /// - `ctx`: Rendering context containing random number generator
+    /// - `ray`: The ray to trace
+    /// - `depth`: Remaining recursion depth
+    /// - `world`: The scene geometry to test for intersections
+    /// - `lights`: Light sources for importance sampling
+    ///
+    /// # Returns
+    /// The color seen along the ray direction.
     #[allow(clippy::only_used_in_recursion)]
     fn ray_color(
         &self,
@@ -151,6 +254,7 @@ impl Camera {
         world: &dyn Node,
         lights: Arc<dyn Node>,
     ) -> Color {
+        // Recursion limit reached
         if depth == 0 {
             return Color::BLACK;
         }
@@ -165,9 +269,11 @@ impl Camera {
         match hit.material.scatter(ctx, &ray, &hit) {
             None => color_from_emission,
             Some(scatter_results) => match scatter_results.pdf_or_ray {
+                // Specular reflection (delta distribution)
                 PdfOrRay::Ray(ray) => {
                     scatter_results.attenuation * self.ray_color(ctx, ray, depth - 1, world, lights)
                 }
+                // Diffuse/glossy reflection (use importance sampling)
                 PdfOrRay::Pdf(material_pdf) => {
                     let light_pdf = Arc::new(HittablePdf::new(lights.clone(), hit.pt));
                     let pdf = MixturePdf::new(light_pdf, material_pdf);
@@ -187,6 +293,20 @@ impl Camera {
         }
     }
 
+    /// Renders a single pixel at the given coordinates.
+    ///
+    /// This method performs stratified sampling over the pixel area, tracing
+    /// multiple rays per pixel and averaging the results for anti-aliasing.
+    ///
+    /// # Parameters
+    /// - `ctx`: Rendering context containing random number generator
+    /// - `x`: Pixel x-coordinate (0 to image_width - 1)
+    /// - `y`: Pixel y-coordinate (0 to image_height - 1)
+    /// - `world`: The scene geometry to render
+    /// - `lights`: Light sources for importance sampling
+    ///
+    /// # Returns
+    /// The final gamma-corrected color for the pixel.
     pub fn render(
         &self,
         ctx: &RenderContext,
@@ -196,6 +316,8 @@ impl Camera {
         lights: Arc<dyn Node>,
     ) -> Color {
         let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+
+        // Stratified sampling: divide pixel into sqrt_spp x sqrt_spp grid
         for s_y in 0..self.sqrt_spp {
             for s_x in 0..self.sqrt_spp {
                 let r = self.get_ray(ctx, x, y, s_x, s_y);
@@ -206,8 +328,18 @@ impl Camera {
         (self.pixel_samples_scale * pixel_color.nan_to_zero()).linear_to_gamma()
     }
 
-    /// Construct a camera ray originating from the defocus disk and directed at a randomly
-    /// sampled point around the pixel location i, j.
+    /// Constructs a camera ray originating from the defocus disk and directed at a randomly
+    /// sampled point around the pixel location (x, y).
+    ///
+    /// # Parameters
+    /// - `ctx`: Rendering context containing random number generator
+    /// - `x`: Pixel x-coordinate
+    /// - `y`: Pixel y-coordinate
+    /// - `s_x`: Stratification grid x-index
+    /// - `s_y`: Stratification grid y-index
+    ///
+    /// # Returns
+    /// A ray from the camera through the specified pixel sample.
     fn get_ray(&self, ctx: &RenderContext, x: u32, y: u32, s_x: u32, s_y: u32) -> Ray {
         let offset = self.sample_square_stratified(&*ctx.random, s_x, s_y);
         let pixel_sample = self.pixel00_loc
@@ -227,6 +359,17 @@ impl Camera {
 
     /// Returns the vector to a random point in the square sub-pixel specified by grid
     /// indices s_x and s_y, for an idealized unit square pixel [-.5,-.5] to [+.5,+.5].
+    ///
+    /// This implements stratified sampling to reduce variance compared to pure
+    /// random sampling.
+    ///
+    /// # Parameters
+    /// - `random`: Random number generator
+    /// - `s_x`: Stratification grid x-index (0 to sqrt_spp - 1)
+    /// - `s_y`: Stratification grid y-index (0 to sqrt_spp - 1)
+    ///
+    /// # Returns
+    /// A random offset within the specified sub-pixel region.
     fn sample_square_stratified(&self, random: &dyn Random, s_x: u32, s_y: u32) -> Vector3 {
         let px = ((s_x as f64 + random.rand()) * self.reciprocal_sqrt_spp) - 0.5;
         let py = ((s_y as f64 + random.rand()) * self.reciprocal_sqrt_spp) - 0.5;
@@ -234,17 +377,223 @@ impl Camera {
         Vector3::new(px, py, 0.0)
     }
 
+    /// Returns the rendered image width in pixels.
     pub fn image_width(&self) -> u32 {
         self.image_width
     }
 
+    /// Returns the rendered image height in pixels.
     pub fn image_height(&self) -> u32 {
         self.image_height
     }
 
     /// Returns a random point in the camera defocus disk.
+    ///
+    /// This is used to create depth of field effects by varying the ray origin
+    /// across a disk perpendicular to the view direction.
+    ///
+    /// # Parameters
+    /// - `random`: Random number generator
+    ///
+    /// # Returns
+    /// A random point on the defocus disk in world space.
     fn defocus_disk_sample(&self, random: &dyn Random) -> Vector3 {
         let pt = Vector3::random_in_unit_disk(random);
         self.center + (pt.x * self.defocus_disk_u) + (pt.y * self.defocus_disk_v)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::random::test::MockRandom;
+
+    use super::*;
+
+    #[test]
+    fn test_camera_builder_defaults() {
+        let builder = CameraBuilder::new();
+
+        assert_eq!(builder.aspect_ratio, 1.0);
+        assert_eq!(builder.image_width, 100);
+        assert_eq!(builder.samples_per_pixel, 10);
+        assert_eq!(builder.max_depth, 10);
+        assert_eq!(builder.vertical_fov, 90.0);
+        assert_eq!(builder.defocus_angle, 0.0);
+        assert_eq!(builder.focus_distance, 10.0);
+    }
+
+    #[test]
+    fn test_camera_builder_default_trait() {
+        let builder1 = CameraBuilder::new();
+        let builder2 = CameraBuilder::default();
+
+        assert_eq!(builder1.aspect_ratio, builder2.aspect_ratio);
+        assert_eq!(builder1.image_width, builder2.image_width);
+    }
+
+    #[test]
+    fn test_camera_build_image_dimensions() {
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.image_width = 1920;
+        camera_builder.aspect_ratio = 16.0 / 9.0;
+        let camera = camera_builder.build();
+
+        assert_eq!(camera.image_width(), 1920);
+        assert_eq!(camera.image_height(), 1080);
+    }
+
+    #[test]
+    fn test_camera_build_minimum_height() {
+        // Test that image height is clamped to minimum of 1
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.image_width = 1;
+        camera_builder.aspect_ratio = 1000.0;
+        let camera = camera_builder.build();
+
+        assert_eq!(camera.image_height(), 1);
+    }
+
+    #[test]
+    fn test_camera_build_square_aspect() {
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.image_width = 100;
+        camera_builder.aspect_ratio = 1.0;
+        let camera = camera_builder.build();
+
+        assert_eq!(camera.image_width(), 100);
+        assert_eq!(camera.image_height(), 100);
+    }
+
+    #[test]
+    fn test_camera_stratified_sampling_bounds() {
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.samples_per_pixel = 16; // sqrt = 4
+        let camera = camera_builder.build();
+
+        let random = MockRandom::new(vec![0.5]);
+
+        // Test corners of stratification grid
+        let offset_00 = camera.sample_square_stratified(&random, 0, 0);
+        let offset_33 = camera.sample_square_stratified(&random, 3, 3);
+
+        // All offsets should be within [-0.5, 0.5]
+        assert!(offset_00.x >= -0.5 && offset_00.x <= 0.5);
+        assert!(offset_00.y >= -0.5 && offset_00.y <= 0.5);
+        assert!(offset_33.x >= -0.5 && offset_33.x <= 0.5);
+        assert!(offset_33.y >= -0.5 && offset_33.y <= 0.5);
+        assert_eq!(offset_00.z, 0.0);
+    }
+
+    #[test]
+    fn test_camera_sqrt_spp_calculation() {
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.samples_per_pixel = 16;
+        let camera = camera_builder.build();
+
+        assert_eq!(camera.sqrt_spp, 4);
+    }
+
+    #[test]
+    fn test_camera_samples_per_pixel_rounding() {
+        // 15 samples should round down to 3x3 = 9 effective samples
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.samples_per_pixel = 15;
+        let camera = camera_builder.build();
+
+        assert_eq!(camera.sqrt_spp, 3);
+    }
+
+    #[test]
+    fn test_camera_coordinate_frame_orthogonal() {
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.look_from = Vector3::new(0.0, 0.0, 5.0);
+        camera_builder.look_at = Vector3::new(0.0, 0.0, 0.0);
+        camera_builder.up = Vector3::new(0.0, 1.0, 0.0);
+        let camera = camera_builder.build();
+
+        // Verify camera was built successfully
+        assert_eq!(camera.center, Vector3::new(0.0, 0.0, 5.0));
+    }
+
+    #[test]
+    fn test_camera_no_defocus() {
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.defocus_angle = 0.0;
+        let camera = camera_builder.build();
+
+        assert_eq!(camera.defocus_angle, 0.0);
+    }
+
+    #[test]
+    fn test_camera_with_defocus() {
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.defocus_angle = 2.0;
+        camera_builder.focus_distance = 5.0;
+        let camera = camera_builder.build();
+
+        assert_eq!(camera.defocus_angle, 2.0);
+    }
+
+    #[test]
+    fn test_pixel_samples_scale() {
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.samples_per_pixel = 16; // sqrt = 4, so 4*4 = 16 samples
+        let camera = camera_builder.build();
+
+        // Scale should be 1/16
+        assert!((camera.pixel_samples_scale - 0.0625).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_background_color() {
+        let bg = Color::new(0.5, 0.7, 1.0);
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.background = bg;
+        let camera = camera_builder.build();
+
+        assert_eq!(camera.background, bg);
+    }
+
+    #[test]
+    fn test_max_depth() {
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.max_depth = 50;
+        let camera = camera_builder.build();
+
+        assert_eq!(camera.max_depth, 50);
+    }
+
+    #[test]
+    fn test_vertical_fov_affects_viewport() {
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.vertical_fov = 90.0;
+        camera_builder.focus_distance = 10.0;
+        let camera_wide = camera_builder.build();
+
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.vertical_fov = 45.0;
+        camera_builder.focus_distance = 10.0;
+        let camera_narrow = camera_builder.build();
+
+        // Different FOVs should produce different pixel deltas
+        // (narrow FOV should have smaller deltas)
+        assert!(camera_wide.pixel_delta_u.length() > camera_narrow.pixel_delta_u.length());
+    }
+
+    #[test]
+    fn test_look_directions() {
+        // Test looking along negative Z
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.look_from = Vector3::new(0.0, 0.0, 0.0);
+        camera_builder.look_at = Vector3::new(0.0, 0.0, -1.0);
+        let camera_z = camera_builder.build();
+
+        // Test looking along positive X
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.look_from = Vector3::new(0.0, 0.0, 0.0);
+        camera_builder.look_at = Vector3::new(1.0, 0.0, 0.0);
+        let camera_x = camera_builder.build();
+
+        assert_ne!(camera_z.pixel00_loc, camera_x.pixel00_loc);
     }
 }
