@@ -1,6 +1,6 @@
 use core::f64;
 
-use crate::{RenderContext, Vector3, utils::ProbabilityDensityFunction};
+use crate::{ProbabilityDensityFunction, RenderContext, Vector3};
 
 pub struct SpherePdf {}
 

@@ -5,6 +5,7 @@ pub mod image;
 pub mod interval;
 pub mod material;
 pub mod object;
+pub mod probability_density_function;
 pub mod random;
 pub mod ray;
 pub mod texture;
@@ -19,6 +20,9 @@ pub use color::Color;
 pub use image::Image;
 pub use interval::Interval;
 pub use object::Node;
+pub use probability_density_function::{
+    CosinePdf, HitTablePdf, ProbabilityDensityFunction, SpherePdf,
+};
 pub use random::{Random, random_new};
 pub use ray::Ray;
 pub use vector::Vector3;

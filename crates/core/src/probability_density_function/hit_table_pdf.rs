@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{Node, RenderContext, Vector3, utils::ProbabilityDensityFunction};
+use crate::{Node, ProbabilityDensityFunction, RenderContext, Vector3};
 
 pub struct HitTablePdf {
     objects: Arc<dyn Node>,

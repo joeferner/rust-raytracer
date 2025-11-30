@@ -1,9 +1,6 @@
 use core::f64;
 
-use crate::{
-    RenderContext, Vector3,
-    utils::{OrthonormalBasis, ProbabilityDensityFunction},
-};
+use crate::{ProbabilityDensityFunction, RenderContext, Vector3, utils::OrthonormalBasis};
 
 pub struct CosinePdf {
     uvw: OrthonormalBasis,

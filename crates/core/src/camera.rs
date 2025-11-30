@@ -1,9 +1,8 @@
 use std::{f64, sync::Arc};
 
 use crate::{
-    Color, Interval, Random, Ray, RenderContext, Vector3,
+    Color, HitTablePdf, Interval, ProbabilityDensityFunction, Random, Ray, RenderContext, Vector3,
     object::Node,
-    utils::{HitTablePdf, ProbabilityDensityFunction},
 };
 
 #[derive(Debug)]
