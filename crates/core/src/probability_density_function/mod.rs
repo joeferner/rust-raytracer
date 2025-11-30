@@ -1,10 +1,10 @@
 pub mod cosine;
-pub mod hit_table;
+pub mod hittable;
 pub mod mixture;
 pub mod sphere;
 
 pub use cosine::CosinePdf;
-pub use hit_table::HitTablePdf;
+pub use hittable::HittablePdf;
 pub use mixture::MixturePdf;
 pub use sphere::SpherePdf;
 

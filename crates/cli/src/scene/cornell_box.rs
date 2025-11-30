@@ -102,8 +102,8 @@ pub fn create_cornell_box_scene(_ctx: &RenderContext) -> SceneResult {
     let mut camera_builder = CameraBuilder::new();
     camera_builder.aspect_ratio = 1.0;
     camera_builder.image_width = 600;
-    camera_builder.samples_per_pixel = 10;
-    camera_builder.max_depth = 10;
+    camera_builder.samples_per_pixel = 100;
+    camera_builder.max_depth = 50;
     camera_builder.vertical_fov = 40.0;
     camera_builder.look_from = Vector3::new(278.0, 278.0, -800.0);
     camera_builder.look_at = Vector3::new(278.0, 278.0, 0.0);

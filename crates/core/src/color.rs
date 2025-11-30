@@ -40,6 +40,14 @@ impl Color {
             b: linear_to_gamma(self.b).clamp(0.0, 0.999),
         }
     }
+
+    pub fn nan_to_zero(&self) -> Color {
+        Color {
+            r: if self.r.is_nan() { 0.0 } else { self.r },
+            g: if self.g.is_nan() { 0.0 } else { self.g },
+            b: if self.b.is_nan() { 0.0 } else { self.b },
+        }
+    }
 }
 
 fn linear_to_gamma(v: f64) -> f64 {

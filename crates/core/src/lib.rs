@@ -21,7 +21,7 @@ pub use image::Image;
 pub use interval::Interval;
 pub use object::Node;
 pub use probability_density_function::{
-    CosinePdf, HitTablePdf, ProbabilityDensityFunction, SpherePdf,
+    CosinePdf, HittablePdf, ProbabilityDensityFunction, SpherePdf,
 };
 pub use random::{Random, random_new};
 pub use ray::Ray;
