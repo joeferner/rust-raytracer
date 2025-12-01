@@ -5,7 +5,7 @@ use rust_raytracer_core::{
     Camera, CameraBuilder, Color, Node, RenderContext, Vector3,
     image::HtmlImage,
     material::{Lambertian, Metal},
-    object::{BoundingVolumeHierarchy, Group, Sphere},
+    object::{BoundingVolumeHierarchy, Sphere},
     random_new,
     texture::ImageTexture,
 };
@@ -15,7 +15,7 @@ use wasm_bindgen::prelude::*;
 struct Scene {
     camera: Arc<Camera>,
     world: Arc<dyn Node>,
-    lights: Arc<dyn Node>,
+    lights: Option<Arc<dyn Node>>,
 }
 
 #[wasm_bindgen]
@@ -68,7 +68,7 @@ fn create_earth_scene(aspect_ratio: f64, image_width: u32) -> Result<Scene, JsVa
     Ok(Scene {
         camera,
         world: globe,
-        lights: Arc::new(Group::new()),
+        lights: None,
     })
 }
 
@@ -114,7 +114,7 @@ fn create_three_ball_scene(aspect_ratio: f64, image_width: u32) -> Result<Scene,
     Ok(Scene {
         camera,
         world,
-        lights: Arc::new(Group::new()),
+        lights: None,
     })
 }
 

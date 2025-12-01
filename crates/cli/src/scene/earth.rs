@@ -1,11 +1,8 @@
 use std::sync::Arc;
 
 use rust_raytracer_core::{
-    CameraBuilder, Color, RenderContext, Vector3,
-    image::ImageImage,
-    material::Lambertian,
-    object::{Group, Sphere},
-    texture::ImageTexture,
+    CameraBuilder, Color, RenderContext, Vector3, image::ImageImage, material::Lambertian,
+    object::Sphere, texture::ImageTexture,
 };
 
 use crate::scene::SceneResult;
@@ -33,6 +30,6 @@ pub fn create_earth_scene(_ctx: &RenderContext) -> SceneResult {
     SceneResult {
         camera,
         world: globe,
-        lights: Arc::new(Group::new()),
+        lights: None,
     }
 }

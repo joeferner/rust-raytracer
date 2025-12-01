@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rust_raytracer_core::{
     CameraBuilder, Color, Node, RenderContext, Vector3,
-    material::{DiffuseLight, Lambertian},
+    material::{DiffuseLight, EmptyMaterial, Lambertian},
     object::{BoundingVolumeHierarchy, Box, ConstantMedium, Group, Quad, RotateY, Translate},
 };
 
@@ -12,7 +12,7 @@ pub fn create_cornell_box_smoke_scene(_ctx: &RenderContext) -> SceneResult {
     let red_material = Arc::new(Lambertian::new_from_color(Color::new(0.65, 0.05, 0.05)));
     let white_material = Arc::new(Lambertian::new_from_color(Color::new(0.73, 0.73, 0.73)));
     let green_material = Arc::new(Lambertian::new_from_color(Color::new(0.12, 0.45, 0.15)));
-    let light_material = Arc::new(DiffuseLight::new_from_color(Color::new(7.0, 7.0, 7.0)));
+    let light_material = Arc::new(DiffuseLight::new_from_color(Color::new(5.0, 5.0, 5.0)));
 
     // World
     let mut world: Vec<Arc<dyn Node>> = vec![];
@@ -54,6 +54,7 @@ pub fn create_cornell_box_smoke_scene(_ctx: &RenderContext) -> SceneResult {
         white_material.clone(),
     )));
 
+    // box1
     let box1 = Arc::new(Box::new(
         Vector3::new(0.0, 0.0, 0.0),
         Vector3::new(165.0, 330.0, 165.0),
@@ -68,6 +69,7 @@ pub fn create_cornell_box_smoke_scene(_ctx: &RenderContext) -> SceneResult {
     ));
     world.push(box1);
 
+    // box2
     let box2 = Arc::new(Box::new(
         Vector3::new(0.0, 0.0, 0.0),
         Vector3::new(165.0, 165.0, 165.0),
@@ -78,11 +80,21 @@ pub fn create_cornell_box_smoke_scene(_ctx: &RenderContext) -> SceneResult {
     let box2 = Arc::new(ConstantMedium::new_from_color(
         box2,
         0.01,
-        Color::new(1.0, 1.0, 1.0),
+        Color::new(0.7, 0.7, 0.7),
     ));
     world.push(box2);
 
     let world = Arc::new(BoundingVolumeHierarchy::new(&world));
+
+    // Lights
+    let light1 = Arc::new(Quad::new(
+        Vector3::new(343.0, 554.0, 332.0),
+        Vector3::new(-130.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, -105.0),
+        Arc::new(EmptyMaterial::new()),
+    ));
+    let lights: Vec<Arc<dyn Node>> = vec![light1];
+    let lights = Arc::new(Group::from_list(&lights));
 
     // Camera
     let mut camera_builder = CameraBuilder::new();
@@ -101,6 +113,6 @@ pub fn create_cornell_box_smoke_scene(_ctx: &RenderContext) -> SceneResult {
     SceneResult {
         camera,
         world,
-        lights: Arc::new(Group::new()),
+        lights: Some(lights),
     }
 }

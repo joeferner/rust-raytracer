@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rust_raytracer_core::{
     CameraBuilder, Color, RenderContext, Vector3,
     material::{DiffuseLight, Lambertian},
-    object::{BoundingVolumeHierarchy, Group, Node, Quad, Sphere},
+    object::{BoundingVolumeHierarchy, Node, Quad, Sphere},
     texture::PerlinTurbulenceTexture,
 };
 
@@ -65,6 +65,6 @@ pub fn create_simple_light_scene(ctx: &RenderContext) -> SceneResult {
     SceneResult {
         camera,
         world,
-        lights: Arc::new(Group::new()),
+        lights: None,
     }
 }

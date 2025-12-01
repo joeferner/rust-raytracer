@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rust_raytracer_core::{
     CameraBuilder, Color, RenderContext, Vector3,
     material::{Dielectric, Lambertian, Metal},
-    object::{BoundingVolumeHierarchy, Group, Node, Sphere},
+    object::{BoundingVolumeHierarchy, Node, Sphere},
     texture::{CheckerTexture, SolidColor},
 };
 
@@ -65,6 +65,6 @@ pub fn create_three_spheres_scene(_ctx: &RenderContext) -> SceneResult {
     SceneResult {
         camera,
         world,
-        lights: Arc::new(Group::new()),
+        lights: None,
     }
 }

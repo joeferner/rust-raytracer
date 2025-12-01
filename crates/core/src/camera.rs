@@ -1,8 +1,8 @@
 use std::{f64, sync::Arc};
 
 use crate::{
-    Color, HittablePdf, Interval, ProbabilityDensityFunction, Random, Ray, RenderContext, Vector3,
-    material::PdfOrRay, object::Node, probability_density_function::MixturePdf,
+    Color, HittablePdf, Interval, Random, Ray, RenderContext, Vector3, material::PdfOrRay,
+    object::Node, probability_density_function::MixturePdf,
 };
 
 /// Builder for configuring and constructing a [`Camera`].
@@ -252,7 +252,7 @@ impl Camera {
         ray: Ray,
         depth: u32,
         world: &dyn Node,
-        lights: Arc<dyn Node>,
+        lights: Option<Arc<dyn Node>>,
     ) -> Color {
         // Recursion limit reached
         if depth == 0 {
@@ -275,8 +275,13 @@ impl Camera {
                 }
                 // Diffuse/glossy reflection (use importance sampling)
                 PdfOrRay::Pdf(material_pdf) => {
-                    let light_pdf = Arc::new(HittablePdf::new(lights.clone(), hit.pt));
-                    let pdf = MixturePdf::new(light_pdf, material_pdf);
+                    let pdf = match &lights {
+                        Some(lights) => {
+                            let light_pdf = Arc::new(HittablePdf::new(lights.clone(), hit.pt));
+                            Arc::new(MixturePdf::new(light_pdf, material_pdf))
+                        }
+                        None => material_pdf,
+                    };
 
                     let scattered = Ray::new_with_time(hit.pt, pdf.generate(ctx), ray.time);
                     let pdf_value = pdf.value(ctx, &scattered.direction);
@@ -313,7 +318,7 @@ impl Camera {
         x: u32,
         y: u32,
         world: &dyn Node,
-        lights: Arc<dyn Node>,
+        lights: Option<Arc<dyn Node>>,
     ) -> Color {
         let mut pixel_color = Color::new(0.0, 0.0, 0.0);
 

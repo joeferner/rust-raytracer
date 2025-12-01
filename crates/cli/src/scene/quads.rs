@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rust_raytracer_core::{
     CameraBuilder, Color, Node, RenderContext, Vector3,
     material::Lambertian,
-    object::{BoundingVolumeHierarchy, Group, Quad},
+    object::{BoundingVolumeHierarchy, Quad},
 };
 
 use crate::scene::SceneResult;
@@ -69,6 +69,6 @@ pub fn create_quads_scene(_ctx: &RenderContext) -> SceneResult {
     SceneResult {
         camera,
         world,
-        lights: Arc::new(Group::new()),
+        lights: None,
     }
 }

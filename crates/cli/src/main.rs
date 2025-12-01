@@ -20,7 +20,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     println!("{:?}", args);
 
-    let mut scene = Scene::CornellBox;
+    let mut scene = Scene::ThreeSpheres;
     if let Some(scene_name) = args.get(1) {
         scene = if scene_name == "ThreeSpheres" {
             Scene::ThreeSpheres
@@ -126,13 +126,13 @@ fn main() {
                                 }
                             }
                             results_send
-                                .send(WorkResult {
+                                .send(WorkResult::DataWorkResult(DataWorkResult {
                                     xmin: item.xmin,
                                     xmax: item.xmax,
                                     ymin: item.ymin,
                                     ymax: item.ymax,
                                     pixels,
-                                })
+                                }))
                                 .unwrap();
                         }
                         None => break,
@@ -144,17 +144,21 @@ fn main() {
 
     for _ in 0..work_count {
         let result = results_recv.recv().unwrap();
-        let mut i = 0;
-        for y in result.ymin..result.ymax {
-            for x in result.xmin..result.xmax {
-                if let Some(pixel) = img.get_pixel_mut_checked(x, y) {
-                    let pixel_color = result.pixels[i];
-                    *pixel = color_to_image_rgb(pixel_color);
-                    i += 1;
+        match result {
+            WorkResult::DataWorkResult(result) => {
+                let mut i = 0;
+                for y in result.ymin..result.ymax {
+                    for x in result.xmin..result.xmax {
+                        if let Some(pixel) = img.get_pixel_mut_checked(x, y) {
+                            let pixel_color = result.pixels[i];
+                            *pixel = color_to_image_rgb(pixel_color);
+                            i += 1;
+                        }
+                    }
                 }
+                pb.inc(1);
             }
         }
-        pb.inc(1);
     }
 
     for h in handles {
@@ -175,14 +179,18 @@ fn color_to_image_rgb(color: Color) -> image::Rgb<u8> {
 pub struct Work {
     pub camera: Arc<Camera>,
     pub world: Arc<dyn Node>,
-    pub lights: Arc<dyn Node>,
+    pub lights: Option<Arc<dyn Node>>,
     pub xmin: u32,
     pub xmax: u32,
     pub ymin: u32,
     pub ymax: u32,
 }
 
-pub struct WorkResult {
+pub enum WorkResult {
+    DataWorkResult(DataWorkResult),
+}
+
+pub struct DataWorkResult {
     pub xmin: u32,
     pub xmax: u32,
     pub ymin: u32,

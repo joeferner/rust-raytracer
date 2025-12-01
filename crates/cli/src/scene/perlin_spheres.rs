@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rust_raytracer_core::{
     CameraBuilder, Color, Node, RenderContext, Vector3,
     material::Lambertian,
-    object::{BoundingVolumeHierarchy, Group, Sphere},
+    object::{BoundingVolumeHierarchy, Sphere},
     texture::{PerlinNoiseTexture, PerlinTurbulenceTexture},
 };
 
@@ -54,6 +54,6 @@ pub fn create_perlin_spheres_scene(ctx: &RenderContext) -> SceneResult {
     SceneResult {
         camera,
         world,
-        lights: Arc::new(Group::new()),
+        lights: None,
     }
 }

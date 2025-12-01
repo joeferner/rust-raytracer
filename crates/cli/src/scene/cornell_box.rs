@@ -114,6 +114,6 @@ pub fn create_cornell_box_scene(_ctx: &RenderContext) -> SceneResult {
     SceneResult {
         camera,
         world,
-        lights,
+        lights: Some(lights),
     }
 }

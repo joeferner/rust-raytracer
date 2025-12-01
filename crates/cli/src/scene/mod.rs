@@ -38,7 +38,7 @@ pub enum Scene {
 pub struct SceneResult {
     pub camera: Arc<Camera>,
     pub world: Arc<dyn Node>,
-    pub lights: Arc<dyn Node>,
+    pub lights: Option<Arc<dyn Node>>,
 }
 
 pub fn get_scene(ctx: &RenderContext, scene: Scene) -> SceneResult {

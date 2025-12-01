@@ -68,7 +68,11 @@ impl Node for Group {
     }
 
     fn random(&self, ctx: &RenderContext, origin: &Vector3) -> Vector3 {
-        let r = ctx.random.rand_int_interval(0, self.nodes.len() as i64) as usize;
-        self.nodes[r].random(ctx, origin)
+        if self.nodes.is_empty() {
+            Vector3::new(0.0, 1.0, 0.0)
+        } else {
+            let r = ctx.random.rand_int_interval(0, self.nodes.len() as i64) as usize;
+            self.nodes[r].random(ctx, origin)
+        }
     }
 }

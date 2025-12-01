@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rust_raytracer_core::{
     CameraBuilder, Color, RenderContext, Vector3,
     image::ImageImage,
-    material::{Dielectric, DiffuseLight, Lambertian, Metal},
+    material::{Dielectric, DiffuseLight, EmptyMaterial, Lambertian, Metal},
     object::{
         BoundingVolumeHierarchy, Box, ConstantMedium, Group, Node, Quad, RotateY, Sphere, Translate,
     },
@@ -37,7 +37,7 @@ pub fn create_final_scene(ctx: &RenderContext) -> SceneResult {
     }
 
     // light
-    let light_material = Arc::new(DiffuseLight::new_from_color(Color::new(7.0, 7.0, 7.0)));
+    let light_material = Arc::new(DiffuseLight::new_from_color(Color::new(4.0, 4.0, 4.0)));
     world.push(Arc::new(Quad::new(
         Vector3::new(123.0, 554.0, 147.0),
         Vector3::new(300.0, 0.0, 0.0),
@@ -132,14 +132,24 @@ pub fn create_final_scene(ctx: &RenderContext) -> SceneResult {
     // world
     let world = Arc::new(BoundingVolumeHierarchy::new(&world));
 
-    // Camera
-    // let image_width = 400;
-    // let samples_per_pixel = 500;
-    // let max_depth = 10;
+    // Lights
+    let light1 = Arc::new(Quad::new(
+        Vector3::new(123.0, 554.0, 147.0),
+        Vector3::new(300.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, 265.0),
+        Arc::new(EmptyMaterial::new()),
+    ));
+    let lights: Vec<Arc<dyn Node>> = vec![light1];
+    let lights = Arc::new(Group::from_list(&lights));
 
-    let image_width = 800;
-    let samples_per_pixel = 5000;
-    let max_depth = 40;
+    // Camera
+    let image_width = 400;
+    let samples_per_pixel = 100;
+    let max_depth = 10;
+
+    // let image_width = 800;
+    // let samples_per_pixel = 5000;
+    // let max_depth = 40;
 
     let mut camera_builder = CameraBuilder::new();
     camera_builder.aspect_ratio = 1.0;
@@ -156,6 +166,6 @@ pub fn create_final_scene(ctx: &RenderContext) -> SceneResult {
     SceneResult {
         camera,
         world,
-        lights: Arc::new(Group::new()),
+        lights: Some(lights),
     }
 }
