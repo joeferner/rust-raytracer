@@ -158,6 +158,14 @@ impl Color {
             b: if self.b.is_nan() { 0.0 } else { self.b },
         }
     }
+
+    pub fn clamp(&self, min: f64, max: f64) -> Color {
+        Color::new(
+            self.r.clamp(min, max),
+            self.g.clamp(min, max),
+            self.b.clamp(min, max),
+        )
+    }
 }
 
 /// Converts a linear color component to gamma-corrected space.

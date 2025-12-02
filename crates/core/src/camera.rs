@@ -286,13 +286,21 @@ impl Camera {
                     let scattered = Ray::new_with_time(hit.pt, pdf.generate(ctx), ray.time);
                     let pdf_value = pdf.value(ctx, &scattered.direction);
 
+                    // Guard against small or invalid PDF values which can cause over exposure
+                    if pdf_value < 0.05 {
+                        return color_from_emission;
+                    }
+
                     let scattering_pdf = hit.material.scattering_pdf(ctx, &ray, &hit, &scattered);
 
                     let sample_color = self.ray_color(ctx, scattered, depth - 1, world, lights);
                     let color_from_scatter =
                         (scatter_results.attenuation * scattering_pdf * sample_color) / pdf_value;
 
-                    color_from_emission + color_from_scatter
+                    let color = color_from_emission + color_from_scatter;
+
+                    // Clamp to prevent fireflies
+                    color.clamp(0.0, 10.0)
                 }
             },
         }

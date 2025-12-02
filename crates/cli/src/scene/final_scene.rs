@@ -93,7 +93,9 @@ pub fn create_final_scene(ctx: &RenderContext) -> SceneResult {
     )));
 
     // earth left
-    let earth_image = ImageImage::load_file("assets/earth-map.jpg").unwrap();
+    let earth_image =
+        ImageImage::load_file("/workspaces/rust-raytracer/crates/cli/assets/earth-map.jpg")
+            .unwrap();
     let earth_texture = Arc::new(ImageTexture::new(earth_image));
     let earth_material = Arc::new(Lambertian::new(earth_texture));
     world.push(Arc::new(Sphere::new(
@@ -144,7 +146,7 @@ pub fn create_final_scene(ctx: &RenderContext) -> SceneResult {
 
     // Camera
     let image_width = 400;
-    let samples_per_pixel = 200;
+    let samples_per_pixel = 400;
     let max_depth = 10;
 
     // let image_width = 800;
