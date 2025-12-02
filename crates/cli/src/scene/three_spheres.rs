@@ -7,9 +7,9 @@ use rust_raytracer_core::{
     texture::{CheckerTexture, SolidColor},
 };
 
-use crate::scene::SceneResult;
+use crate::scene::SceneData;
 
-pub fn create_three_spheres_scene(_ctx: &RenderContext) -> SceneResult {
+pub fn create_three_spheres_scene(_ctx: &RenderContext) -> SceneData {
     let material_ground = Arc::new(Lambertian::new(Arc::new(CheckerTexture::new(
         0.32,
         Arc::new(SolidColor::new(Color::new(0.2, 0.3, 0.1))),
@@ -62,7 +62,7 @@ pub fn create_three_spheres_scene(_ctx: &RenderContext) -> SceneResult {
     camera_builder.background = Color::new(0.7, 0.8, 1.0);
     let camera = Arc::new(camera_builder.build());
 
-    SceneResult {
+    SceneData {
         camera,
         world,
         lights: None,

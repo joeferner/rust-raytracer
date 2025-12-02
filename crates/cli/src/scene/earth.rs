@@ -5,9 +5,9 @@ use rust_raytracer_core::{
     object::Sphere, texture::ImageTexture,
 };
 
-use crate::scene::SceneResult;
+use crate::scene::SceneData;
 
-pub fn create_earth_scene(_ctx: &RenderContext) -> SceneResult {
+pub fn create_earth_scene(_ctx: &RenderContext) -> SceneData {
     let image = ImageImage::load_file("assets/earth-map.jpg").unwrap();
     let earth_texture = Arc::new(ImageTexture::new(image));
     let earth_surface = Arc::new(Lambertian::new(earth_texture));
@@ -27,7 +27,7 @@ pub fn create_earth_scene(_ctx: &RenderContext) -> SceneResult {
     camera_builder.background = Color::new(0.7, 0.8, 1.0);
     let camera = Arc::new(camera_builder.build());
 
-    SceneResult {
+    SceneData {
         camera,
         world: globe,
         lights: None,

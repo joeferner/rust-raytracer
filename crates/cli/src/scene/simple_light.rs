@@ -7,9 +7,9 @@ use rust_raytracer_core::{
     texture::PerlinTurbulenceTexture,
 };
 
-use crate::scene::SceneResult;
+use crate::scene::SceneData;
 
-pub fn create_simple_light_scene(ctx: &RenderContext) -> SceneResult {
+pub fn create_simple_light_scene(ctx: &RenderContext) -> SceneData {
     // Material
     let perlin_texture = Arc::new(PerlinTurbulenceTexture::new(&*ctx.random, 4.0, 7));
     let perlin_material = Arc::new(Lambertian::new(perlin_texture));
@@ -62,7 +62,7 @@ pub fn create_simple_light_scene(ctx: &RenderContext) -> SceneResult {
     camera_builder.background = Color::new(0.0, 0.0, 0.0);
     let camera = Arc::new(camera_builder.build());
 
-    SceneResult {
+    SceneData {
         camera,
         world,
         lights: None,

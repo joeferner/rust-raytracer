@@ -6,9 +6,9 @@ use rust_raytracer_core::{
     object::{BoundingVolumeHierarchy, Node, Sphere},
 };
 
-use crate::scene::SceneResult;
+use crate::scene::SceneData;
 
-pub fn create_random_spheres_scene(ctx: &RenderContext) -> SceneResult {
+pub fn create_random_spheres_scene(ctx: &RenderContext) -> SceneData {
     let mut world: Vec<Arc<dyn Node>> = vec![];
 
     let ground_material = Arc::new(Lambertian::new_from_color(Color::new(0.5, 0.5, 0.5)));
@@ -92,7 +92,7 @@ pub fn create_random_spheres_scene(ctx: &RenderContext) -> SceneResult {
     camera_builder.background = Color::new(0.7, 0.8, 1.0);
     let camera = Arc::new(camera_builder.build());
 
-    SceneResult {
+    SceneData {
         camera,
         world,
         lights: None,

@@ -7,9 +7,9 @@ use rust_raytracer_core::{
     texture::{PerlinNoiseTexture, PerlinTurbulenceTexture},
 };
 
-use crate::scene::SceneResult;
+use crate::scene::SceneData;
 
-pub fn create_perlin_spheres_scene(ctx: &RenderContext) -> SceneResult {
+pub fn create_perlin_spheres_scene(ctx: &RenderContext) -> SceneData {
     let texture_perlin_noise = Arc::new(PerlinNoiseTexture::new(&*ctx.random, 4.0));
     let material_perlin_noise = Arc::new(Lambertian::new(texture_perlin_noise));
 
@@ -51,7 +51,7 @@ pub fn create_perlin_spheres_scene(ctx: &RenderContext) -> SceneResult {
     camera_builder.background = Color::new(0.7, 0.8, 1.0);
     let camera = Arc::new(camera_builder.build());
 
-    SceneResult {
+    SceneData {
         camera,
         world,
         lights: None,

@@ -10,9 +10,9 @@ use rust_raytracer_core::{
     texture::{ImageTexture, PerlinNoiseTexture},
 };
 
-use crate::scene::SceneResult;
+use crate::scene::SceneData;
 
-pub fn create_final_scene(ctx: &RenderContext) -> SceneResult {
+pub fn create_final_scene(ctx: &RenderContext) -> SceneData {
     let mut world: Vec<Arc<dyn Node>> = vec![];
 
     // ground
@@ -93,9 +93,7 @@ pub fn create_final_scene(ctx: &RenderContext) -> SceneResult {
     )));
 
     // earth left
-    let earth_image =
-        ImageImage::load_file("/workspaces/rust-raytracer/crates/cli/assets/earth-map.jpg")
-            .unwrap();
+    let earth_image = ImageImage::load_file("assets/earth-map.jpg").unwrap();
     let earth_texture = Arc::new(ImageTexture::new(earth_image));
     let earth_material = Arc::new(Lambertian::new(earth_texture));
     world.push(Arc::new(Sphere::new(
@@ -165,7 +163,7 @@ pub fn create_final_scene(ctx: &RenderContext) -> SceneResult {
     camera_builder.defocus_angle = 0.0;
     let camera = Arc::new(camera_builder.build());
 
-    SceneResult {
+    SceneData {
         camera,
         world,
         lights: Some(lights),

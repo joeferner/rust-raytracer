@@ -6,9 +6,9 @@ use rust_raytracer_core::{
     object::{BoundingVolumeHierarchy, Quad},
 };
 
-use crate::scene::SceneResult;
+use crate::scene::SceneData;
 
-pub fn create_quads_scene(_ctx: &RenderContext) -> SceneResult {
+pub fn create_quads_scene(_ctx: &RenderContext) -> SceneData {
     // Materials
     let left_red = Arc::new(Lambertian::new_from_color(Color::new(1.0, 0.2, 0.2)));
     let back_green = Arc::new(Lambertian::new_from_color(Color::new(0.2, 1.0, 0.2)));
@@ -66,7 +66,7 @@ pub fn create_quads_scene(_ctx: &RenderContext) -> SceneResult {
     camera_builder.background = Color::new(0.7, 0.8, 1.0);
     let camera = Arc::new(camera_builder.build());
 
-    SceneResult {
+    SceneData {
         camera,
         world,
         lights: None,

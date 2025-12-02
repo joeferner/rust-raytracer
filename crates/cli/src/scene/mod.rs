@@ -10,9 +10,8 @@ pub mod random_spheres;
 pub mod simple_light;
 pub mod three_spheres;
 
-use std::sync::Arc;
-
-use rust_raytracer_core::{Camera, RenderContext, object::Node};
+use rust_raytracer_core::{RenderContext, SceneData};
+use rust_raytracer_openscad::openscad_read_from_file;
 
 use crate::scene::{
     checkered_spheres::create_checkered_spheres_scene, cornell_box::create_cornell_box_scene,
@@ -33,25 +32,23 @@ pub enum Scene {
     CornellBox,
     CornellBoxSmoke,
     Final,
+    OpenScad(String),
 }
 
-pub struct SceneResult {
-    pub camera: Arc<Camera>,
-    pub world: Arc<dyn Node>,
-    pub lights: Option<Arc<dyn Node>>,
-}
-
-pub fn get_scene(ctx: &RenderContext, scene: Scene) -> SceneResult {
+pub fn get_scene(ctx: &RenderContext, scene: Scene) -> Result<SceneData, String> {
     match scene {
-        Scene::ThreeSpheres => create_three_spheres_scene(ctx),
-        Scene::RandomSpheres => create_random_spheres_scene(ctx),
-        Scene::CheckeredSpheres => create_checkered_spheres_scene(ctx),
-        Scene::Earth => create_earth_scene(ctx),
-        Scene::PerlinSpheres => create_perlin_spheres_scene(ctx),
-        Scene::Quads => create_quads_scene(ctx),
-        Scene::SimpleLight => create_simple_light_scene(ctx),
-        Scene::CornellBox => create_cornell_box_scene(ctx),
-        Scene::CornellBoxSmoke => create_cornell_box_smoke_scene(ctx),
-        Scene::Final => create_final_scene(ctx),
+        Scene::ThreeSpheres => Ok(create_three_spheres_scene(ctx)),
+        Scene::RandomSpheres => Ok(create_random_spheres_scene(ctx)),
+        Scene::CheckeredSpheres => Ok(create_checkered_spheres_scene(ctx)),
+        Scene::Earth => Ok(create_earth_scene(ctx)),
+        Scene::PerlinSpheres => Ok(create_perlin_spheres_scene(ctx)),
+        Scene::Quads => Ok(create_quads_scene(ctx)),
+        Scene::SimpleLight => Ok(create_simple_light_scene(ctx)),
+        Scene::CornellBox => Ok(create_cornell_box_scene(ctx)),
+        Scene::CornellBoxSmoke => Ok(create_cornell_box_smoke_scene(ctx)),
+        Scene::Final => Ok(create_final_scene(ctx)),
+        Scene::OpenScad(filename) => {
+            openscad_read_from_file(&filename).map_err(|err| format!("{err:?}"))
+        }
     }
 }

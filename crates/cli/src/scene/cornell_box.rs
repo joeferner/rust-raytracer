@@ -6,9 +6,9 @@ use rust_raytracer_core::{
     object::{BoundingVolumeHierarchy, Box, Group, Quad, Rotate, Sphere, Translate},
 };
 
-use crate::scene::SceneResult;
+use crate::scene::SceneData;
 
-pub fn create_cornell_box_scene(_ctx: &RenderContext) -> SceneResult {
+pub fn create_cornell_box_scene(_ctx: &RenderContext) -> SceneData {
     let red_material = Arc::new(Lambertian::new_from_color(Color::new(0.65, 0.05, 0.05)));
     let white_material = Arc::new(Lambertian::new_from_color(Color::new(0.73, 0.73, 0.73)));
     let green_material = Arc::new(Lambertian::new_from_color(Color::new(0.12, 0.45, 0.15)));
@@ -111,7 +111,7 @@ pub fn create_cornell_box_scene(_ctx: &RenderContext) -> SceneResult {
     camera_builder.defocus_angle = 0.0;
     let camera = Arc::new(camera_builder.build());
 
-    SceneResult {
+    SceneData {
         camera,
         world,
         lights: Some(lights),

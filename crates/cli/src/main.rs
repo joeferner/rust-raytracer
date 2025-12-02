@@ -5,6 +5,7 @@ pub mod scene;
 
 use std::{
     env,
+    process::ExitCode,
     sync::{Arc, Mutex, mpsc},
 };
 
@@ -16,11 +17,10 @@ use crate::scene::get_scene;
 
 const BLOCK_SIZE: u32 = 10;
 
-fn main() {
+fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
-    println!("{:?}", args);
 
-    let mut scene = Scene::Final;
+    let mut scene = Scene::ThreeSpheres;
     if let Some(scene_name) = args.get(1) {
         scene = if scene_name == "ThreeSpheres" {
             Scene::ThreeSpheres
@@ -42,8 +42,11 @@ fn main() {
             Scene::CornellBoxSmoke
         } else if scene_name == "Final" {
             Scene::Final
+        } else if scene_name.to_lowercase().ends_with(".scad") {
+            Scene::OpenScad(scene_name.to_owned())
         } else {
-            panic!("invalid scene name")
+            eprintln!("invalid scene name: {scene_name}");
+            return ExitCode::from(1);
         }
     }
 
@@ -51,7 +54,13 @@ fn main() {
         random: random_new(),
     });
 
-    let scene = get_scene(&ctx, scene);
+    let scene = match get_scene(&ctx, scene) {
+        Ok(scene) => scene,
+        Err(err) => {
+            eprintln!("failed to get scene: {err}");
+            return ExitCode::from(1);
+        }
+    };
 
     // render image
     let mut img: image::ImageBuffer<
@@ -167,6 +176,7 @@ fn main() {
 
     img.save("../../target/out.png").unwrap();
     pb.finish_with_message("Done!");
+    ExitCode::SUCCESS
 }
 
 fn color_to_image_rgb(color: Color) -> image::Rgb<u8> {

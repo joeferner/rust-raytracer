@@ -34,3 +34,9 @@ pub use vector::Vector3;
 pub struct RenderContext {
     pub random: Arc<dyn Random>,
 }
+
+pub struct SceneData {
+    pub camera: Arc<Camera>,
+    pub world: Arc<dyn Node>,
+    pub lights: Option<Arc<dyn Node>>,
+}
