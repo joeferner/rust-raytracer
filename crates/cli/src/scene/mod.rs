@@ -11,7 +11,7 @@ pub mod simple_light;
 pub mod three_spheres;
 
 use rust_raytracer_core::{RenderContext, SceneData};
-use rust_raytracer_openscad::openscad_read_from_file;
+use rust_raytracer_openscad::openscad_file_to_scene_data;
 
 use crate::scene::{
     checkered_spheres::create_checkered_spheres_scene, cornell_box::create_cornell_box_scene,
@@ -48,7 +48,7 @@ pub fn get_scene(ctx: &RenderContext, scene: Scene) -> Result<SceneData, String>
         Scene::CornellBoxSmoke => Ok(create_cornell_box_smoke_scene(ctx)),
         Scene::Final => Ok(create_final_scene(ctx)),
         Scene::OpenScad(filename) => {
-            openscad_read_from_file(&filename).map_err(|err| format!("{err:?}"))
+            openscad_file_to_scene_data(&filename).map_err(|err| format!("{err:?}"))
         }
     }
 }
