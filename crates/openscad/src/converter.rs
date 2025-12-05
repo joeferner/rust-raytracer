@@ -115,7 +115,7 @@ impl Converter {
         Arc::new(Box::new(
             a,
             b,
-            Arc::new(Lambertian::new_from_color(Color::new(0.73, 0.73, 0.73))),
+            Arc::new(Lambertian::new_from_color(Color::new(0.99, 0.85, 0.26))),
         ))
     }
 }
