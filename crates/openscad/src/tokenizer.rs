@@ -6,9 +6,14 @@ pub enum Token {
     Number(f64),
     LeftParen,
     RightParen,
+    LeftBracket,
+    RightBracket,
+    Comma,
     Semicolon,
     Equals,
     For,
+    True,
+    False,
     Unknown(char),
     Eof,
 }
@@ -207,6 +212,18 @@ impl Tokenizer {
                 self.advance();
                 Token::RightParen
             }
+            Some('[') => {
+                self.advance();
+                Token::LeftBracket
+            }
+            Some(']') => {
+                self.advance();
+                Token::RightBracket
+            }
+            Some(',') => {
+                self.advance();
+                Token::Comma
+            }
             Some(';') => {
                 self.advance();
                 Token::Semicolon
@@ -219,6 +236,10 @@ impl Tokenizer {
                 let identifier = self.read_identifier();
                 if identifier == "for" {
                     Token::For
+                } else if identifier == "true" {
+                    Token::True
+                } else if identifier == "false" {
+                    Token::False
                 } else {
                     Token::Identifier(identifier)
                 }
@@ -246,13 +267,19 @@ pub fn openscad_tokenize(input: &str) -> Vec<TokenWithPosition> {
 mod tests {
     use super::*;
 
-    fn assert_tokens(input: &str, expected: &[TokenWithPosition]) {
+    fn assert_tokens_with_pos(input: &str, expected: &[TokenWithPosition]) {
         let found = openscad_tokenize(input);
         assert_eq!(found, expected);
     }
 
-    fn assert_token(input: &str, token: Token, start: usize, end: usize) {
-        assert_tokens(
+    fn assert_tokens(input: &str, expected: &[Token]) {
+        let found = openscad_tokenize(input);
+        let found_without_pos: Vec<Token> = found.iter().map(|tok| tok.item.clone()).collect();
+        assert_eq!(found_without_pos, expected);
+    }
+
+    fn assert_token_with_pos(input: &str, token: Token, start: usize, end: usize) {
+        assert_tokens_with_pos(
             input,
             &vec![
                 TokenWithPosition::new(token, start, end),
@@ -263,13 +290,13 @@ mod tests {
 
     #[test]
     fn test_re_number() {
-        assert_token("1", Token::Number(1.0), 0, 1);
-        assert_token("42", Token::Number(42.0), 0, 2);
-        assert_token("42.34", Token::Number(42.34), 0, 5);
-        assert_token("42.34e11", Token::Number(42.34e11), 0, 8);
-        assert_token("42.34E-11", Token::Number(42.34e-11), 0, 9);
+        assert_token_with_pos("1", Token::Number(1.0), 0, 1);
+        assert_token_with_pos("42", Token::Number(42.0), 0, 2);
+        assert_token_with_pos("42.34", Token::Number(42.34), 0, 5);
+        assert_token_with_pos("42.34e11", Token::Number(42.34e11), 0, 8);
+        assert_token_with_pos("42.34E-11", Token::Number(42.34e-11), 0, 9);
 
-        assert_tokens(
+        assert_tokens_with_pos(
             "42.34a",
             &vec![
                 TokenWithPosition::new(Token::Number(42.34), 0, 5),
@@ -281,10 +308,10 @@ mod tests {
 
     #[test]
     fn test_re_identifier() {
-        assert_token("a", Token::Identifier("a".to_string()), 0, 1);
-        assert_token("cube_2", Token::Identifier("cube_2".to_string()), 0, 6);
+        assert_token_with_pos("a", Token::Identifier("a".to_string()), 0, 1);
+        assert_token_with_pos("cube_2", Token::Identifier("cube_2".to_string()), 0, 6);
 
-        assert_tokens(
+        assert_tokens_with_pos(
             "cube(",
             &vec![
                 TokenWithPosition::new(Token::Identifier("cube".to_string()), 0, 4),
@@ -295,8 +322,8 @@ mod tests {
     }
 
     #[test]
-    fn test_simple() {
-        assert_tokens(
+    fn test_cube() {
+        assert_tokens_with_pos(
             "cube(10);",
             &vec![
                 TokenWithPosition {
@@ -329,6 +356,44 @@ mod tests {
                     start: 9,
                     end: 9,
                 },
+            ],
+        );
+    }
+
+    #[test]
+    fn test_cube_vector() {
+        assert_tokens(
+            "cube([20,30,50]);",
+            &vec![
+                Token::Identifier("cube".to_string()),
+                Token::LeftParen,
+                Token::LeftBracket,
+                Token::Number(20.0),
+                Token::Comma,
+                Token::Number(30.0),
+                Token::Comma,
+                Token::Number(50.0),
+                Token::RightBracket,
+                Token::RightParen,
+                Token::Semicolon,
+                Token::Eof,
+            ],
+        );
+    }
+
+    #[test]
+    fn test_cube_named_parameter() {
+        assert_tokens(
+            "cube(size=20);",
+            &vec![
+                Token::Identifier("cube".to_string()),
+                Token::LeftParen,
+                Token::Identifier("size".to_string()),
+                Token::Equals,
+                Token::Number(20.0),
+                Token::RightParen,
+                Token::Semicolon,
+                Token::Eof,
             ],
         );
     }

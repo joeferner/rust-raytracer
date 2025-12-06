@@ -2,8 +2,9 @@ use std::{collections::HashMap, rc::Rc};
 
 use crate::parser::{
     CallArgument, CallArgumentWithPosition, ChildStatement, ChildStatementWithPosition, Expr,
-    ModuleId, ModuleInstantiation, ModuleInstantiationWithPosition, SingleModuleInstantiation,
-    SingleModuleInstantiationWithPosition, Statement, StatementWithPosition,
+    ExprWithPosition, ModuleId, ModuleInstantiation, ModuleInstantiationWithPosition,
+    SingleModuleInstantiation, SingleModuleInstantiationWithPosition, Statement,
+    StatementWithPosition,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -26,11 +27,18 @@ pub struct ModuleInstanceTree {
 #[derive(Debug)]
 pub enum ModuleArgument {
     Positional(ModuleArgumentValue),
+    NamedArgument {
+        name: String,
+        value: ModuleArgumentValue,
+    },
 }
 
 #[derive(Debug)]
 pub enum ModuleArgumentValue {
     Number(f64),
+    Vector { items: Vec<ModuleArgumentValue> },
+    True,
+    False,
 }
 
 struct Interpreter {
@@ -107,6 +115,20 @@ impl Interpreter {
         }
     }
 
+    fn expr_to_module_argument_value(expr: &ExprWithPosition) -> ModuleArgumentValue {
+        match &expr.item {
+            Expr::Number(number) => ModuleArgumentValue::Number(*number),
+            Expr::Vector { items } => ModuleArgumentValue::Vector {
+                items: items
+                    .iter()
+                    .map(Self::expr_to_module_argument_value)
+                    .collect(),
+            },
+            Expr::True => ModuleArgumentValue::True,
+            Expr::False => ModuleArgumentValue::False,
+        }
+    }
+
     fn process_call_arguments(
         &self,
         call_arguments: Vec<CallArgumentWithPosition>,
@@ -115,11 +137,16 @@ impl Interpreter {
 
         for call_argument in call_arguments {
             match call_argument.item {
-                CallArgument::Expr { expr } => match expr.item {
-                    Expr::Number(number) => results.push(ModuleArgument::Positional(
-                        ModuleArgumentValue::Number(number),
-                    )),
-                },
+                CallArgument::Expr { expr } => results.push(ModuleArgument::Positional(
+                    Self::expr_to_module_argument_value(&expr),
+                )),
+                CallArgument::NamedArgument { identifier, expr } => {
+                    let value = Self::expr_to_module_argument_value(&expr);
+                    results.push(ModuleArgument::NamedArgument {
+                        name: identifier,
+                        value,
+                    })
+                }
             }
         }
 

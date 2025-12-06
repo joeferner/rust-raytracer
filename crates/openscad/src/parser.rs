@@ -69,7 +69,11 @@ pub type ModuleIdWithPosition = WithPosition<ModuleId>;
 
 #[derive(Debug, PartialEq)]
 pub enum CallArgument {
-    // TODO <identifier> '=' <expr>
+    /// <identifier> '=' <expr>
+    NamedArgument {
+        identifier: String,
+        expr: ExprWithPosition,
+    },
     /// <expr>
     Expr { expr: ExprWithPosition },
 }
@@ -78,8 +82,10 @@ pub type CallArgumentWithPosition = WithPosition<CallArgument>;
 
 #[derive(Debug, PartialEq)]
 pub enum Expr {
-    // TODO "true"
-    // TODO "false"
+    // "true"
+    True,
+    // "false"
+    False,
     // TODO "undef"
     // TODO <identifier>
     // TODO <expr> '.' <identifier>
@@ -91,7 +97,11 @@ pub enum Expr {
     // TODO '[' <expr> ':' <expr> ':' <expr> ']'
     // TODO '[' <list_comprehension_elements> ']'
     // TODO '[' <optional_commas> ']'
-    // TODO '[' <vector_expr> <optional_commas> ']'
+
+    // '[' (<expr> ',' <optional_commas>)* ']'
+    Vector {
+        items: Vec<ExprWithPosition>,
+    },
     // TODO <expr> '*' <expr>
     // TODO <expr> '/' <expr>
     // TODO <expr> '%' <expr>
@@ -166,7 +176,7 @@ impl Parser {
         self.peek_matches(0, expected)
     }
 
-    fn peek_matches(&mut self, n: usize, expected: Token) -> bool {
+    fn peek_matches(&self, n: usize, expected: Token) -> bool {
         match self.peek(n) {
             None => false,
             Some(tok) => tok.item == expected,
@@ -386,7 +396,10 @@ impl Parser {
                 break;
             }
 
-            // TODO ',' <optional_commas>
+            // ',' <optional_commas>
+            while self.current_matches(Token::Comma) {
+                self.advance();
+            }
         }
 
         if !self.expect(Token::RightParen) {
@@ -405,10 +418,21 @@ impl Parser {
 
         // <identifier> '=' <expr>
         if let Some(tok) = self.current()
-            && let Token::Identifier(_identifier) = &tok.item
+            && let Token::Identifier(identifier) = &tok.item
             && self.peek_matches(1, Token::Equals)
         {
-            todo!();
+            let identifier = identifier.to_owned();
+            self.advance(); // identifier
+            self.advance(); // equals
+            if let Some(expr) = self.parse_expr() {
+                return Some(CallArgumentWithPosition::new(
+                    CallArgument::NamedArgument { identifier, expr },
+                    start,
+                    self.current_token_start(),
+                ));
+            } else {
+                return None;
+            }
         }
 
         // <expr>
@@ -436,7 +460,7 @@ impl Parser {
     ///   '[' <expr> ':' <expr> ':' <expr> ']'
     ///   '[' <list_comprehension_elements> ']'
     ///   '[' <optional_commas> ']'
-    ///   '[' <vector_expr> <optional_commas> ']'
+    ///   '[' (<expr> ',' <optional_commas>)* ']'
     ///   <expr> '*' <expr>
     ///   <expr> '/' <expr>
     ///   <expr> '%' <expr>
@@ -460,8 +484,26 @@ impl Parser {
     fn parse_expr(&mut self) -> Option<ExprWithPosition> {
         let start = self.current_token_start();
 
-        // TODO "true"
-        // TODO "false"
+        // "true"
+        if self.current_matches(Token::True) {
+            self.advance();
+            return Some(ExprWithPosition::new(
+                Expr::True,
+                start,
+                self.current_token_start(),
+            ));
+        }
+
+        // "false"
+        if self.current_matches(Token::False) {
+            self.advance();
+            return Some(ExprWithPosition::new(
+                Expr::False,
+                start,
+                self.current_token_start(),
+            ));
+        }
+
         // TODO "undef"
         // TODO <identifier>
         // TODO <expr> '.' <identifier>
@@ -485,7 +527,28 @@ impl Parser {
         // TODO '[' <expr> ':' <expr> ':' <expr> ']'
         // TODO '[' <list_comprehension_elements> ']'
         // TODO '[' <optional_commas> ']'
-        // TODO '[' <vector_expr> <optional_commas> ']'
+
+        // '[' (<expr> ',' <optional_commas>)* ']'
+        if self.current_matches(Token::LeftBracket) {
+            self.advance();
+            let mut expressions = vec![];
+            while !self.current_matches(Token::RightBracket) {
+                if self.current_matches(Token::Comma) {
+                    self.advance();
+                    continue;
+                }
+                if let Some(expr) = self.parse_expr() {
+                    expressions.push(expr);
+                }
+            }
+            self.expect(Token::RightBracket);
+            return Some(ExprWithPosition::new(
+                Expr::Vector { items: expressions },
+                start,
+                self.current_token_start(),
+            ));
+        }
+
         // TODO <expr> '*' <expr>
         // TODO <expr> '/' <expr>
         // TODO <expr> '%' <expr>
@@ -507,7 +570,7 @@ impl Parser {
         // TODO <expr> '[' <expr> ']'
         // TODO <identifier> <call_arguments>
 
-        todo!()
+        todo!("{:?}", self.current())
     }
 
     pub fn parse(mut self) -> ParseResult {
@@ -551,7 +614,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simple() {
+    fn test_cube() {
         let result = openscad_parse(openscad_tokenize("cube(10);"));
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(
@@ -592,5 +655,77 @@ mod tests {
                 9
             )]
         );
+    }
+
+    #[test]
+    fn test_cube_vector() {
+        let result = openscad_parse(openscad_tokenize("cube([20,30,50]);"));
+        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(1, result.statements.len());
+
+        // Statement::ModuleInstantiation
+        let stmt = &result.statements[0].item;
+        let module_instantiation_item = if let Statement::ModuleInstantiation {
+            module_instantiation,
+        } = stmt
+        {
+            &module_instantiation.item
+        } else {
+            panic!("expected Statement::ModuleInstantiation");
+        };
+
+        // ModuleInstantiation::SingleModuleInstantiation
+        let (single_module_instantiation, child_statement) =
+            if let ModuleInstantiation::SingleModuleInstantiation {
+                single_module_instantiation,
+                child_statement,
+            } = module_instantiation_item
+            {
+                (single_module_instantiation, child_statement)
+            } else {
+                panic!("expected ModuleInstantiation::SingleModuleInstantiation")
+            };
+
+        // SingleModuleInstantiation::Module
+        let (module_id, call_arguments) = if let SingleModuleInstantiation::Module {
+            module_id,
+            call_arguments,
+        } = &single_module_instantiation.item
+        {
+            (module_id, call_arguments)
+        } else {
+            panic!("expected SingleModuleInstantiation::Module");
+        };
+
+        // module_id
+        if let ModuleId::Identifier(id) = &module_id.item {
+            assert_eq!(id, "cube");
+        } else {
+            panic!("expected ModuleId::Identifier");
+        };
+
+        // call_arguments
+        assert_eq!(1, call_arguments.len());
+        if let CallArgument::Expr { expr } = &call_arguments[0].item {
+            if let Expr::Vector { items } = &expr.item {
+                assert_eq!(3, items.len());
+            } else {
+                panic!("expected Expr::Vector");
+            }
+        } else {
+            panic!("expected CallArgument::Expr");
+        }
+
+        // child_statement
+        if child_statement.item != ChildStatement::Empty {
+            panic!("expected ChildStatement::Empty");
+        }
+    }
+
+    #[test]
+    fn test_cube_vector_and_named_parameter() {
+        let result = openscad_parse(openscad_tokenize("cube([20,30,50],center=true);"));
+        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(1, result.statements.len());
     }
 }

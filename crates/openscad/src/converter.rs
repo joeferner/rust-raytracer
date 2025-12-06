@@ -27,8 +27,9 @@ impl Converter {
 
     fn convert(mut self, modules: Vec<Rc<ModuleInstanceTree>>) -> SceneData {
         for module in modules {
-            let node = self.process_module(module);
-            self.world.push(node);
+            if let Some(node) = self.process_module(module) {
+                self.world.push(node);
+            }
         }
 
         let camera = if let Some(camera) = self.camera {
@@ -42,10 +43,12 @@ impl Converter {
             camera_builder.defocus_angle = 0.0;
             camera_builder.background = Color::new(0.7, 0.8, 1.0);
             camera_builder.look_at = Vector3::new(0.0, 0.0, 0.0);
-            camera_builder.look_from = Vector3::new(20.0, 20.0, 20.0);
+            camera_builder.look_from = Vector3::new(-50.0, 70.0, -50.0);
             camera_builder.up = Vector3::new(0.0, 1.0, 0.0);
             Arc::new(camera_builder.build())
         };
+
+        // TODO check for errors
 
         SceneData {
             camera,
@@ -58,12 +61,15 @@ impl Converter {
         }
     }
 
-    fn process_module(&mut self, module: Rc<ModuleInstanceTree>) -> Arc<dyn Node> {
+    fn process_module(&mut self, module: Rc<ModuleInstanceTree>) -> Option<Arc<dyn Node>> {
         let mut child_nodes: Vec<Arc<dyn Node>> = vec![];
 
         for child_module in &module.children {
-            let child_node = self.process_module(child_module.clone());
-            child_nodes.push(child_node);
+            if let Some(child_node) = self.process_module(child_module.clone()) {
+                child_nodes.push(child_node);
+            } else {
+                return None;
+            }
         }
 
         self.process_module_instance(&module.instance, child_nodes)
@@ -73,7 +79,7 @@ impl Converter {
         &self,
         instance: &ModuleInstance,
         child_nodes: Vec<Arc<dyn Node>>,
-    ) -> Arc<dyn Node> {
+    ) -> Option<Arc<dyn Node>> {
         match instance.module {
             Module::Cube => {
                 if !child_nodes.is_empty() {
@@ -84,39 +90,92 @@ impl Converter {
         }
     }
 
-    fn create_cube(&self, arguments: &[ModuleArgument]) -> Arc<dyn Node> {
-        let mut size_x = 1.0;
-        let mut size_y = 1.0;
-        let mut size_z = 1.0;
-        let center = false;
+    fn create_cube(&self, arguments: &[ModuleArgument]) -> Option<Arc<dyn Node>> {
+        let mut size = Vector3::new(0.0, 0.0, 0.0);
+        let mut center = false;
 
-        if arguments.len() != 1 {
-            todo!();
-        }
-        match &arguments[0] {
-            ModuleArgument::Positional(value) => match &value {
-                ModuleArgumentValue::Number(value) => {
-                    size_x = *value;
-                    size_y = *value;
-                    size_z = *value;
+        for (pos, argument) in arguments.iter().enumerate() {
+            match &argument {
+                ModuleArgument::Positional(value) => {
+                    if pos == 0 {
+                        if let Some(v) = self.module_argument_value_to_vector3(value) {
+                            size = v;
+                        } else {
+                            return None;
+                        }
+                    }
                 }
-            },
+                ModuleArgument::NamedArgument { name, value } => {
+                    if name == "size" {
+                        todo!();
+                    } else if name == "center" {
+                        if let Some(value) = self.module_argument_value_to_boolean(value) {
+                            center = value;
+                        } else {
+                            return None;
+                        }
+                    } else {
+                        todo!();
+                    }
+                }
+            }
         }
 
-        let (a, b) = if center {
-            todo!()
-        } else {
-            (
-                Vector3::new(0.0, 0.0, 0.0),
-                Vector3::new(size_x, size_y, size_z),
-            )
-        };
+        let mut a = Vector3::new(0.0, 0.0, 0.0);
+        let mut b = size;
+        if center {
+            a = a - (size / 2.0);
+            b = b - (size / 2.0);
+        }
 
-        Arc::new(Box::new(
+        Some(Arc::new(Box::new(
             a,
             b,
             Arc::new(Lambertian::new_from_color(Color::new(0.99, 0.85, 0.26))),
-        ))
+        )))
+    }
+
+    fn vector_expr_to_vector3(&self, items: &[ModuleArgumentValue]) -> Option<Vector3> {
+        if items.len() != 3 {
+            todo!();
+        }
+
+        let x = if let ModuleArgumentValue::Number(x) = items[0] {
+            x
+        } else {
+            todo!();
+        };
+
+        let y = if let ModuleArgumentValue::Number(y) = items[1] {
+            y
+        } else {
+            todo!();
+        };
+
+        let z = if let ModuleArgumentValue::Number(z) = items[2] {
+            z
+        } else {
+            todo!();
+        };
+
+        // OpenSCAD x,y,z is different than ours so flip z and y
+        Some(Vector3::new(-x, z, y))
+    }
+
+    fn module_argument_value_to_vector3(&self, value: &ModuleArgumentValue) -> Option<Vector3> {
+        match &value {
+            ModuleArgumentValue::Number(value) => Some(Vector3::new(-*value, *value, *value)),
+            ModuleArgumentValue::Vector { items } => self.vector_expr_to_vector3(items),
+            _ => todo!(),
+        }
+    }
+
+    fn module_argument_value_to_boolean(&self, value: &ModuleArgumentValue) -> Option<bool> {
+        match value {
+            ModuleArgumentValue::True => Some(true),
+            ModuleArgumentValue::False => Some(false),
+            _ => todo!(),
+        }
     }
 }
 
