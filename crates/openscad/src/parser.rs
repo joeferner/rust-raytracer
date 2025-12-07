@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     WithPosition,
     tokenizer::{Token, TokenWithPosition},
@@ -52,7 +54,10 @@ pub enum ChildStatement {
     // ';'
     Empty,
     // TODO '{' <child_statements> '}'
-    // TODO <module_instantiation>
+    // <module_instantiation>
+    ModuleInstantiation {
+        module_instantiation: Rc<ModuleInstantiationWithPosition>,
+    },
 }
 
 pub type ChildStatementWithPosition = WithPosition<ChildStatement>;
@@ -341,10 +346,23 @@ impl Parser {
             ));
         }
 
-        // TODO '{' <child_statements> '}'
-        // TODO <module_instantiation>
+        if self.current_matches(Token::LeftCurlyBracket) {
+            // TODO '{' <child_statements> '}'
+            todo!()
+        }
 
-        todo!()
+        // <module_instantiation>
+        if let Some(module_instantiation) = self.parse_module_instantiation() {
+            return Some(ChildStatementWithPosition::new(
+                ChildStatement::ModuleInstantiation {
+                    module_instantiation: Rc::new(module_instantiation),
+                },
+                start,
+                self.current_token_start(),
+            ));
+        }
+
+        None
     }
 
     /// <module_id> ::=
@@ -725,6 +743,15 @@ mod tests {
     #[test]
     fn test_cube_vector_and_named_parameter() {
         let result = openscad_parse(openscad_tokenize("cube([20,30,50],center=true);"));
+        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(1, result.statements.len());
+    }
+
+    #[test]
+    fn test_translate_cube_vector_and_named_parameter() {
+        let result = openscad_parse(openscad_tokenize(
+            "translate([0,0,5]) cube([20,30,50],center=true);",
+        ));
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }

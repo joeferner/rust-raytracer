@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::parser::{
     CallArgument, CallArgumentWithPosition, ChildStatement, ChildStatementWithPosition, Expr,
@@ -10,6 +10,7 @@ use crate::parser::{
 #[derive(Debug, Clone, Copy)]
 pub enum Module {
     Cube,
+    Translate,
 }
 
 #[derive(Debug)]
@@ -21,7 +22,7 @@ pub struct ModuleInstance {
 #[derive(Debug)]
 pub struct ModuleInstanceTree {
     pub instance: ModuleInstance,
-    pub children: Vec<Rc<ModuleInstanceTree>>,
+    pub children: RefCell<Vec<Rc<ModuleInstanceTree>>>,
 }
 
 #[derive(Debug)]
@@ -51,6 +52,7 @@ impl Interpreter {
     pub fn new() -> Self {
         let mut modules = HashMap::new();
         modules.insert("cube".to_string(), Module::Cube);
+        modules.insert("translate".to_string(), Module::Translate);
 
         Self {
             modules,
@@ -71,15 +73,15 @@ impl Interpreter {
             Statement::Empty => (),
             Statement::ModuleInstantiation {
                 module_instantiation,
-            } => self.process_module_instantiation(module_instantiation),
+            } => self.process_module_instantiation(&module_instantiation),
         }
     }
 
     fn process_module_instantiation(
         &mut self,
-        module_instantiation: ModuleInstantiationWithPosition,
+        module_instantiation: &ModuleInstantiationWithPosition,
     ) {
-        match module_instantiation.item {
+        match &module_instantiation.item {
             ModuleInstantiation::SingleModuleInstantiation {
                 single_module_instantiation,
                 child_statement,
@@ -92,16 +94,16 @@ impl Interpreter {
 
     fn process_single_module_instantiation(
         &mut self,
-        single_module_instantiation: SingleModuleInstantiationWithPosition,
+        single_module_instantiation: &SingleModuleInstantiationWithPosition,
     ) {
-        match single_module_instantiation.item {
+        match &single_module_instantiation.item {
             SingleModuleInstantiation::Module {
                 module_id,
                 call_arguments,
-            } => match module_id.item {
+            } => match &module_id.item {
                 ModuleId::For => todo!(),
                 ModuleId::Identifier(identifier) => {
-                    if let Some(module) = self.modules.get(&identifier) {
+                    if let Some(module) = self.modules.get(identifier) {
                         let instance = ModuleInstance {
                             module: *module,
                             arguments: self.process_call_arguments(call_arguments),
@@ -131,19 +133,19 @@ impl Interpreter {
 
     fn process_call_arguments(
         &self,
-        call_arguments: Vec<CallArgumentWithPosition>,
+        call_arguments: &Vec<CallArgumentWithPosition>,
     ) -> Vec<ModuleArgument> {
         let mut results: Vec<ModuleArgument> = vec![];
 
         for call_argument in call_arguments {
-            match call_argument.item {
+            match &call_argument.item {
                 CallArgument::Expr { expr } => results.push(ModuleArgument::Positional(
-                    Self::expr_to_module_argument_value(&expr),
+                    Self::expr_to_module_argument_value(expr),
                 )),
                 CallArgument::NamedArgument { identifier, expr } => {
-                    let value = Self::expr_to_module_argument_value(&expr);
+                    let value = Self::expr_to_module_argument_value(expr);
                     results.push(ModuleArgument::NamedArgument {
-                        name: identifier,
+                        name: identifier.to_string(),
                         value,
                     })
                 }
@@ -153,25 +155,31 @@ impl Interpreter {
         results
     }
 
-    fn process_child_statement(&mut self, child_statement: ChildStatementWithPosition) {
-        match child_statement.item {
+    fn process_child_statement(&mut self, child_statement: &ChildStatementWithPosition) {
+        match &child_statement.item {
             ChildStatement::Empty => {
                 self.stack.clear();
             }
+            ChildStatement::ModuleInstantiation {
+                module_instantiation,
+            } => self.process_module_instantiation(module_instantiation),
         }
     }
 
     fn append_instance(&mut self, instance: ModuleInstance) {
-        if self.stack.is_empty() {
-            let tree = Rc::new(ModuleInstanceTree {
-                instance,
-                children: vec![],
-            });
-            self.results.push(tree.clone());
-            self.stack.push(tree);
+        let tree = Rc::new(ModuleInstanceTree {
+            instance,
+            children: RefCell::new(vec![]),
+        });
+
+        if let Some(last) = self.stack.last_mut() {
+            last.children.borrow_mut().push(tree.clone());
         } else {
-            todo!();
+            // empty stack we need to push to results
+            self.results.push(tree.clone());
         }
+
+        self.stack.push(tree);
     }
 }
 

@@ -4,15 +4,29 @@ use crate::WithPosition;
 pub enum Token {
     Identifier(String),
     Number(f64),
+    /// '('
     LeftParen,
+    /// ')'
     RightParen,
+    /// '['
     LeftBracket,
+    /// ']'
     RightBracket,
+    /// '{'
+    LeftCurlyBracket,
+    /// '}'
+    RightCurlyBracket,
+    /// ','
     Comma,
+    /// ';'
     Semicolon,
+    /// '='
     Equals,
+    /// 'for'
     For,
+    /// 'true'
     True,
+    /// 'false'
     False,
     Unknown(char),
     Eof,
@@ -219,6 +233,14 @@ impl Tokenizer {
             Some(']') => {
                 self.advance();
                 Token::RightBracket
+            }
+            Some('{') => {
+                self.advance();
+                Token::LeftCurlyBracket
+            }
+            Some('}') => {
+                self.advance();
+                Token::RightCurlyBracket
             }
             Some(',') => {
                 self.advance();

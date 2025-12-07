@@ -3,7 +3,7 @@ use std::{rc::Rc, sync::Arc};
 use rust_raytracer_core::{
     Camera, CameraBuilder, Color, Node, SceneData, Vector3,
     material::Lambertian,
-    object::{BoundingVolumeHierarchy, Box},
+    object::{BoundingVolumeHierarchy, Box, Group, Translate},
 };
 
 use crate::interpreter::{
@@ -64,7 +64,7 @@ impl Converter {
     fn process_module(&mut self, module: Rc<ModuleInstanceTree>) -> Option<Arc<dyn Node>> {
         let mut child_nodes: Vec<Arc<dyn Node>> = vec![];
 
-        for child_module in &module.children {
+        for child_module in module.children.borrow().iter() {
             if let Some(child_node) = self.process_module(child_module.clone()) {
                 child_nodes.push(child_node);
             } else {
@@ -81,20 +81,24 @@ impl Converter {
         child_nodes: Vec<Arc<dyn Node>>,
     ) -> Option<Arc<dyn Node>> {
         match instance.module {
-            Module::Cube => {
-                if !child_nodes.is_empty() {
-                    todo!();
-                }
-                self.create_cube(&instance.arguments)
-            }
+            Module::Cube => self.create_cube(instance, child_nodes),
+            Module::Translate => self.create_translate(instance, child_nodes),
         }
     }
 
-    fn create_cube(&self, arguments: &[ModuleArgument]) -> Option<Arc<dyn Node>> {
+    fn create_cube(
+        &self,
+        instance: &ModuleInstance,
+        child_nodes: Vec<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        if !child_nodes.is_empty() {
+            todo!();
+        }
+
         let mut size = Vector3::new(0.0, 0.0, 0.0);
         let mut center = false;
 
-        for (pos, argument) in arguments.iter().enumerate() {
+        for (pos, argument) in instance.arguments.iter().enumerate() {
             match &argument {
                 ModuleArgument::Positional(value) => {
                     if pos == 0 {
@@ -133,6 +137,38 @@ impl Converter {
             b,
             Arc::new(Lambertian::new_from_color(Color::new(0.99, 0.85, 0.26))),
         )))
+    }
+
+    fn create_translate(
+        &self,
+        instance: &ModuleInstance,
+        child_nodes: Vec<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        let mut offset = Vector3::new(0.0, 0.0, 0.0);
+
+        for (pos, argument) in instance.arguments.iter().enumerate() {
+            match &argument {
+                ModuleArgument::Positional(value) => {
+                    if pos == 0 {
+                        if let Some(v) = self.module_argument_value_to_vector3(value) {
+                            offset = v;
+                        } else {
+                            return None;
+                        }
+                    }
+                }
+                ModuleArgument::NamedArgument { name, value } => {
+                    if name == "v" {
+                        todo!("process v into vector {value:?}");
+                    } else {
+                        todo!();
+                    }
+                }
+            }
+        }
+
+        let translate = Translate::new(Arc::new(Group::from_list(&child_nodes)), offset);
+        Some(Arc::new(translate))
     }
 
     fn vector_expr_to_vector3(&self, items: &[ModuleArgumentValue]) -> Option<Vector3> {
