@@ -126,9 +126,14 @@ pub enum Expr {
         lhs: Box<ExprWithPosition>,
         rhs: Box<ExprWithPosition>,
     },
-    // TODO '+' <expr>
-    // TODO '-' <expr>
-    // TODO '!' <expr>
+
+    /// '+' <expr>
+    /// '-' <expr>
+    /// '!' <expr>
+    Unary {
+        operator: UnaryOperator,
+        rhs: Box<ExprWithPosition>,
+    },
     // TODO '(' <expr> ')'
     // TODO <expr> '?' <expr> ':' <expr>
     // TODO <expr> '[' <expr> ']'
@@ -137,6 +142,11 @@ pub enum Expr {
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BinaryOperator {
+    Minus,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum UnaryOperator {
     Minus,
 }
 
@@ -560,9 +570,27 @@ impl Parser {
             let number = *number;
             self.advance();
             ExprWithPosition::new(Expr::Number(number), start, self.current_token_start())
+        } else if self.current_matches(Token::Minus) {
+            // '-' <expr>
+            self.advance();
+            if let Some(rhs) = self.parse_expr() {
+                return Some(ExprWithPosition::new(
+                    Expr::Unary {
+                        operator: UnaryOperator::Minus,
+                        rhs: Box::new(rhs),
+                    },
+                    start,
+                    self.current_token_start(),
+                ));
+            } else {
+                return None;
+            }
         } else {
             todo!()
         };
+
+        // TODO '+' <expr>
+        // TODO '!' <expr>
 
         // TODO <expr> '*' <expr>
         // TODO <expr> '/' <expr>
@@ -595,9 +623,6 @@ impl Parser {
             }
         }
 
-        // TODO '+' <expr>
-        // TODO '-' <expr>
-        // TODO '!' <expr>
         // TODO '(' <expr> ')'
         // TODO <expr> '?' <expr> ':' <expr>
         // TODO <expr> '[' <expr> ']'
@@ -774,6 +799,13 @@ mod tests {
     #[test]
     fn test_binary_expression() {
         let result = openscad_parse(openscad_tokenize("cube(20 - 0.1);"));
+        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(1, result.statements.len());
+    }
+
+    #[test]
+    fn test_unary_expression() {
+        let result = openscad_parse(openscad_tokenize("cube(-20);"));
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }

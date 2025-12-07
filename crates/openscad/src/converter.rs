@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc, sync::Arc};
 use rust_raytracer_core::{
     Camera, CameraBuilder, Color, Node, SceneData, Vector3,
     material::Lambertian,
-    object::{BoundingVolumeHierarchy, Box, Group, Translate},
+    object::{BoundingVolumeHierarchy, BoxPrimitive, Frustum, Group, Translate},
 };
 
 use crate::interpreter::{
@@ -82,6 +82,7 @@ impl Converter {
     ) -> Option<Arc<dyn Node>> {
         match instance.module {
             Module::Cube => self.create_cube(instance, child_nodes),
+            Module::Cylinder => self.create_cylinder(instance, child_nodes),
             Module::Translate => self.create_translate(instance, child_nodes),
         }
     }
@@ -149,9 +150,77 @@ impl Converter {
             b = b - (size / 2.0);
         }
 
-        Some(Arc::new(Box::new(
+        Some(Arc::new(BoxPrimitive::new(
             a,
             b,
+            Arc::new(Lambertian::new_from_color(Color::new(0.99, 0.85, 0.26))),
+        )))
+    }
+
+    fn create_cylinder(
+        &self,
+        instance: &ModuleInstance,
+        child_nodes: Vec<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        if !child_nodes.is_empty() {
+            todo!();
+        }
+
+        let mut height = 1.0;
+        let mut radius1 = 1.0;
+        let mut radius2 = 1.0;
+        let mut center = false;
+
+        let arguments = self.convert_args(
+            &["h", "r1", "r2", "center", "r", "d", "d1", "d2"],
+            &instance.arguments,
+        );
+
+        if let Some(arg) = arguments.get("h") {
+            height = self.module_argument_value_to_number(arg)?;
+        }
+
+        if let Some(arg) = arguments.get("r1") {
+            radius1 = self.module_argument_value_to_number(arg)?;
+        }
+
+        if let Some(arg) = arguments.get("r2") {
+            radius2 = self.module_argument_value_to_number(arg)?;
+        }
+
+        if let Some(arg) = arguments.get("r") {
+            let r = self.module_argument_value_to_number(arg)?;
+            radius1 = r;
+            radius2 = r;
+        }
+
+        if let Some(arg) = arguments.get("d1") {
+            radius1 = self.module_argument_value_to_number(arg)? / 2.0;
+        }
+
+        if let Some(arg) = arguments.get("d2") {
+            radius2 = self.module_argument_value_to_number(arg)? / 2.0;
+        }
+
+        if let Some(arg) = arguments.get("d") {
+            let r = self.module_argument_value_to_number(arg)? / 2.0;
+            radius1 = r;
+            radius2 = r;
+        }
+
+        if let Some(arg) = arguments.get("center") {
+            center = self.module_argument_value_to_boolean(arg)?;
+        }
+
+        if center {
+            todo!();
+        }
+
+        Some(Arc::new(Frustum::new(
+            Vector3::new(0.0, 0.0, 0.0),
+            height,
+            radius1,
+            radius2,
             Arc::new(Lambertian::new_from_color(Color::new(0.99, 0.85, 0.26))),
         )))
     }
@@ -198,6 +267,13 @@ impl Converter {
 
         // OpenSCAD x,y,z is different than ours so flip z and y
         Some(Vector3::new(-x, z, y))
+    }
+
+    fn module_argument_value_to_number(&self, value: &ModuleArgumentValue) -> Option<f64> {
+        match &value {
+            ModuleArgumentValue::Number(value) => Some(*value),
+            _ => todo!(),
+        }
     }
 
     fn module_argument_value_to_vector3(&self, value: &ModuleArgumentValue) -> Option<Vector3> {

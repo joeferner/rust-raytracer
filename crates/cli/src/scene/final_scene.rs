@@ -5,7 +5,8 @@ use rust_raytracer_core::{
     image::ImageImage,
     material::{Dielectric, DiffuseLight, EmptyMaterial, Lambertian, Metal},
     object::{
-        BoundingVolumeHierarchy, Box, ConstantMedium, Group, Node, Quad, Rotate, Sphere, Translate,
+        BoundingVolumeHierarchy, BoxPrimitive, ConstantMedium, Group, Node, Quad, Rotate, Sphere,
+        Translate,
     },
     texture::{ImageTexture, PerlinNoiseTexture},
 };
@@ -28,7 +29,7 @@ pub fn create_final_scene(ctx: &RenderContext) -> SceneData {
             let y1 = ctx.random.rand_interval(1.0, 101.0);
             let z1 = z0 + w;
 
-            world.push(Arc::new(Box::new(
+            world.push(Arc::new(BoxPrimitive::new(
                 Vector3::new(x0, y0, z0),
                 Vector3::new(x1, y1, z1),
                 ground_material.clone(),

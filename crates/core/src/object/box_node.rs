@@ -6,11 +6,11 @@ use crate::{
     object::{Group, HitRecord, Quad},
 };
 
-pub struct Box {
+pub struct BoxPrimitive {
     group: Group,
 }
 
-impl Box {
+impl BoxPrimitive {
     pub fn new(a: Vector3, b: Vector3, material: Arc<dyn Material>) -> Self {
         let mut group = Group::new();
 
@@ -73,7 +73,7 @@ impl Box {
     }
 }
 
-impl Node for Box {
+impl Node for BoxPrimitive {
     fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         self.group.hit(ctx, ray, ray_t)
     }

@@ -7,6 +7,8 @@ use crate::{
 pub mod bounding_volume_hierarchy;
 pub mod box_node;
 pub mod constant_medium;
+pub mod disc;
+pub mod frustum;
 pub mod group;
 pub mod quad;
 pub mod rotate;
@@ -14,8 +16,10 @@ pub mod sphere;
 pub mod translate;
 
 pub use bounding_volume_hierarchy::BoundingVolumeHierarchy;
-pub use box_node::Box;
+pub use box_node::BoxPrimitive;
 pub use constant_medium::ConstantMedium;
+pub use disc::Disc;
+pub use frustum::Frustum;
 pub use group::Group;
 pub use quad::Quad;
 pub use rotate::Rotate;

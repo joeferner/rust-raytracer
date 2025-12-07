@@ -4,12 +4,16 @@ use crate::parser::{
     BinaryOperator, CallArgument, CallArgumentWithPosition, ChildStatement,
     ChildStatementWithPosition, Expr, ExprWithPosition, ModuleId, ModuleInstantiation,
     ModuleInstantiationWithPosition, SingleModuleInstantiation,
-    SingleModuleInstantiationWithPosition, Statement, StatementWithPosition,
+    SingleModuleInstantiationWithPosition, Statement, StatementWithPosition, UnaryOperator,
 };
 
 #[derive(Debug, Clone, Copy)]
 pub enum Module {
+    // 3d
     Cube,
+    Cylinder,
+
+    // transformations
     Translate,
 }
 
@@ -64,7 +68,12 @@ struct Interpreter {
 impl Interpreter {
     pub fn new() -> Self {
         let mut modules = HashMap::new();
+
+        // 3d
         modules.insert("cube".to_string(), Module::Cube);
+        modules.insert("cylinder".to_string(), Module::Cylinder);
+
+        // transformations
         modules.insert("translate".to_string(), Module::Translate);
 
         Self {
@@ -126,7 +135,7 @@ impl Interpreter {
                         };
                         self.append_instance(instance);
                     } else {
-                        todo!("handle unknown module");
+                        todo!("handle unknown module \"{identifier}\"");
                     }
                 }
             },
@@ -147,6 +156,7 @@ impl Interpreter {
             Expr::Binary { operator, lhs, rhs } => {
                 self.evaluate_binary_expression(operator, lhs, rhs)
             }
+            Expr::Unary { operator, rhs } => self.evaluate_unary_expression(operator, rhs),
         }
     }
 
@@ -167,6 +177,22 @@ impl Interpreter {
             }
         } else {
             todo!("{left:?} {operator:?} {right:?}");
+        }
+    }
+
+    fn evaluate_unary_expression(
+        &self,
+        operator: &UnaryOperator,
+        rhs: &ExprWithPosition,
+    ) -> ModuleArgumentValue {
+        let right = self.expr_to_module_argument_value(rhs);
+
+        if let ModuleArgumentValue::Number(right) = right {
+            match operator {
+                UnaryOperator::Minus => ModuleArgumentValue::Number(-right),
+            }
+        } else {
+            todo!("{operator:?} {right:?}");
         }
     }
 
@@ -236,6 +262,15 @@ mod tests {
     #[test]
     fn test_binary_expression() {
         let result = openscad_parse(openscad_tokenize("cube(20 - 0.1);"));
+        let result = openscad_interpret(result.statements);
+
+        assert_eq!(Vec::<InterpreterError>::new(), result.errors);
+        assert_eq!(1, result.trees.len());
+    }
+
+    #[test]
+    fn test_unary_expression() {
+        let result = openscad_parse(openscad_tokenize("cube(-20);"));
         let result = openscad_interpret(result.statements);
 
         assert_eq!(Vec::<InterpreterError>::new(), result.errors);
