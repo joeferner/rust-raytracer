@@ -15,6 +15,7 @@ pub enum Module {
 
     // transformations
     Translate,
+    Rotate,
 }
 
 #[derive(Debug)]
@@ -75,6 +76,7 @@ impl Interpreter {
 
         // transformations
         modules.insert("translate".to_string(), Module::Translate);
+        modules.insert("rotate".to_string(), Module::Rotate);
 
         Self {
             modules,

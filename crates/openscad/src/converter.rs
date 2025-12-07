@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc, sync::Arc};
 use rust_raytracer_core::{
     Camera, CameraBuilder, Color, Node, SceneData, Vector3,
     material::Lambertian,
-    object::{BoundingVolumeHierarchy, BoxPrimitive, Frustum, Group, Translate},
+    object::{BoundingVolumeHierarchy, BoxPrimitive, Frustum, Group, Rotate, Translate},
 };
 
 use crate::interpreter::{
@@ -84,6 +84,7 @@ impl Converter {
             Module::Cube => self.create_cube(instance, child_nodes),
             Module::Cylinder => self.create_cylinder(instance, child_nodes),
             Module::Translate => self.create_translate(instance, child_nodes),
+            Module::Rotate => self.create_rotate(instance, child_nodes),
         }
     }
 
@@ -240,6 +241,41 @@ impl Converter {
 
         let translate = Translate::new(Arc::new(Group::from_list(&child_nodes)), offset);
         Some(Arc::new(translate))
+    }
+
+    fn create_rotate(
+        &self,
+        instance: &ModuleInstance,
+        child_nodes: Vec<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        let arguments = self.convert_args(&["a", "v"], &instance.arguments);
+
+        if let Some(arg) = arguments.get("a") {
+            match arg {
+                ModuleArgumentValue::Number(_deg_a) => todo!(),
+                ModuleArgumentValue::Vector { items } => {
+                    let a = self.vector_expr_to_vector3(items)?;
+                    let mut result: Arc<dyn Node> = Arc::new(Group::from_list(&child_nodes));
+                    if a.x != 0.0 {
+                        result = Arc::new(Rotate::rotate_x(result, a.x));
+                    }
+                    if a.y != 0.0 {
+                        result = Arc::new(Rotate::rotate_y(result, a.y));
+                    }
+                    if a.z != 0.0 {
+                        result = Arc::new(Rotate::rotate_z(result, a.z));
+                    }
+                    return Some(result);
+                }
+                _ => todo!("add error"),
+            }
+        }
+
+        if let Some(_arg) = arguments.get("v") {
+            todo!();
+        }
+
+        todo!();
     }
 
     fn vector_expr_to_vector3(&self, items: &[ModuleArgumentValue]) -> Option<Vector3> {
