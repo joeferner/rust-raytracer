@@ -278,14 +278,45 @@ impl Interpreter {
         let left = self.expr_to_value(lhs);
         let right = self.expr_to_value(rhs);
 
-        if let Value::Number(left) = left
-            && let Value::Number(right) = right
-        {
+        fn eval_number_number(operator: &BinaryOperator, left: f64, right: f64) -> Value {
             match operator {
                 BinaryOperator::Minus => Value::Number(left - right),
+                BinaryOperator::Divide => Value::Number(left / right),
             }
-        } else {
-            todo!("{left:?} {operator:?} {right:?}");
+        }
+
+        fn eval_vector_number(operator: &BinaryOperator, left: Vec<Value>, right: f64) -> Value {
+            Value::Vector {
+                items: left
+                    .iter()
+                    .map(|item| match item {
+                        Value::Number(v) => match operator {
+                            BinaryOperator::Minus => Value::Number(v - right),
+                            BinaryOperator::Divide => Value::Number(v / right),
+                        },
+                        Value::Vector { items } => todo!("items {items:?}"),
+                        Value::True => todo!("true"),
+                        Value::False => todo!("false"),
+                    })
+                    .collect(),
+            }
+        }
+
+        match left {
+            Value::Number(left) => match right {
+                Value::Number(right) => eval_number_number(operator, left, right),
+                Value::Vector { items } => todo!("{left:?} {operator:?} {items:?}"),
+                Value::True => todo!("{left:?} {operator:?} True"),
+                Value::False => todo!("{left:?} {operator:?} False"),
+            },
+            Value::Vector { items } => match right {
+                Value::Number(right) => eval_vector_number(operator, items, right),
+                Value::Vector { items } => todo!("{items:?} {operator:?} {items:?}"),
+                Value::True => todo!("{items:?} {operator:?} true"),
+                Value::False => todo!("{items:?} {operator:?} false"),
+            },
+            Value::True => todo!("true"),
+            Value::False => todo!("false"),
         }
     }
 

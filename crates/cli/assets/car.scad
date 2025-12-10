@@ -30,7 +30,7 @@ color([0,0,1])
     cube([1,1,200],center=true);
 
 // Car body base
-color([1,0,0])
+color([0,125,255]/255)
     scale([1.2,1,1])
     cube([60,20,10],center=true);
 

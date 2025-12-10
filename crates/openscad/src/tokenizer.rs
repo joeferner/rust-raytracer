@@ -24,6 +24,8 @@ pub enum Token {
     Equals,
     /// '-'
     Minus,
+    /// '/'
+    ForwardSlash,
     /// '<'
     LessThan,
     /// '>'
@@ -280,6 +282,10 @@ impl Tokenizer {
             Some('-') => {
                 self.advance();
                 Token::Minus
+            }
+            Some('/') => {
+                self.advance();
+                Token::ForwardSlash
             }
             Some('<') => {
                 self.advance();

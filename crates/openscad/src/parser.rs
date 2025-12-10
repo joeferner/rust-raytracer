@@ -153,6 +153,7 @@ pub enum Expr {
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BinaryOperator {
     Minus,
+    Divide,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -563,8 +564,8 @@ impl Parser {
         // TODO '[' <list_comprehension_elements> ']'
         // TODO '[' <optional_commas> ']'
 
-        // '[' (<expr> ',' <optional_commas>)* ']'
-        if self.current_matches(Token::LeftBracket) {
+        let lhs: ExprWithPosition = if self.current_matches(Token::LeftBracket) {
+            // '[' (<expr> ',' <optional_commas>)* ']'
             self.advance();
             let mut expressions = vec![];
             while !self.current_matches(Token::RightBracket) {
@@ -577,14 +578,12 @@ impl Parser {
                 }
             }
             self.expect(Token::RightBracket);
-            return Some(ExprWithPosition::new(
+            ExprWithPosition::new(
                 Expr::Vector { items: expressions },
                 start,
                 self.current_token_start(),
-            ));
-        }
-
-        let result: ExprWithPosition = if self.current_matches(Token::True) {
+            )
+        } else if self.current_matches(Token::True) {
             // "true"
             self.advance();
             ExprWithPosition::new(Expr::True, start, self.current_token_start())
@@ -627,7 +626,6 @@ impl Parser {
         // TODO '!' <expr>
 
         // TODO <expr> '*' <expr>
-        // TODO <expr> '/' <expr>
         // TODO <expr> '%' <expr>
         // TODO <expr> '+' <expr>
         // TODO <expr> '<' <expr>
@@ -639,14 +637,15 @@ impl Parser {
         // TODO <expr> "&&" <expr>
         // TODO <expr> "||" <expr>
 
+        // <expr> '/' <expr>
         // <expr> '-' <expr>
-        if self.current_matches(Token::Minus) {
+        if let Some(operator) = self.current_to_binary_operator() {
             self.advance();
             if let Some(rhs) = self.parse_expr() {
                 return Some(ExprWithPosition::new(
                     Expr::Binary {
-                        operator: BinaryOperator::Minus,
-                        lhs: Box::new(result),
+                        operator,
+                        lhs: Box::new(lhs),
                         rhs: Box::new(rhs),
                     },
                     start,
@@ -662,7 +661,7 @@ impl Parser {
         // TODO <expr> '[' <expr> ']'
         // TODO <identifier> <call_arguments>
 
-        Some(result)
+        Some(lhs)
     }
 
     pub fn parse(mut self) -> ParseResult {
@@ -714,6 +713,18 @@ impl Parser {
             start,
             self.current_token_start(),
         ))
+    }
+
+    fn current_to_binary_operator(&self) -> Option<BinaryOperator> {
+        if let Some(current) = self.current() {
+            match current.item {
+                Token::Minus => Some(BinaryOperator::Minus),
+                Token::ForwardSlash => Some(BinaryOperator::Divide),
+                _ => None,
+            }
+        } else {
+            None
+        }
     }
 }
 
@@ -860,6 +871,13 @@ mod tests {
     #[test]
     fn test_binary_expression() {
         let result = openscad_parse(openscad_tokenize("cube(20 - 0.1);"));
+        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(1, result.statements.len());
+    }
+
+    #[test]
+    fn test_binary_expression_divide() {
+        let result = openscad_parse(openscad_tokenize("color([0,125,255]/255);"));
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
