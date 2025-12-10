@@ -24,12 +24,31 @@ pub enum Token {
     Equals,
     /// '-'
     Minus,
+    /// '<'
+    LessThan,
+    /// '>'
+    GreaterThan,
     /// 'for'
     For,
     /// 'true'
     True,
     /// 'false'
     False,
+    /// 'include <filename>'
+    Include {
+        filename: String,
+    },
+    /// 'use <filename>'
+    Use {
+        filename: String,
+    },
+    Cube,
+    Cylinder,
+    Translate,
+    Rotate,
+    Camera,
+
+    // TODO module, function, if, else, let, assign, sphere, polyhedron, square, circle, polygon, union, difference, intersection, scale, mirror, hull, minkowski, linear_extrude, rotate_extrude, projection
     Unknown(char),
     Eof,
 }
@@ -260,14 +279,40 @@ impl Tokenizer {
                 self.advance();
                 Token::Minus
             }
+            Some('<') => {
+                self.advance();
+                Token::LessThan
+            }
+            Some('>') => {
+                self.advance();
+                Token::GreaterThan
+            }
             Some(ch) if ch.is_alphabetic() || ch == '_' || ch == '$' => {
                 let identifier = self.read_identifier();
-                if identifier == "for" {
+                if identifier == "include" {
+                    Token::Include {
+                        filename: self.read_include_filename(),
+                    }
+                } else if identifier == "use" {
+                    Token::Use {
+                        filename: self.read_include_filename(),
+                    }
+                } else if identifier == "for" {
                     Token::For
                 } else if identifier == "true" {
                     Token::True
                 } else if identifier == "false" {
                     Token::False
+                } else if identifier == "cube" {
+                    Token::Cube
+                } else if identifier == "cylinder" {
+                    Token::Cylinder
+                } else if identifier == "translate" {
+                    Token::Translate
+                } else if identifier == "rotate" {
+                    Token::Rotate
+                } else if identifier == "camera" {
+                    Token::Camera
                 } else {
                     Token::Identifier(identifier)
                 }
@@ -283,6 +328,26 @@ impl Tokenizer {
         };
 
         Some(TokenWithPosition::new(token, start, self.pos))
+    }
+
+    fn read_include_filename(&mut self) -> String {
+        self.skip_whitespace();
+        if !matches!(self.current(), Some('<')) {
+            todo!("include should be followed by '<'");
+        }
+        self.advance();
+
+        let mut filename = String::new();
+        while let Some(ch) = self.current() {
+            self.advance();
+            if ch == '>' {
+                break;
+            } else {
+                filename.push(ch);
+            }
+        }
+
+        filename
     }
 }
 
@@ -342,7 +407,7 @@ mod tests {
         assert_tokens_with_pos(
             "cube(",
             &vec![
-                TokenWithPosition::new(Token::Identifier("cube".to_string()), 0, 4),
+                TokenWithPosition::new(Token::Cube, 0, 4),
                 TokenWithPosition::new(Token::LeftParen, 4, 5),
                 TokenWithPosition::new(Token::Eof, 5, 5),
             ],
@@ -355,7 +420,7 @@ mod tests {
             "cube(10);",
             &vec![
                 TokenWithPosition {
-                    item: Token::Identifier("cube".to_string()),
+                    item: Token::Cube,
                     start: 0,
                     end: 4,
                 },
@@ -393,7 +458,7 @@ mod tests {
         assert_tokens(
             "cube([20,30,50]);",
             &vec![
-                Token::Identifier("cube".to_string()),
+                Token::Cube,
                 Token::LeftParen,
                 Token::LeftBracket,
                 Token::Number(20.0),
@@ -414,7 +479,7 @@ mod tests {
         assert_tokens(
             "cube(size=20);",
             &vec![
-                Token::Identifier("cube".to_string()),
+                Token::Cube,
                 Token::LeftParen,
                 Token::Identifier("size".to_string()),
                 Token::Equals,
@@ -435,6 +500,19 @@ mod tests {
                 Token::Equals,
                 Token::Number(1.0),
                 Token::Semicolon,
+                Token::Eof,
+            ],
+        );
+    }
+
+    #[test]
+    fn test_include() {
+        assert_tokens(
+            "include <test.scad>",
+            &vec![
+                Token::Include {
+                    filename: "test.scad".to_owned(),
+                },
                 Token::Eof,
             ],
         );

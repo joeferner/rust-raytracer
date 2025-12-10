@@ -1,5 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
+use rust_raytracer_core::{Color, Vector3};
+
 use crate::parser::{
     BinaryOperator, CallArgument, CallArgumentWithPosition, ChildStatement,
     ChildStatementWithPosition, Expr, ExprWithPosition, ModuleId, ModuleInstantiation,
@@ -9,6 +11,8 @@ use crate::parser::{
 
 #[derive(Debug, Clone, Copy)]
 pub enum Module {
+    Camera,
+
     // 3d
     Cube,
     Cylinder,
@@ -44,6 +48,94 @@ pub enum Value {
     False,
 }
 
+impl Value {
+    pub fn to_number(&self) -> Option<f64> {
+        match self {
+            Value::Number(value) => Some(*value),
+            _ => todo!(),
+        }
+    }
+
+    pub fn to_vector3(&self) -> Option<Vector3> {
+        match self {
+            Value::Number(value) => Some(Vector3::new(-*value, *value, *value)),
+            Value::Vector { items } => Self::values_to_vector3(items),
+            _ => todo!(),
+        }
+    }
+
+    pub fn to_color(&self) -> Option<Color> {
+        match self {
+            Value::Number(value) => {
+                Some(Color::new(*value / 255.0, *value / 255.0, *value / 255.0))
+            }
+            Value::Vector { items } => Self::values_to_color(items),
+            _ => todo!(),
+        }
+    }
+
+    pub fn to_boolean(&self) -> Option<bool> {
+        match self {
+            Value::True => Some(true),
+            Value::False => Some(false),
+            _ => todo!(),
+        }
+    }
+
+    pub fn values_to_vector3(items: &[Value]) -> Option<Vector3> {
+        if items.len() != 3 {
+            todo!();
+        }
+
+        let x = if let Value::Number(x) = items[0] {
+            x
+        } else {
+            todo!();
+        };
+
+        let y = if let Value::Number(y) = items[1] {
+            y
+        } else {
+            todo!();
+        };
+
+        let z = if let Value::Number(z) = items[2] {
+            z
+        } else {
+            todo!();
+        };
+
+        // OpenSCAD x,y,z is different than ours so flip z and y
+        Some(Vector3::new(-x, z, y))
+    }
+
+    pub fn values_to_color(items: &[Value]) -> Option<Color> {
+        if items.len() != 3 {
+            todo!();
+        }
+
+        let r = if let Value::Number(r) = items[0] {
+            r
+        } else {
+            todo!();
+        };
+
+        let g = if let Value::Number(g) = items[1] {
+            g
+        } else {
+            todo!();
+        };
+
+        let b = if let Value::Number(b) = items[2] {
+            b
+        } else {
+            todo!();
+        };
+
+        Some(Color::new(r / 255.0, g / 255.0, b / 255.0))
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct InterpreterError {
     pub message: String,
@@ -66,20 +158,6 @@ struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
-        let modules = {
-            let mut modules = HashMap::new();
-
-            // 3d
-            modules.insert("cube".to_string(), Module::Cube);
-            modules.insert("cylinder".to_string(), Module::Cylinder);
-
-            // transformations
-            modules.insert("translate".to_string(), Module::Translate);
-            modules.insert("rotate".to_string(), Module::Rotate);
-
-            modules
-        };
-
         let variables = {
             let mut variables = HashMap::new();
 
@@ -92,7 +170,7 @@ impl Interpreter {
         };
 
         Self {
-            modules,
+            modules: HashMap::new(),
             stack: vec![],
             results: vec![],
             variables,
@@ -116,6 +194,7 @@ impl Interpreter {
                 module_instantiation,
             } => self.process_module_instantiation(&module_instantiation),
             Statement::Assignment { identifier, expr } => self.process_assignment(identifier, expr),
+            Statement::Include { filename } => self.process_include(filename),
         }
     }
 
@@ -146,14 +225,28 @@ impl Interpreter {
                 ModuleId::For => todo!(),
                 ModuleId::Identifier(identifier) => {
                     if let Some(module) = self.modules.get(identifier) {
-                        let instance = ModuleInstance {
+                        self.append_instance(ModuleInstance {
                             module: *module,
                             arguments: self.process_call_arguments(call_arguments),
-                        };
-                        self.append_instance(instance);
+                        });
                     } else {
                         todo!("handle unknown module \"{identifier}\"");
                     }
+                }
+                built_in => {
+                    let module = match built_in {
+                        ModuleId::Cube => Module::Cube,
+                        ModuleId::Cylinder => Module::Cylinder,
+                        ModuleId::Translate => Module::Translate,
+                        ModuleId::Rotate => Module::Rotate,
+                        ModuleId::Camera => Module::Camera,
+                        ModuleId::For => todo!("already handled"),
+                        ModuleId::Identifier(_) => todo!("already handled"),
+                    };
+                    self.append_instance(ModuleInstance {
+                        module,
+                        arguments: self.process_call_arguments(call_arguments),
+                    });
                 }
             },
         }
@@ -268,6 +361,14 @@ impl Interpreter {
         }
 
         self.variables.insert(identifier, value);
+    }
+
+    fn process_include(&self, filename: String) {
+        if filename.ends_with("ray_trace.scad") {
+            return;
+        }
+
+        todo!("include {filename}")
     }
 }
 

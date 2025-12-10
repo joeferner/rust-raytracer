@@ -74,7 +74,7 @@ impl Converter {
     }
 
     fn process_module_instance(
-        &self,
+        &mut self,
         instance: &ModuleInstance,
         child_nodes: Vec<Arc<dyn Node>>,
     ) -> Option<Arc<dyn Node>> {
@@ -83,6 +83,7 @@ impl Converter {
             Module::Cylinder => self.create_cylinder(instance, child_nodes),
             Module::Translate => self.create_translate(instance, child_nodes),
             Module::Rotate => self.create_rotate(instance, child_nodes),
+            Module::Camera => self.create_camera(instance, child_nodes),
         }
     }
 
@@ -135,11 +136,11 @@ impl Converter {
         let arguments = self.convert_args(&["size", "center"], &instance.arguments);
 
         if let Some(arg) = arguments.get("size") {
-            size = self.module_argument_value_to_vector3(arg)?;
+            size = arg.to_vector3()?;
         }
 
         if let Some(arg) = arguments.get("center") {
-            center = self.module_argument_value_to_boolean(arg)?;
+            center = arg.to_boolean()?;
         }
 
         let mut a = Vector3::new(0.0, 0.0, 0.0);
@@ -176,39 +177,39 @@ impl Converter {
         );
 
         if let Some(arg) = arguments.get("h") {
-            height = self.module_argument_value_to_number(arg)?;
+            height = arg.to_number()?;
         }
 
         if let Some(arg) = arguments.get("r1") {
-            radius1 = self.module_argument_value_to_number(arg)?;
+            radius1 = arg.to_number()?;
         }
 
         if let Some(arg) = arguments.get("r2") {
-            radius2 = self.module_argument_value_to_number(arg)?;
+            radius2 = arg.to_number()?;
         }
 
         if let Some(arg) = arguments.get("r") {
-            let r = self.module_argument_value_to_number(arg)?;
+            let r = arg.to_number()?;
             radius1 = r;
             radius2 = r;
         }
 
         if let Some(arg) = arguments.get("d1") {
-            radius1 = self.module_argument_value_to_number(arg)? / 2.0;
+            radius1 = arg.to_number()? / 2.0;
         }
 
         if let Some(arg) = arguments.get("d2") {
-            radius2 = self.module_argument_value_to_number(arg)? / 2.0;
+            radius2 = arg.to_number()? / 2.0;
         }
 
         if let Some(arg) = arguments.get("d") {
-            let r = self.module_argument_value_to_number(arg)? / 2.0;
+            let r = arg.to_number()? / 2.0;
             radius1 = r;
             radius2 = r;
         }
 
         if let Some(arg) = arguments.get("center") {
-            center = self.module_argument_value_to_boolean(arg)?;
+            center = arg.to_boolean()?;
         }
 
         let mut center_vec = Vector3::new(0.0, 0.0, 0.0);
@@ -235,7 +236,7 @@ impl Converter {
         let arguments = self.convert_args(&["v"], &instance.arguments);
 
         if let Some(arg) = arguments.get("v") {
-            offset = self.module_argument_value_to_vector3(arg)?;
+            offset = arg.to_vector3()?;
         }
 
         let translate = Translate::new(Arc::new(Group::from_list(&child_nodes)), offset);
@@ -253,7 +254,7 @@ impl Converter {
             match arg {
                 Value::Number(_deg_a) => todo!(),
                 Value::Vector { items } => {
-                    let a = self.vector_expr_to_vector3(items)?;
+                    let a = Value::values_to_vector3(items)?;
                     let mut result: Arc<dyn Node> = Arc::new(Group::from_list(&child_nodes));
                     if a.x != 0.0 {
                         result = Arc::new(Rotate::rotate_x(result, a.x));
@@ -277,54 +278,99 @@ impl Converter {
         todo!();
     }
 
-    fn vector_expr_to_vector3(&self, items: &[Value]) -> Option<Vector3> {
-        if items.len() != 3 {
-            todo!();
+    fn create_camera(
+        &mut self,
+        instance: &ModuleInstance,
+        child_nodes: Vec<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        if !child_nodes.is_empty() {
+            todo!("should be empty");
         }
 
-        let x = if let Value::Number(x) = items[0] {
-            x
-        } else {
-            todo!();
-        };
+        let arguments = self.convert_args(
+            &[
+                "image_width",
+                "image_height",
+                "samples_per_pixel",
+                "max_depth",
+                "vertical_fov",
+                "look_from",
+                "look_at",
+                "up",
+                "defocus_angle",
+                "focus_distance",
+                "background",
+                "aspect_ratio",
+            ],
+            &instance.arguments,
+        );
 
-        let y = if let Value::Number(y) = items[1] {
-            y
-        } else {
-            todo!();
-        };
+        let mut camera_builder = CameraBuilder::new();
 
-        let z = if let Value::Number(z) = items[2] {
-            z
-        } else {
-            todo!();
-        };
+        let mut seen_aspect_ratio = false;
+        let mut seen_image_width = false;
 
-        // OpenSCAD x,y,z is different than ours so flip z and y
-        Some(Vector3::new(-x, z, y))
-    }
-
-    fn module_argument_value_to_number(&self, value: &Value) -> Option<f64> {
-        match &value {
-            Value::Number(value) => Some(*value),
-            _ => todo!(),
+        if let Some(arg) = arguments.get("aspect_ratio") {
+            camera_builder.aspect_ratio = arg.to_number()?;
+            seen_aspect_ratio = true;
         }
-    }
 
-    fn module_argument_value_to_vector3(&self, value: &Value) -> Option<Vector3> {
-        match &value {
-            Value::Number(value) => Some(Vector3::new(-*value, *value, *value)),
-            Value::Vector { items } => self.vector_expr_to_vector3(items),
-            _ => todo!(),
+        if let Some(arg) = arguments.get("image_width") {
+            camera_builder.image_width = arg.to_number()? as u32;
+            seen_image_width = true;
         }
-    }
 
-    fn module_argument_value_to_boolean(&self, value: &Value) -> Option<bool> {
-        match value {
-            Value::True => Some(true),
-            Value::False => Some(false),
-            _ => todo!(),
+        if let Some(arg) = arguments.get("samples_per_pixel") {
+            camera_builder.samples_per_pixel = arg.to_number()? as u32;
         }
+
+        if let Some(arg) = arguments.get("max_depth") {
+            camera_builder.max_depth = arg.to_number()? as u32;
+        }
+
+        if let Some(arg) = arguments.get("vertical_fov") {
+            camera_builder.vertical_fov = arg.to_number()?;
+        }
+
+        if let Some(arg) = arguments.get("defocus_angle") {
+            camera_builder.defocus_angle = arg.to_number()?;
+        }
+
+        if let Some(arg) = arguments.get("focus_distance") {
+            camera_builder.focus_distance = arg.to_number()?;
+        }
+
+        if let Some(arg) = arguments.get("image_height") {
+            let height = arg.to_number()?;
+            if seen_image_width {
+                camera_builder.aspect_ratio = camera_builder.image_width as f64 / height;
+            } else if seen_aspect_ratio {
+                camera_builder.image_width = (camera_builder.aspect_ratio * height) as u32;
+            } else {
+                camera_builder.aspect_ratio = 1.0;
+                camera_builder.image_width = height as u32;
+            }
+        }
+
+        if let Some(arg) = arguments.get("look_from") {
+            camera_builder.look_from = arg.to_vector3()?;
+        }
+
+        if let Some(arg) = arguments.get("look_at") {
+            camera_builder.look_at = arg.to_vector3()?;
+        }
+
+        if let Some(arg) = arguments.get("up") {
+            camera_builder.up = arg.to_vector3()?;
+        }
+
+        if let Some(arg) = arguments.get("background") {
+            camera_builder.background = arg.to_color()?;
+        }
+
+        self.camera = Some(Arc::new(camera_builder.build()));
+
+        None
     }
 }
 

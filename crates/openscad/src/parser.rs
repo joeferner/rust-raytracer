@@ -13,7 +13,8 @@ pub enum Statement {
         identifier: String,
         expr: ExprWithPosition,
     },
-    // TODO "include" <include_file>
+    /// "include" <include_file>
+    Include { filename: String },
     // TODO "use" <include_file>
     // TODO "module" <identifier> '(' <arguments_decl> <optional_commas> ')' <statement>
     // TODO "function" <identifier> '(' <arguments_decl> <optional_commas> ')' '=' <expr> ';'
@@ -68,6 +69,11 @@ pub type ChildStatementWithPosition = WithPosition<ChildStatement>;
 pub enum ModuleId {
     /// "for"
     For,
+    Cube,
+    Cylinder,
+    Translate,
+    Rotate,
+    Camera,
     /// <identifier>
     Identifier(String),
 }
@@ -281,7 +287,20 @@ impl Parser {
         }
 
         // TODO '{' <inner_input> '}'
-        // TODO "include" <include_file>
+
+        // "include" <include_file>
+        if let Some(tok) = self.current()
+            && let Token::Include { filename } = &tok.item
+        {
+            let filename = filename.to_owned();
+            self.advance();
+            return Some(StatementWithPosition::new(
+                Statement::Include { filename },
+                start,
+                self.current_token_start(),
+            ));
+        }
+
         // TODO "use" <include_file>
         // TODO "module" <identifier> '(' <arguments_decl> <optional_commas> ')' <statement>
         // TODO "function" <identifier> '(' <arguments_decl> <optional_commas> ')' '=' <expr> ';'
@@ -408,22 +427,20 @@ impl Parser {
     fn parse_module_id(&mut self) -> Option<ModuleIdWithPosition> {
         let start = self.current_token_start();
 
-        // "for"
-        if self.current_matches(Token::For) {
+        if let Some(current) = self.current() {
+            let module_id = match &current.item {
+                Token::For => ModuleId::For,
+                Token::Identifier(identifier) => ModuleId::Identifier(identifier.to_owned()),
+                Token::Cube => ModuleId::Cube,
+                Token::Cylinder => ModuleId::Cylinder,
+                Token::Translate => ModuleId::Translate,
+                Token::Rotate => ModuleId::Rotate,
+                Token::Camera => ModuleId::Camera,
+                _ => todo!("throw error {:?}", current.item),
+            };
             self.advance();
             return Some(ModuleIdWithPosition::new(
-                ModuleId::For,
-                start,
-                self.current_token_start(),
-            ));
-        }
-
-        // <identifier>
-        if let Some(identifier) = self.current_matches_identifier() {
-            let identifier = identifier.clone();
-            self.advance();
-            return Some(ModuleIdWithPosition::new(
-                ModuleId::Identifier(identifier),
+                module_id,
                 start,
                 self.current_token_start(),
             ));
@@ -599,7 +616,7 @@ impl Parser {
                 return None;
             }
         } else {
-            todo!()
+            todo!("{:?}", self.current());
         };
 
         // TODO '+' <expr>
@@ -677,7 +694,7 @@ impl Parser {
 
         // '='
         if !self.expect(Token::Equals) {
-            return None;
+            todo!("expected equal");
         }
 
         // <expr>
@@ -685,7 +702,7 @@ impl Parser {
 
         // ';'
         if !self.expect(Token::Semicolon) {
-            return None;
+            todo!("expected semicolon");
         }
 
         Some(StatementWithPosition::new(
@@ -729,11 +746,7 @@ mod tests {
                         ModuleInstantiation::SingleModuleInstantiation {
                             single_module_instantiation: SingleModuleInstantiationWithPosition::new(
                                 SingleModuleInstantiation::Module {
-                                    module_id: ModuleIdWithPosition::new(
-                                        ModuleId::Identifier("cube".to_owned()),
-                                        0,
-                                        4
-                                    ),
+                                    module_id: ModuleIdWithPosition::new(ModuleId::Cube, 0, 4),
                                     call_arguments: vec![CallArgumentWithPosition::new(
                                         CallArgument::Expr {
                                             expr: ExprWithPosition::new(Expr::Number(10.0), 5, 7)
@@ -802,10 +815,8 @@ mod tests {
         };
 
         // module_id
-        if let ModuleId::Identifier(id) = &module_id.item {
-            assert_eq!(id, "cube");
-        } else {
-            panic!("expected ModuleId::Identifier");
+        if ModuleId::Cube != module_id.item {
+            panic!("expected ModuleId::Cube");
         };
 
         // call_arguments
@@ -859,6 +870,13 @@ mod tests {
     #[test]
     fn test_set_fa() {
         let result = openscad_parse(openscad_tokenize("$fa = 1;"));
+        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(1, result.statements.len());
+    }
+
+    #[test]
+    fn test_include() {
+        let result = openscad_parse(openscad_tokenize("include <ray_trace.scad>"));
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
