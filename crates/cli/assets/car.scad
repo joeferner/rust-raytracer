@@ -16,21 +16,22 @@ camera(
     up = [0.0, 0.0, 1.0],
     defocus_angle = 0.0,
     focus_distance = 10.0,
-    background = [178, 205, 255]
+    background = [0.7, 0.8, 1.0]
 );
 
 // x-axis
-color([255,0,0])
+color([1,0,0])
     cube([200,1,1],center=true);
 // y-axis
-color([0,255,0])
+color([0,1,0])
     cube([1,200,1],center=true);
 // z-axis
-color([0,0,255])
+color([0,0,1])
     cube([1,1,200],center=true);
 
 // Car body base
-scale([1.2,1,1])
+color([1,0,0])
+    scale([1.2,1,1])
     cube([60,20,10],center=true);
 
 // Car body top

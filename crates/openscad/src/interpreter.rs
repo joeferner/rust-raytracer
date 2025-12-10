@@ -68,9 +68,7 @@ impl Value {
 
     pub fn to_color(&self) -> Option<Color> {
         match self {
-            Value::Number(value) => {
-                Some(Color::new(*value / 255.0, *value / 255.0, *value / 255.0))
-            }
+            Value::Number(value) => Some(Color::new(*value, *value, *value)),
             Value::Vector { items } => Self::values_to_color(items),
             _ => todo!(),
         }
@@ -134,7 +132,7 @@ impl Value {
             todo!();
         };
 
-        Some(Color::new(r / 255.0, g / 255.0, b / 255.0))
+        Some(Color::new(r, g, b))
     }
 }
 
