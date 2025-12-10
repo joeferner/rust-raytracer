@@ -25,7 +25,8 @@ cube([1,200,1],center=true);
 cube([200,1,1],center=true);
 
 // Car body base
-cube([60,20,10],center=true);
+scale([1.2,1,1])
+    cube([60,20,10],center=true);
 
 // Car body top
 translate([5,0,10 - 0.001])

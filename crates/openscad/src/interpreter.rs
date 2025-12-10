@@ -20,6 +20,7 @@ pub enum Module {
     // transformations
     Translate,
     Rotate,
+    Scale,
 }
 
 #[derive(Debug)]
@@ -239,6 +240,7 @@ impl Interpreter {
                         ModuleId::Cylinder => Module::Cylinder,
                         ModuleId::Translate => Module::Translate,
                         ModuleId::Rotate => Module::Rotate,
+                        ModuleId::Scale => Module::Scale,
                         ModuleId::Camera => Module::Camera,
                         ModuleId::For => todo!("already handled"),
                         ModuleId::Identifier(_) => todo!("already handled"),

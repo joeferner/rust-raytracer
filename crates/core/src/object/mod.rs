@@ -12,6 +12,7 @@ pub mod disc;
 pub mod group;
 pub mod quad;
 pub mod rotate;
+pub mod scale;
 pub mod sphere;
 pub mod translate;
 
@@ -23,6 +24,7 @@ pub use disc::Disc;
 pub use group::Group;
 pub use quad::Quad;
 pub use rotate::Rotate;
+pub use scale::Scale;
 pub use sphere::Sphere;
 pub use translate::Translate;
 

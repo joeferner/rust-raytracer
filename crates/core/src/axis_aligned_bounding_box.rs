@@ -46,6 +46,25 @@ impl AxisAlignedBoundingBox {
         })
     }
 
+    /// Creates an AABB with the given intervals.
+    ///
+    /// The resulting bounding box is padded to ensure a minimum size along each axis.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Interval};
+    ///
+    /// let bbox = AxisAlignedBoundingBox::new_from_intervals(
+    ///   Interval::new(2.0, 3.0),
+    ///   Interval::new(7.0, 10.0),
+    ///   Interval::new(12.0, 42.0)
+    /// );
+    /// ```
+    pub fn new_from_intervals(x: Interval, y: Interval, z: Interval) -> Self {
+        AxisAlignedBoundingBox::pad_to_minimums(Self { x, y, z })
+    }
+
     /// Creates an AABB from two corner points.
     ///
     /// The points `a` and `b` are treated as opposite corners of the bounding box.

@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc, sync::Arc};
 use rust_raytracer_core::{
     Camera, CameraBuilder, Color, Node, SceneData, Vector3,
     material::Lambertian,
-    object::{BoundingVolumeHierarchy, BoxPrimitive, ConeFrustum, Group, Rotate, Translate},
+    object::{BoundingVolumeHierarchy, BoxPrimitive, ConeFrustum, Group, Rotate, Scale, Translate},
 };
 
 use crate::interpreter::{Module, ModuleArgument, ModuleInstance, ModuleInstanceTree, Value};
@@ -83,6 +83,7 @@ impl Converter {
             Module::Cylinder => self.create_cylinder(instance, child_nodes),
             Module::Translate => self.create_translate(instance, child_nodes),
             Module::Rotate => self.create_rotate(instance, child_nodes),
+            Module::Scale => self.create_scale(instance, child_nodes),
             Module::Camera => self.create_camera(instance, child_nodes),
         }
     }
@@ -276,6 +277,22 @@ impl Converter {
         }
 
         todo!();
+    }
+
+    fn create_scale(
+        &self,
+        instance: &ModuleInstance,
+        child_nodes: Vec<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        let arguments = self.convert_args(&["v"], &instance.arguments);
+
+        if let Some(arg) = arguments.get("v") {
+            let v = arg.to_vector3()?;
+            let items_to_scale: Arc<dyn Node> = Arc::new(Group::from_list(&child_nodes));
+            return Some(Arc::new(Scale::new(items_to_scale, v.x, v.y, v.z)));
+        }
+
+        todo!("missing arg");
     }
 
     fn create_camera(

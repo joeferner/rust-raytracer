@@ -46,9 +46,10 @@ pub enum Token {
     Cylinder,
     Translate,
     Rotate,
+    Scale,
     Camera,
 
-    // TODO module, function, if, else, let, assign, sphere, polyhedron, square, circle, polygon, union, difference, intersection, scale, mirror, hull, minkowski, linear_extrude, rotate_extrude, projection
+    // TODO module, function, if, else, let, assign, sphere, polyhedron, square, circle, polygon, union, difference, intersection, mirror, hull, minkowski, linear_extrude, rotate_extrude, projection
     Unknown(char),
     Eof,
 }
@@ -311,6 +312,8 @@ impl Tokenizer {
                     Token::Translate
                 } else if identifier == "rotate" {
                     Token::Rotate
+                } else if identifier == "scale" {
+                    Token::Scale
                 } else if identifier == "camera" {
                     Token::Camera
                 } else {
