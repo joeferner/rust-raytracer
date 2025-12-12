@@ -1,6 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 use crate::material::Material;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EmptyMaterial {}
 
 impl EmptyMaterial {
@@ -15,6 +18,7 @@ impl Default for EmptyMaterial {
     }
 }
 
+#[typetag::serde]
 impl Material for EmptyMaterial {
     fn scatter(
         &self,

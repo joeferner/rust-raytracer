@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use crate::{
     AxisAlignedBoundingBox, Interval, Node, Ray, RenderContext, Vector3,
     material::Material,
@@ -7,6 +9,9 @@ use crate::{
 };
 
 pub struct BoxPrimitive {
+    a: Vector3,
+    b: Vector3,
+    material: Arc<dyn Material>,
     group: Group,
 }
 
@@ -66,13 +71,19 @@ impl BoxPrimitive {
             Vector3::new(min.x, min.y, min.z),
             dx,
             dz,
-            material,
+            material.clone(),
         )));
 
-        Self { group }
+        Self {
+            a,
+            b,
+            material,
+            group,
+        }
     }
 }
 
+#[typetag::serde]
 impl Node for BoxPrimitive {
     fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         self.group.hit(ctx, ray, ray_t)
@@ -80,5 +91,37 @@ impl Node for BoxPrimitive {
 
     fn bounding_box(&self) -> &AxisAlignedBoundingBox {
         self.group.bounding_box()
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct BoxPrimitiveSerde {
+    a: Vector3,
+    b: Vector3,
+    material: Arc<dyn Material>,
+}
+
+impl Serialize for BoxPrimitive {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let builder = BoxPrimitiveSerde {
+            a: self.a,
+            b: self.b,
+            material: self.material.clone(),
+        };
+
+        builder.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for BoxPrimitive {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let serde = BoxPrimitiveSerde::deserialize(deserializer)?;
+        Ok(BoxPrimitive::new(serde.a, serde.b, serde.material))
     }
 }

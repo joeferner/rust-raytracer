@@ -1,12 +1,15 @@
 use core::f64;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     Color, Ray, RenderContext,
     material::{Material, PdfOrRay, ScatterResult},
     object::HitRecord,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Dielectric {
     /// Refractive index in vacuum or air, or the ratio of the material's refractive index over
     /// the refractive index of the enclosing media
@@ -26,6 +29,7 @@ impl Dielectric {
     }
 }
 
+#[typetag::serde]
 impl Material for Dielectric {
     fn scatter(&self, ctx: &RenderContext, r_in: &Ray, hit: &HitRecord) -> Option<ScatterResult> {
         let ri = if hit.front_face {

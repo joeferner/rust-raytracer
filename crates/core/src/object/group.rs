@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use crate::{
     AxisAlignedBoundingBox, Interval, Ray, RenderContext, Vector3,
     object::{HitRecord, Node},
@@ -39,6 +41,7 @@ impl Default for Group {
     }
 }
 
+#[typetag::serde]
 impl Node for Group {
     fn hit(&self, ctx: &RenderContext, ray: &Ray, mut ray_t: Interval) -> Option<HitRecord> {
         let mut closest_hit: Option<HitRecord> = None;
@@ -74,5 +77,33 @@ impl Node for Group {
             let r = ctx.random.rand_int_interval(0, self.nodes.len() as i64) as usize;
             self.nodes[r].random(ctx, origin)
         }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct GroupSerde {
+    nodes: Vec<Arc<dyn Node>>,
+}
+
+impl Serialize for Group {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let builder = GroupSerde {
+            nodes: self.nodes.clone(),
+        };
+
+        builder.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Group {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let serde = GroupSerde::deserialize(deserializer)?;
+        Ok(Group::from_list(&serde.nodes))
     }
 }

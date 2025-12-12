@@ -14,6 +14,7 @@ pub use perlin_noise::PerlinNoiseTexture;
 pub use perlin_turbulence::PerlinTurbulenceTexture;
 pub use solid_color::SolidColor;
 
+#[typetag::serde(tag = "type")]
 pub trait Texture: Debug + Send + Sync {
     fn value(&self, u: f64, v: f64, pt: Vector3) -> Color;
 }

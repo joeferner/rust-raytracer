@@ -1,5 +1,7 @@
 use std::{cmp::Ordering, sync::Arc};
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use crate::{
     Axis, AxisAlignedBoundingBox, Interval, Ray, RenderContext,
     object::{Group, HitRecord, Node},
@@ -31,7 +33,7 @@ impl BoundingVolumeHierarchy {
             let axis = bbox.longest_axis();
 
             let mut nodes = nodes.to_vec();
-            nodes.sort_by(|a, b| bbox_compare(a, b, axis));
+            nodes.sort_by(|a, b| Self::bbox_compare(a, b, axis));
 
             let mid = nodes.len() / 2;
             let left: Arc<dyn Node> = Arc::new(BoundingVolumeHierarchy::new(&nodes[..mid]));
@@ -43,8 +45,15 @@ impl BoundingVolumeHierarchy {
             AxisAlignedBoundingBox::new_from_bbox(*left.bounding_box(), *right.bounding_box());
         Self { left, right, bbox }
     }
+
+    fn bbox_compare(a: &Arc<dyn Node>, b: &Arc<dyn Node>, axis: Axis) -> Ordering {
+        let a_axis_interval = a.bounding_box().axis_interval(axis);
+        let b_axis_interval = b.bounding_box().axis_interval(axis);
+        a_axis_interval.min.total_cmp(&b_axis_interval.min)
+    }
 }
 
+#[typetag::serde]
 impl Node for BoundingVolumeHierarchy {
     fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         if !self.bbox.hit(ray, ray_t) {
@@ -71,8 +80,32 @@ impl Node for BoundingVolumeHierarchy {
     }
 }
 
-fn bbox_compare(a: &Arc<dyn Node>, b: &Arc<dyn Node>, axis: Axis) -> Ordering {
-    let a_axis_interval = a.bounding_box().axis_interval(axis);
-    let b_axis_interval = b.bounding_box().axis_interval(axis);
-    a_axis_interval.min.total_cmp(&b_axis_interval.min)
+#[derive(Serialize, Deserialize)]
+struct BoundingVolumeHierarchySerde {
+    left: Arc<dyn Node>,
+    right: Arc<dyn Node>,
+}
+
+impl Serialize for BoundingVolumeHierarchy {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let builder = BoundingVolumeHierarchySerde {
+            left: self.left.clone(),
+            right: self.right.clone(),
+        };
+
+        builder.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for BoundingVolumeHierarchy {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let serde = BoundingVolumeHierarchySerde::deserialize(deserializer)?;
+        Ok(BoundingVolumeHierarchy::new(&[serde.left, serde.right]))
+    }
 }

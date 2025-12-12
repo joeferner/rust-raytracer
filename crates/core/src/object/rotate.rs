@@ -130,6 +130,7 @@ impl Rotate {
     }
 }
 
+#[typetag::serde]
 impl Node for Rotate {
     fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         // Transform the ray from world space to object space using inverse rotation

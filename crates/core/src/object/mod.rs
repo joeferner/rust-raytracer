@@ -51,6 +51,7 @@ impl HitRecord {
     }
 }
 
+#[typetag::serde(tag = "type")]
 pub trait Node: Send + Sync {
     fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord>;
 

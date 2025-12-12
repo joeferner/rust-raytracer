@@ -89,6 +89,7 @@ impl Scale {
     }
 }
 
+#[typetag::serde]
 impl Node for Scale {
     fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         // 1. Transform the ray from world space to object space using the inverse scale matrix

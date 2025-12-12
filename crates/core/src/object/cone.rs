@@ -68,6 +68,7 @@ impl ConeFrustum {
     }
 }
 
+#[typetag::serde]
 impl Node for ConeFrustum {
     fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         self.object_node.hit(ctx, ray, ray_t)

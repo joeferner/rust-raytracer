@@ -1,6 +1,8 @@
 use core::f64;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
+use serde::{Deserialize, Serialize};
+
 use crate::{Axis, Random};
 
 /// A 3-dimensional vector with x, y, and z components.
@@ -16,7 +18,7 @@ use crate::{Axis, Random};
 /// let length = v.length();
 /// let unit_vector = v.unit();
 /// ```
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Vector3 {
     pub x: f64,
     pub y: f64,

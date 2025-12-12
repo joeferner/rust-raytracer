@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     Color, Ray, RenderContext, Vector3,
     material::{Material, ScatterResult},
@@ -7,7 +9,8 @@ use crate::{
     texture::{SolidColor, Texture},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DiffuseLight {
     texture: Arc<dyn Texture>,
 }
@@ -24,6 +27,7 @@ impl DiffuseLight {
     }
 }
 
+#[typetag::serde]
 impl Material for DiffuseLight {
     fn scatter(
         &self,

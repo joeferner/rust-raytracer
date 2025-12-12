@@ -1,10 +1,13 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{
     Color, Ray, RenderContext, Vector3,
     material::{Material, PdfOrRay, ScatterResult},
     object::HitRecord,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Metal {
     albedo: Color,
     fuzz: f64,
@@ -16,6 +19,7 @@ impl Metal {
     }
 }
 
+#[typetag::serde]
 impl Material for Metal {
     fn scatter(&self, ctx: &RenderContext, r_in: &Ray, hit: &HitRecord) -> Option<ScatterResult> {
         let reflected = r_in.direction.reflect(hit.normal);

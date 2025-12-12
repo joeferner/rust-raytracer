@@ -16,6 +16,7 @@ pub use isotropic::Isotropic;
 pub use lambertian::Lambertian;
 pub use metal::Metal;
 
+#[typetag::serde(tag = "type")]
 pub trait Material: Debug + Send + Sync {
     fn scatter(&self, ctx: &RenderContext, r_in: &Ray, hit: &HitRecord) -> Option<ScatterResult>;
 

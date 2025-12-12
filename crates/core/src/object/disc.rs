@@ -89,6 +89,7 @@ impl Disc {
     }
 }
 
+#[typetag::serde]
 impl Node for Disc {
     fn hit(&self, _ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         // 1. Intersect Ray with the Plane defined by the Disc

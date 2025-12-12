@@ -21,6 +21,7 @@ impl Translate {
     }
 }
 
+#[typetag::serde]
 impl Node for Translate {
     fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         // Move the ray backwards by the offset

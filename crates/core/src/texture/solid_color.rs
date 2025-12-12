@@ -11,6 +11,7 @@ impl SolidColor {
     }
 }
 
+#[typetag::serde]
 impl Texture for SolidColor {
     fn value(&self, _u: f64, _v: f64, _pt: crate::Vector3) -> crate::Color {
         self.albedo

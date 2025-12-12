@@ -19,6 +19,7 @@ impl CheckerTexture {
     }
 }
 
+#[typetag::serde]
 impl Texture for CheckerTexture {
     fn value(&self, u: f64, v: f64, pt: crate::Vector3) -> crate::Color {
         let x_integer = (self.inv_scale * pt.x).floor() as i64;

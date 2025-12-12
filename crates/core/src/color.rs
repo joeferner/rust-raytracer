@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::Random;
 use std::ops::{Add, AddAssign, Div, Mul};
 
@@ -23,7 +25,7 @@ use std::ops::{Add, AddAssign, Div, Mul};
 /// // Perform color arithmetic
 /// let mixed = purple * 0.5 + white * 0.5;
 /// ```
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Color {
     /// Red component (typically 0.0 to 1.0)
     pub r: f64,

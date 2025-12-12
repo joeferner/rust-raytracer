@@ -7,6 +7,13 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
+pub fn parse_openscad(input: &str) -> Result<JsValue, JsValue> {
+    let scene_data =
+        openscad_string_to_scene_data(input).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
+    serde_wasm_bindgen::to_value(&scene_data).map_err(|e| JsValue::from_str(&format!("{}", e)))
+}
+
+#[wasm_bindgen]
 pub fn render_openscad(
     input: &str,
     xmin: u32,

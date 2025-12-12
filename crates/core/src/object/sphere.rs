@@ -95,6 +95,7 @@ impl Sphere {
     }
 }
 
+#[typetag::serde]
 impl Node for Sphere {
     fn hit(&self, _ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let current_center = self.center.at(ray.time);

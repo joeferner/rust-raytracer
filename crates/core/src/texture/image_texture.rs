@@ -13,6 +13,7 @@ impl ImageTexture {
     }
 }
 
+#[typetag::serde]
 impl Texture for ImageTexture {
     fn value(&self, u: f64, v: f64, _pt: Vector3) -> Color {
         // Clamp input texture coordinates to [0,1] x [1,0]

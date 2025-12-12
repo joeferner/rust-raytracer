@@ -36,6 +36,7 @@ impl ConstantMedium {
     }
 }
 
+#[typetag::serde]
 impl Node for ConstantMedium {
     fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let mut hit1 = self.boundary.hit(ctx, ray, Interval::UNIVERSE)?;

@@ -1,5 +1,7 @@
 use std::{f64, sync::Arc};
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use crate::{
     Color, HittablePdf, Interval, Random, Ray, RenderContext, Vector3, material::PdfOrRay,
     object::Node, probability_density_function::MixturePdf,
@@ -30,7 +32,8 @@ use crate::{
 /// camera_builder.background = Color::new(0.7, 0.8, 1.0);
 /// let camera = camera_builder.build();
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CameraBuilder {
     /// Vertical view angle (field of view) in degrees.
     ///
@@ -123,7 +126,7 @@ impl CameraBuilder {
     ///
     /// # Returns
     /// A fully configured [`Camera`] ready for rendering.
-    pub fn build(&self) -> Camera {
+    pub fn build(self) -> Camera {
         let image_height: u32 = (self.image_width as f64 / self.aspect_ratio) as u32;
         let image_height: u32 = if image_height < 1 { 1 } else { image_height };
 
@@ -164,6 +167,13 @@ impl CameraBuilder {
         let defocus_disk_v = v * defocus_radius;
 
         Camera {
+            vertical_fov: self.vertical_fov,
+            aspect_ratio: self.aspect_ratio,
+            look_from: self.look_from,
+            look_at: self.look_at,
+            up: self.up,
+            focus_distance: self.focus_distance,
+            samples_per_pixel: self.samples_per_pixel,
             image_width: self.image_width,
             image_height,
             center,
@@ -199,6 +209,39 @@ impl Default for CameraBuilder {
 ///
 /// Use [`CameraBuilder`] to construct a `Camera` instance.
 pub struct Camera {
+    /// Vertical view angle (field of view) in degrees.
+    ///
+    /// Controls the camera's zoom level. Smaller values create a "zoomed in" effect,
+    /// while larger values create a wide-angle view.
+    vertical_fov: f64,
+
+    /// Ratio of image width over height.
+    ///
+    /// Common aspect ratios include 16:9 (1.777...), 4:3 (1.333...), and 1:1.
+    aspect_ratio: f64,
+
+    /// Point camera is looking from (camera position).
+    look_from: Vector3,
+
+    /// Point camera is looking at (target position).
+    look_at: Vector3,
+
+    /// Camera-relative "up" direction.
+    ///
+    /// Defines the camera's roll orientation. Typically (0, 1, 0) for an upright camera.
+    up: Vector3,
+
+    /// Distance from camera look_from point to plane of perfect focus.
+    ///
+    /// Objects at this distance will be perfectly sharp, while objects closer
+    /// or farther will be progressively blurred based on the defocus_angle.
+    focus_distance: f64,
+
+    /// Count of random samples for each pixel.
+    ///
+    /// Higher values produce smoother, less noisy images but take longer to render.
+    samples_per_pixel: u32,
+
     /// Rendered image width in pixels
     image_width: u32,
     /// Rendered image height in pixels
@@ -415,5 +458,91 @@ impl Camera {
     fn defocus_disk_sample(&self, random: &dyn Random) -> Vector3 {
         let pt = Vector3::random_in_unit_disk(random);
         self.center + (pt.x * self.defocus_disk_u) + (pt.y * self.defocus_disk_v)
+    }
+}
+
+impl Serialize for Camera {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let builder = CameraBuilder {
+            vertical_fov: self.vertical_fov,
+            aspect_ratio: self.aspect_ratio,
+            image_width: self.image_width,
+            look_from: self.look_from,
+            look_at: self.look_at,
+            up: self.up,
+            defocus_angle: self.defocus_angle,
+            focus_distance: self.focus_distance,
+            samples_per_pixel: self.samples_per_pixel,
+            max_depth: self.max_depth,
+            background: self.background,
+        };
+
+        builder.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Camera {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let builder = CameraBuilder::deserialize(deserializer)?;
+        Ok(builder.build())
+    }
+}
+
+#[cfg(test)]
+pub mod test {
+    use assert_eq_float::assert_eq_float;
+
+    use super::*;
+
+    #[test]
+    fn test_serde() {
+        let mut camera_builder = CameraBuilder::new();
+        camera_builder.aspect_ratio = 1.22;
+        camera_builder.image_width = 900;
+        camera_builder.samples_per_pixel = 10;
+        camera_builder.max_depth = 50;
+        camera_builder.vertical_fov = 20.0;
+        camera_builder.look_from = Vector3::new(13.0, 2.0, 3.0);
+        camera_builder.look_at = Vector3::new(0.0, 0.0, 0.0);
+        camera_builder.up = Vector3::new(0.0, 1.0, 0.0);
+        camera_builder.defocus_angle = 31.0;
+        camera_builder.focus_distance = 42.2;
+        camera_builder.background = Color::new(0.7, 0.8, 1.0);
+        let camera = camera_builder.build();
+
+        let json = serde_json::to_string(&camera).unwrap();
+        assert_eq!(
+            json,
+            "{\"vertical_fov\":20.0,\"aspect_ratio\":1.22,\"image_width\":900,\"look_from\":{\"x\":13.0,\"y\":2.0,\"z\":3.0},\"look_at\":{\"x\":0.0,\"y\":0.0,\"z\":0.0},\"up\":{\"x\":0.0,\"y\":1.0,\"z\":0.0},\"defocus_angle\":31.0,\"focus_distance\":42.2,\"samples_per_pixel\":10,\"max_depth\":50,\"background\":{\"r\":0.7,\"g\":0.8,\"b\":1.0}}"
+        );
+
+        let de_camera: Camera = serde_json::from_str(&json).unwrap();
+        assert_eq_float!(camera.vertical_fov, de_camera.vertical_fov);
+        assert_eq_float!(camera.aspect_ratio, de_camera.aspect_ratio);
+        assert_eq!(camera.look_from, de_camera.look_from);
+        assert_eq!(camera.look_at, de_camera.look_at);
+        assert_eq!(camera.up, de_camera.up);
+        assert_eq_float!(camera.focus_distance, de_camera.focus_distance);
+        assert_eq!(camera.samples_per_pixel, de_camera.samples_per_pixel);
+        assert_eq!(camera.image_width, de_camera.image_width);
+        assert_eq!(camera.image_height, de_camera.image_height);
+        assert_eq!(camera.center, de_camera.center);
+        assert_eq!(camera.pixel00_loc, de_camera.pixel00_loc);
+        assert_eq!(camera.pixel_delta_u, de_camera.pixel_delta_u);
+        assert_eq!(camera.pixel_delta_v, de_camera.pixel_delta_v);
+        assert_eq!(camera.max_depth, de_camera.max_depth);
+        assert_eq_float!(camera.pixel_samples_scale, de_camera.pixel_samples_scale);
+        assert_eq!(camera.defocus_angle, de_camera.defocus_angle);
+        assert_eq!(camera.defocus_disk_u, de_camera.defocus_disk_u);
+        assert_eq!(camera.defocus_disk_v, de_camera.defocus_disk_v);
+        assert_eq!(camera.background, de_camera.background);
+        assert_eq!(camera.sqrt_spp, de_camera.sqrt_spp);
+        assert_eq_float!(camera.reciprocal_sqrt_spp, de_camera.reciprocal_sqrt_spp);
     }
 }

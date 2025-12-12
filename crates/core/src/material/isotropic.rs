@@ -1,6 +1,8 @@
 use core::f64;
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     Color, Ray, RenderContext, SpherePdf,
     material::{Material, PdfOrRay, ScatterResult},
@@ -8,7 +10,8 @@ use crate::{
     texture::{SolidColor, Texture},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Isotropic {
     texture: Arc<dyn Texture>,
 }
@@ -25,6 +28,7 @@ impl Isotropic {
     }
 }
 
+#[typetag::serde]
 impl Material for Isotropic {
     fn scatter(&self, _ctx: &RenderContext, _r_in: &Ray, hit: &HitRecord) -> Option<ScatterResult> {
         Some(ScatterResult {

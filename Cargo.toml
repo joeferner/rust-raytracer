@@ -3,7 +3,8 @@ name = "rust-raytracer"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+[workspace.dependencies]
+serde = { version = "1.0.228", features = ["derive", "rc"] }
 
 [workspace]
 members = ["crates/core", "crates/cli", "crates/wasm", "crates/openscad"]

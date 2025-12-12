@@ -59,6 +59,7 @@ impl Quad {
     }
 }
 
+#[typetag::serde]
 impl Node for Quad {
     fn hit(&self, _ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let denom = self.normal.dot(&ray.direction);

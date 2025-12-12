@@ -17,6 +17,7 @@ impl PerlinTurbulenceTexture {
     }
 }
 
+#[typetag::serde]
 impl Texture for PerlinTurbulenceTexture {
     fn value(&self, _u: f64, _v: f64, pt: Vector3) -> Color {
         Color::new(0.5, 0.5, 0.5)
