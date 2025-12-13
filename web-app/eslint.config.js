@@ -18,11 +18,33 @@ export default defineConfig([
       reactX.configs['recommended-typescript'],
       reactDom.configs.recommended,
     ],
+    rules: {
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
+    },
     languageOptions: {
       parserOptions: {
         project: ['./tsconfig.node.json', './tsconfig.app.json'],
         tsconfigRootDir: import.meta.dirname,
       },
+    },
+  },
+  {
+    files: ['src/wasm/**/*'],
+    linterOptions: {
+      reportUnusedDisableDirectives: false,
+    },
+    rules: {
+      '@typescript-eslint/ban-tslint-comment': 'off',
     },
   },
 ])

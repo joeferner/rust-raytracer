@@ -2,7 +2,7 @@ import type { Color } from "./wasm";
 
 export interface RenderDataInit {
     type: 'init';
-    workerId: number;
+    workerId: number,
     input: string;
 }
 

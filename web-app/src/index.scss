@@ -1,0 +1,13 @@
+#root {
+    width: 100vw;
+    height: 100vh;
+}
+
+.resizeHandle {
+    width: 4px;
+
+    &[data-resize-handle-state="hover"],
+    &[data-resize-handle-state="drag"] {
+        background-color: #2B79D7;
+    }
+}

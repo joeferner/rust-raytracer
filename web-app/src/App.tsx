@@ -1,4 +1,4 @@
-import './App.module.scss'
+import styles from './App.module.scss'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { Files } from './components/Files';
 import { MyProvider } from './state';
@@ -8,16 +8,18 @@ import { Toolbar } from './components/Toolbar';
 export function App() {
   return (
     <MyProvider>
-      <Toolbar />
-      <PanelGroup autoSaveId="example" direction="horizontal">
-        <Panel defaultSize={25}>
-          <Files />
-        </Panel>
-        <PanelResizeHandle />
-        <Panel>
-          <Render />
-        </Panel>
-      </PanelGroup>
+      <div className={styles.main}>
+        <Toolbar />
+        <PanelGroup autoSaveId="example" direction="horizontal">
+          <Panel defaultSize={50}>
+            <Files />
+          </Panel>
+          <PanelResizeHandle className='resizeHandle' />
+          <Panel>
+            <Render />
+          </Panel>
+        </PanelGroup>
+      </div>
     </MyProvider>
   );
 }

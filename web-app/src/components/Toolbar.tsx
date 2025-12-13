@@ -5,6 +5,6 @@ export function Toolbar() {
     const { render } = useMyContext();
 
     return (<div>
-        <Button onClick={() => render()}>Render</Button>
+        <Button onClick={() => { void render(); }}>Render</Button>
     </div>);
 }

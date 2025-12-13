@@ -20,7 +20,7 @@ export function Files() {
                     language="javascript"
                     theme="vs-dark"
                     value={getFile('main.scad')}
-                    onChange={(code) => updateFile("main.scad", code ?? '')}
+                    onChange={(code) => { updateFile("main.scad", code ?? ''); }}
                     options={{ minimap: { enabled: false } }}
                 />
             </Tabs.Panel>

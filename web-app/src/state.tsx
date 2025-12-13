@@ -1,5 +1,5 @@
-import { createContext, useContext, useRef, useState, type ReactNode } from 'react';
-import { getCameraInfo, initWasm, loadOpenscad, type CameraInfo, type Color } from './wasm';
+import { createContext, use, useRef, useState, type ReactNode } from 'react';
+import { getCameraInfo, initWasm, loadOpenscad, type CameraInfo } from './wasm';
 import { RenderWorkerPool } from './RenderWorkerPool';
 import type { DrawEvent } from './types';
 
@@ -113,14 +113,14 @@ export function MyProvider({ children }: MyProviderProps) {
     };
 
     return (
-        <MyContext.Provider value={value}>
+        <MyContext value={value}>
             {children}
-        </MyContext.Provider>
+        </MyContext>
     );
 }
 
 export function useMyContext(): MyContextType {
-    const context = useContext(MyContext);
+    const context = use(MyContext);
     if (!context) {
         throw new Error('useMyContext must be used within MyProvider');
     }
