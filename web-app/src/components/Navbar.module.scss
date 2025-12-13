@@ -3,7 +3,7 @@
     flex-direction: column;
     padding: 10px 3px 0 3px;
     gap: 5px;
-    border-right: 1px solid hsl(0, 0%, 20%);
+    border-right: 1px solid var(--border-color);
 
     svg {
         border-radius: 5px;

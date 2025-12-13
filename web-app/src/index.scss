@@ -1,3 +1,7 @@
+body {
+    --border-color: hsl(0, 0%, 22%);
+}
+
 #root {
     width: 100vw;
     height: 100vh;
@@ -8,7 +12,7 @@
 
     &[data-resize-handle-state="hover"],
     &[data-resize-handle-state="drag"] {
-        background-color: #2B79D7;
+        background-color: var(--mantine-primary-color-filled);
     }
 }
 

@@ -3,6 +3,7 @@ import { Editor } from '@monaco-editor/react';
 import styles from './Files.module.scss';
 import { useMyContext } from '../state';
 import type { JSX } from 'react';
+import { registerOpenscadLanguage } from '../monaco-openscad';
 
 export function Files(): JSX.Element {
     const { updateFile, getFile } = useMyContext();
@@ -16,7 +17,10 @@ export function Files(): JSX.Element {
             <Tabs.Panel value="main.scad" className={styles.tabPanel}>
                 <Editor
                     height="100%"
-                    language="javascript"
+                    language="openscad"
+                    beforeMount={(monaco) => {
+                        registerOpenscadLanguage(monaco);
+                    }}
                     theme="vs-dark"
                     value={getFile('main.scad')}
                     onChange={(code) => {

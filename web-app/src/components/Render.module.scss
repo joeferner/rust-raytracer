@@ -1,16 +1,16 @@
 .wrapper {
     width: 100%;
     height: 100%;
-    border: 1px solid hsl(0, 0%, 33%);
+    border-left: 1px solid var(--border-color);
     position: relative;
 
     .canvas {
-        border: 1px solid hsl(0, 0%, 50%);
+        border: 1px solid var(--border-color);
     }
 }
 
 .miniMap {
-    border: 1px solid hsl(0, 0%, 50%);
+    border: 1px solid var(--border-color);
     position: absolute;
     z-index: 1000;
     top: 5px;

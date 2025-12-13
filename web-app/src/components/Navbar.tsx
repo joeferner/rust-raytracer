@@ -11,7 +11,7 @@ export function Navbar(): JSX.Element {
 
     useEffect(() => {
         const handleKeyPress = (event: KeyboardEvent): void => {
-            if (event.key === 'F5') {
+            if (event.key === 'F5' && !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
                 event.preventDefault();
                 void render();
             }
