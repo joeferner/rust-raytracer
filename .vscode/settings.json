@@ -15,7 +15,8 @@
         "Schlick's",
         "serde",
         "tmax",
-        "tmin"
+        "tmin",
+        "tsify"
     ],
     "liveServer.settings.port": 5501
 }

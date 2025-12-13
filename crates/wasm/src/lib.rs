@@ -1,9 +1,10 @@
 #![allow(clippy::vec_init_then_push)]
 use std::{cell::RefCell, sync::Arc};
 
-use rust_raytracer_core::{Color, RenderContext, SceneData, random_new};
+use rust_raytracer_core::{Color as CoreColor, RenderContext, SceneData, random_new};
 use rust_raytracer_openscad::openscad_string_to_scene_data;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 thread_local! {
@@ -32,13 +33,13 @@ pub fn get_camera_info() -> Result<CameraInfo, JsValue> {
 }
 
 #[wasm_bindgen]
-pub fn render(xmin: u32, xmax: u32, ymin: u32, ymax: u32) -> Result<Vec<WasmColor>, JsValue> {
+pub fn render(xmin: u32, xmax: u32, ymin: u32, ymax: u32) -> Result<Vec<Color>, JsValue> {
     LOADED_SCENE_DATA.with(|data| {
         if let Some(scene_data) = data.borrow().as_ref() {
             let ctx = Arc::new(RenderContext {
                 random: random_new(),
             });
-            let mut results: Vec<WasmColor> = vec![];
+            let mut results: Vec<Color> = vec![];
 
             for y in ymin..ymax {
                 for x in xmin..xmax {
@@ -49,7 +50,7 @@ pub fn render(xmin: u32, xmax: u32, ymin: u32, ymax: u32) -> Result<Vec<WasmColo
                         &*scene_data.world,
                         scene_data.lights.clone(),
                     );
-                    let color = WasmColor::from(pixel_color);
+                    let color = Color::from(pixel_color);
                     results.push(color);
                 }
             }
@@ -61,24 +62,24 @@ pub fn render(xmin: u32, xmax: u32, ymin: u32, ymax: u32) -> Result<Vec<WasmColo
     })
 }
 
-#[derive(Serialize)]
-#[wasm_bindgen]
+#[derive(Tsify, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct CameraInfo {
     pub width: u32,
     pub height: u32,
 }
 
-#[derive(Serialize)]
-#[wasm_bindgen]
-pub struct WasmColor {
+#[derive(Tsify, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct Color {
     pub r: u8,
     pub g: u8,
     pub b: u8,
 }
 
-impl WasmColor {
-    pub fn from(color: Color) -> Self {
-        WasmColor {
+impl Color {
+    pub fn from(color: CoreColor) -> Self {
+        Color {
             r: (color.r * 255.0) as u8,
             g: (color.g * 255.0) as u8,
             b: (color.b * 255.0) as u8,

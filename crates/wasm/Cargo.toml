@@ -12,3 +12,4 @@ rust-raytracer-core = { path = "../core" }
 rust-raytracer-openscad = { path = "../openscad" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
+tsify = "0.5.6"

@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="${SCRIPT_DIR}/.."
+WEB_APP_DIR="${SCRIPT_DIR}/../../../web-app"
 
 # Check for wasm-pack
 if ! command -v wasm-pack >/dev/null 2>&1; then
@@ -19,6 +20,8 @@ echo "Running wasm-pack build…"
 (
     cd "$PROJECT_DIR"
     wasm-pack build --target web --release
+    mkdir -p "${WEB_APP_DIR}/src/wasm"
+    cp pkg/rust_raytracer_wasm* "${WEB_APP_DIR}/src/wasm"
 )
 
 echo "Build complete!"
