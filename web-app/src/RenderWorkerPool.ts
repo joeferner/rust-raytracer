@@ -1,5 +1,12 @@
 import type { RenderOptions as StateRenderOptions } from './state';
-import type { DrawEvent, RenderDataInit, RenderDataWork, RenderResponse, RenderResponseData, RenderResponseInit } from './types';
+import type {
+    DrawEvent,
+    RenderDataInit,
+    RenderDataWork,
+    RenderResponse,
+    RenderResponseData,
+    RenderResponseInit,
+} from './types';
 import RenderWorker from './workers/renderWorker?worker';
 
 export type renderCallbackFn = (data: DrawEvent) => unknown;
@@ -17,7 +24,7 @@ export class RenderWorkerPool {
 
     private ensureWorkerCount(threadCount: number): void {
         if (this.workers.length < threadCount) {
-            console.log(`increasing worker count from ${this.workers.length} to ${threadCount}`)
+            console.log(`increasing worker count from ${this.workers.length} to ${threadCount}`);
             while (this.workers.length < threadCount) {
                 const worker = new RenderWorker();
                 const workerId = this.workers.length;
@@ -55,7 +62,7 @@ export class RenderWorkerPool {
     private sendMoreWork(workerId: number): void {
         const work = this.work.pop();
         if (work) {
-            this.workers[workerId].postMessage(work)
+            this.workers[workerId].postMessage(work);
         }
     }
 
@@ -94,7 +101,7 @@ export class RenderWorkerPool {
             const message: RenderDataInit = {
                 type: 'init',
                 workerId: i,
-                input
+                input,
             };
             this.workers[i].postMessage(message);
         }

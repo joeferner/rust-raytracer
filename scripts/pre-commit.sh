@@ -36,6 +36,9 @@ cd "${SCRIPT_DIR}/../crates/wasm"
 wasm-pack build --target web --release
 
 cd "${SCRIPT_DIR}/../web-app"
+banner "npm format"
+npm run format
+
 banner "npm lint"
 npm run lint
 

@@ -1,8 +1,8 @@
-import type { Color } from "./wasm";
+import type { Color } from './wasm';
 
 export interface RenderDataInit {
     type: 'init';
-    workerId: number,
+    workerId: number;
     input: string;
 }
 
@@ -17,7 +17,7 @@ export interface RenderDataWork {
 export type RenderData = RenderDataInit | RenderDataWork;
 
 export interface RenderResponseInit {
-    type: 'init',
+    type: 'init';
     workerId: number;
 }
 

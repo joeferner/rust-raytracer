@@ -1,5 +1,5 @@
-import type { RenderData, RenderDataInit, RenderDataWork, RenderResponseData, RenderResponseInit } from "../types";
-import { initWasm, loadOpenscad, renderBlock } from "../wasm";
+import type { RenderData, RenderDataInit, RenderDataWork, RenderResponseData, RenderResponseInit } from '../types';
+import { initWasm, loadOpenscad, renderBlock } from '../wasm';
 
 let workerId = -1;
 
@@ -31,8 +31,16 @@ function work(data: RenderDataWork): void {
 
     const results = renderBlock(xmin, xmax, ymin, ymax);
 
-    const resultsMessage: RenderResponseData = { type: 'data', workerId, xmin, xmax, ymin, ymax, data: results };
+    const resultsMessage: RenderResponseData = {
+        type: 'data',
+        workerId,
+        xmin,
+        xmax,
+        ymin,
+        ymax,
+        data: results,
+    };
     self.postMessage(resultsMessage);
 }
 
-export { };
+export {};

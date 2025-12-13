@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 
-import { createContext, use, useRef, useState, type ReactNode } from 'react';
+import { createContext, use, useRef, useState, type JSX, type ReactNode } from 'react';
 import { getCameraInfo, initWasm, loadOpenscad, type CameraInfo } from './wasm';
 import { RenderWorkerPool } from './RenderWorkerPool';
 import type { DrawEvent } from './types';
@@ -39,8 +39,8 @@ export interface RenderOptions {
 export const DEFAULT_RENDER_BLOCK_SIZE = 50;
 
 interface MyContextType {
-    files: Record<string, string>,
-    cameraInfo: CameraInfo | undefined,
+    files: Record<string, string>;
+    cameraInfo: CameraInfo | undefined;
     render: () => Promise<void>;
     updateFile: (filename: string, content: string) => void;
     getFile: (filename: string) => string | undefined;
@@ -55,21 +55,21 @@ interface MyProviderProps {
 
 const renderWorkerPool = new RenderWorkerPool();
 
-export function MyProvider({ children }: MyProviderProps): void {
+export function MyProvider({ children }: MyProviderProps): JSX.Element {
     const [renderOptions, _setRenderOptions] = useState<Required<RenderOptions>>({
         blockSize: DEFAULT_RENDER_BLOCK_SIZE,
-        threadCount: 2
+        threadCount: 2,
     });
     const [files, setFiles] = useState<Record<string, string>>({
-        'main.scad': code
+        'main.scad': code,
     });
     const [cameraInfo, setCameraInfo] = useState<CameraInfo | undefined>(undefined);
     const drawEventListeners = useRef(new Set<DrawEventListener>());
 
     const updateFile = (filename: string, content: string): void => {
-        setFiles(prev => ({
+        setFiles((prev) => ({
             ...prev,
-            [filename]: content
+            [filename]: content,
         }));
     };
 
@@ -96,7 +96,7 @@ export function MyProvider({ children }: MyProviderProps): void {
                 for (const localDrawEventListener of localDrawEventListeners) {
                     localDrawEventListener(data);
                 }
-            }
+            },
         });
     };
 
@@ -111,14 +111,10 @@ export function MyProvider({ children }: MyProviderProps): void {
         updateFile,
         getFile,
         render,
-        subscribeToDrawEvents
+        subscribeToDrawEvents,
     };
 
-    return (
-        <MyContext value={value}>
-            {children}
-        </MyContext>
-    );
+    return <MyContext value={value}>{children}</MyContext>;
 }
 
 export function useMyContext(): MyContextType {

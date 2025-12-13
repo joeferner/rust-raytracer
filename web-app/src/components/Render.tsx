@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState, type JSX } from "react";
-import { useMyContext } from "../state";
-import { MiniMap, TransformComponent, TransformWrapper, type ReactZoomPanPinchHandlers } from "react-zoom-pan-pinch";
+import React, { useCallback, useEffect, useRef, useState, type JSX } from 'react';
+import { useMyContext } from '../state';
+import { MiniMap, TransformComponent, TransformWrapper, type ReactZoomPanPinchHandlers } from 'react-zoom-pan-pinch';
 import styles from './Render.module.scss';
-import { Button, Tooltip } from "@mantine/core";
+import { Button, Tooltip } from '@mantine/core';
 import { ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, X as ResetZoomIcon } from 'react-bootstrap-icons';
-import type { DrawEvent } from "../types";
+import type { DrawEvent } from '../types';
 
 export function Render(): JSX.Element {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -41,7 +41,11 @@ export function Render(): JSX.Element {
         const elRect = el.getBoundingClientRect();
         const wrapperElRect = wrapperEl.getBoundingClientRect();
 
-        const offScreen = ((elRect.y - wrapperElRect.y) < 0) || ((elRect.x - wrapperElRect.x) < 0) || ((wrapperElRect.right - elRect.right) < 0) || ((wrapperElRect.bottom - elRect.bottom) < 0);
+        const offScreen =
+            elRect.y - wrapperElRect.y < 0 ||
+            elRect.x - wrapperElRect.x < 0 ||
+            wrapperElRect.right - elRect.right < 0 ||
+            wrapperElRect.bottom - elRect.bottom < 0;
         setShowMinimap(offScreen);
     }, []);
 
@@ -52,31 +56,58 @@ export function Render(): JSX.Element {
                     <React.Fragment>
                         <div className={styles.miniMap} style={{ display: showMinimap ? 'block' : 'none' }}>
                             <MiniMap width={150} height={150}>
-                                <canvas ref={canvasMiniRef} width={cameraInfo?.width ?? 500} height={cameraInfo?.height ?? 500} />
+                                <canvas
+                                    ref={canvasMiniRef}
+                                    width={cameraInfo?.width ?? 500}
+                                    height={cameraInfo?.height ?? 500}
+                                />
                             </MiniMap>
                         </div>
                         <Controls {...utils} />
                         <TransformComponent>
-                            <canvas className={styles.canvas} ref={canvasRef} width={cameraInfo?.width ?? 500} height={cameraInfo?.height ?? 500} />
+                            <canvas
+                                className={styles.canvas}
+                                ref={canvasRef}
+                                width={cameraInfo?.width ?? 500}
+                                height={cameraInfo?.height ?? 500}
+                            />
                         </TransformComponent>
                     </React.Fragment>
                 )}
             </TransformWrapper>
         </div>
-    )
+    );
 }
 
 function Controls(options: ReactZoomPanPinchHandlers): JSX.Element {
     return (
         <div className={styles.controls}>
             <Tooltip label="Zoom In">
-                <Button onClick={() => { options.zoomIn() }}><ZoomInIcon /></Button>
+                <Button
+                    onClick={() => {
+                        options.zoomIn();
+                    }}
+                >
+                    <ZoomInIcon />
+                </Button>
             </Tooltip>
             <Tooltip label="Zoom Out">
-                <Button onClick={() => { options.zoomOut() }}><ZoomOutIcon /></Button>
+                <Button
+                    onClick={() => {
+                        options.zoomOut();
+                    }}
+                >
+                    <ZoomOutIcon />
+                </Button>
             </Tooltip>
             <Tooltip label="Reset Zoom">
-                <Button onClick={() => { options.resetTransform() }}><ResetZoomIcon /></Button>
+                <Button
+                    onClick={() => {
+                        options.resetTransform();
+                    }}
+                >
+                    <ResetZoomIcon />
+                </Button>
             </Tooltip>
         </div>
     );
@@ -137,4 +168,3 @@ function renderDrawEvent(canvasRef: React.RefObject<HTMLCanvasElement | null>, e
         }
     }
 }
-
