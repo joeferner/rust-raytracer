@@ -3,6 +3,9 @@ set -e
 
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 
+export NVM_DIR=$HOME/.nvm;
+source $NVM_DIR/nvm.sh;
+
 banner() {
     local title="$1"
     
@@ -36,6 +39,10 @@ cd "${SCRIPT_DIR}/../crates/wasm"
 wasm-pack build --target web --release
 
 cd "${SCRIPT_DIR}/../web-app"
+
+banner "nvm install"
+nvm install
+
 banner "npm format"
 npm run format
 

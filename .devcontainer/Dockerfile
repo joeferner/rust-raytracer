@@ -7,4 +7,6 @@ RUN cargo install flamegraph
 RUN rm -rf /usr/local/cargo/registry
 
 # install node
+USER vscode
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+USER root

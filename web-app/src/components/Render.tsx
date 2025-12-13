@@ -4,27 +4,32 @@ import { MiniMap, TransformComponent, TransformWrapper, type ReactZoomPanPinchHa
 import styles from './Render.module.scss';
 import { Button, Tooltip } from '@mantine/core';
 import { ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, X as ResetZoomIcon } from 'react-bootstrap-icons';
-import type { DrawEvent } from '../types';
+import type { RenderResponseData } from '../types';
 
 export function Render(): JSX.Element {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const canvasMiniRef = useRef<HTMLCanvasElement | null>(null);
     const [showMinimap, setShowMinimap] = useState(false);
-    const { cameraInfo, subscribeToDrawEvents } = useMyContext();
+    const { cameraInfo, subscribeToDrawEvents, renderOptions } = useMyContext();
 
     useEffect(() => {
-        renderEmpty(canvasRef);
-        renderEmpty(canvasMiniRef);
-    }, []);
+        renderEmpty(canvasRef, renderOptions.blockSize);
+        renderEmpty(canvasMiniRef, renderOptions.blockSize);
+    }, [renderOptions]);
 
     useEffect(() => {
         const unsubscribe = subscribeToDrawEvents((event) => {
-            renderDrawEvent(canvasRef, event);
-            renderDrawEvent(canvasMiniRef, event);
+            if (event.type === 'init') {
+                renderEmpty(canvasRef, renderOptions.blockSize);
+                renderEmpty(canvasMiniRef, renderOptions.blockSize);
+            } else if (event.type === 'data') {
+                renderDrawEvent(canvasRef, event);
+                renderDrawEvent(canvasMiniRef, event);
+            }
         });
 
         return unsubscribe;
-    }, [subscribeToDrawEvents, canvasRef]);
+    }, [subscribeToDrawEvents, canvasRef, renderOptions]);
 
     const handleOnZoom = useCallback(() => {
         const canvas = canvasRef.current;
@@ -127,31 +132,30 @@ function getCanvasCtx(canvasRef: React.RefObject<HTMLCanvasElement | null>): Can
     return ctx;
 }
 
-function renderEmpty(canvasRef: React.RefObject<HTMLCanvasElement | null>): void {
+function renderEmpty(canvasRef: React.RefObject<HTMLCanvasElement | null>, blockSize: number): void {
     const ctx = getCanvasCtx(canvasRef);
     if (!ctx) {
         return;
     }
 
-    const squareSize = 50;
     for (let row = 0; ; row++) {
-        const y = row * squareSize;
+        const y = row * blockSize;
         if (y > ctx.canvas.height) {
             break;
         }
         for (let col = 0; ; col++) {
-            const x = col * squareSize;
+            const x = col * blockSize;
             if (x > ctx.canvas.width) {
                 break;
             }
             const isWhite = (row + col) % 2 === 0;
             ctx.fillStyle = isWhite ? '#ffffff' : '#cccccc';
-            ctx.fillRect(x, y, squareSize, squareSize);
+            ctx.fillRect(x, y, blockSize, blockSize);
         }
     }
 }
 
-function renderDrawEvent(canvasRef: React.RefObject<HTMLCanvasElement | null>, event: DrawEvent): void {
+function renderDrawEvent(canvasRef: React.RefObject<HTMLCanvasElement | null>, event: RenderResponseData): void {
     const ctx = getCanvasCtx(canvasRef);
     if (!ctx) {
         return;

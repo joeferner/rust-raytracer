@@ -3,7 +3,7 @@
 import { createContext, use, useRef, useState, type JSX, type ReactNode } from 'react';
 import { getCameraInfo, initWasm, loadOpenscad, type CameraInfo } from './wasm';
 import { RenderWorkerPool } from './RenderWorkerPool';
-import type { DrawEvent } from './types';
+import type { RenderResponse } from './types';
 
 const code = `
 // camera
@@ -27,7 +27,7 @@ color([0,125,255]/255)
     cube([60,20,10],center=true);
 `;
 
-export type DrawEventListener = (event: DrawEvent) => void;
+export type DrawEventListener = (event: RenderResponse) => void;
 
 export type UnsubscribeFn = () => void;
 
@@ -41,6 +41,7 @@ export const DEFAULT_RENDER_BLOCK_SIZE = 50;
 interface MyContextType {
     files: Record<string, string>;
     cameraInfo: CameraInfo | undefined;
+    renderOptions: Required<RenderOptions>;
     render: () => Promise<void>;
     updateFile: (filename: string, content: string) => void;
     getFile: (filename: string) => string | undefined;
@@ -108,6 +109,7 @@ export function MyProvider({ children }: MyProviderProps): JSX.Element {
     const value: MyContextType = {
         files,
         cameraInfo,
+        renderOptions,
         updateFile,
         getFile,
         render,

@@ -21,17 +21,14 @@ export interface RenderResponseInit {
     workerId: number;
 }
 
-export interface DrawEvent {
+export interface RenderResponseData {
+    type: 'data';
+    workerId: number;
     xmin: number;
     xmax: number;
     ymin: number;
     ymax: number;
     data: Color[];
-}
-
-export interface RenderResponseData extends DrawEvent {
-    type: 'data';
-    workerId: number;
 }
 
 export type RenderResponse = RenderResponseInit | RenderResponseData;

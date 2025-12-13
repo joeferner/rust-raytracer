@@ -1,0 +1,15 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 3px 0 3px;
+    gap: 5px;
+    border-right: 1px solid hsl(0, 0%, 20%);
+
+    svg {
+        border-radius: 5px;
+
+        &:hover {
+            background-color: var(--button-hover, var(--mantine-primary-color-filled-hover));
+        }
+    }
+}
