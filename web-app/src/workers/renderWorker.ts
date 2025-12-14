@@ -1,9 +1,15 @@
-import type { RenderData, RenderDataInit, RenderDataWork, RenderResponseData, RenderResponseInit } from '../types';
+import type {
+    RenderRequest,
+    RenderRequestInit,
+    RenderRequestWork,
+    RenderResponseData,
+    RenderResponseInit,
+} from '../types';
 import { initWasm, loadOpenscad, renderBlock } from '../wasm';
 
 let workerId = -1;
 
-self.onmessage = (e: MessageEvent<RenderData>): void => {
+self.onmessage = (e: MessageEvent<RenderRequest>): void => {
     const { type } = e.data;
 
     if (type === 'init') {
@@ -15,7 +21,7 @@ self.onmessage = (e: MessageEvent<RenderData>): void => {
     }
 };
 
-async function init(data: RenderDataInit): Promise<void> {
+async function init(data: RenderRequestInit): Promise<void> {
     workerId = data.workerId;
 
     console.log(`[${workerId}] initializing worker`);
@@ -26,7 +32,7 @@ async function init(data: RenderDataInit): Promise<void> {
     self.postMessage(resultsMessage);
 }
 
-function work(data: RenderDataWork): void {
+function work(data: RenderRequestWork): void {
     const { xmin, xmax, ymin, ymax } = data;
 
     const results = renderBlock(xmin, xmax, ymin, ymax);

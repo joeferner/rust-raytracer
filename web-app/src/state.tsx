@@ -2,8 +2,7 @@
 
 import { createContext, use, useRef, useState, type JSX, type ReactNode } from 'react';
 import { getCameraInfo, initWasm, loadOpenscad, type CameraInfo } from './wasm';
-import { RenderWorkerPool } from './RenderWorkerPool';
-import type { RenderResponse } from './types';
+import { RenderWorkerPool, type RenderCallbackFn } from './RenderWorkerPool';
 
 const code = `
 // camera
@@ -27,8 +26,6 @@ color([0,125,255]/255)
     cube([60,20,10],center=true);
 `;
 
-export type DrawEventListener = (event: RenderResponse) => void;
-
 export type UnsubscribeFn = () => void;
 
 export interface RenderOptions {
@@ -45,7 +42,7 @@ interface MyContextType {
     render: () => Promise<void>;
     updateFile: (filename: string, content: string) => void;
     getFile: (filename: string) => string | undefined;
-    subscribeToDrawEvents: (listener: DrawEventListener) => UnsubscribeFn;
+    subscribeToDrawEvents: (listener: RenderCallbackFn) => UnsubscribeFn;
 }
 
 const MyContext = createContext<MyContextType | undefined>(undefined);
@@ -59,13 +56,13 @@ const renderWorkerPool = new RenderWorkerPool();
 export function MyProvider({ children }: MyProviderProps): JSX.Element {
     const [renderOptions, _setRenderOptions] = useState<Required<RenderOptions>>({
         blockSize: DEFAULT_RENDER_BLOCK_SIZE,
-        threadCount: 2,
+        threadCount: navigator.hardwareConcurrency ?? 4,
     });
     const [files, setFiles] = useState<Record<string, string>>({
         'main.scad': code,
     });
     const [cameraInfo, setCameraInfo] = useState<CameraInfo | undefined>(undefined);
-    const drawEventListeners = useRef(new Set<DrawEventListener>());
+    const drawEventListeners = useRef(new Set<RenderCallbackFn>());
 
     const updateFile = (filename: string, content: string): void => {
         setFiles((prev) => ({
@@ -93,15 +90,15 @@ export function MyProvider({ children }: MyProviderProps): JSX.Element {
         renderWorkerPool.render(threadCount, input, {
             ...cameraInfo,
             ...renderOptions,
-            callback: (data) => {
+            callback: (event) => {
                 for (const localDrawEventListener of localDrawEventListeners) {
-                    localDrawEventListener(data);
+                    localDrawEventListener(event);
                 }
             },
         });
     };
 
-    const subscribeToDrawEvents = (listener: DrawEventListener): UnsubscribeFn => {
+    const subscribeToDrawEvents = (listener: RenderCallbackFn): UnsubscribeFn => {
         drawEventListeners.current.add(listener);
         return () => drawEventListeners.current.delete(listener);
     };

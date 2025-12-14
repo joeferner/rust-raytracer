@@ -1,8 +1,12 @@
-import type { Monaco } from '@monaco-editor/react';
-import * as monaco from 'monaco-editor';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 
-export function registerOpenscadLanguage(m: Monaco): void {
-    const languages = (m as typeof monaco).languages;
+import type { Monaco } from '@monaco-editor/react';
+
+export function registerOpenscadLanguage(monaco: Monaco): void {
+    const languages = (monaco as any).languages;
 
     languages.register({ id: 'openscad' });
 
