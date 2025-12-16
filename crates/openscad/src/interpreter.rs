@@ -1,6 +1,9 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
 
-use rust_raytracer_core::{Color, Vector3};
+use rust_raytracer_core::{
+    Color, Vector3,
+    texture::{CheckerTexture, SolidColor, Texture},
+};
 
 use crate::parser::{
     BinaryOperator, CallArgument, CallArgumentWithPosition, ChildStatement,
@@ -24,6 +27,8 @@ pub enum Module {
     Scale,
     Color,
     Lambertian,
+    Dielectric,
+    Metal,
 }
 
 #[derive(Debug)]
@@ -50,6 +55,7 @@ pub enum Value {
     Vector { items: Vec<Value> },
     True,
     False,
+    Texture(Arc<dyn Texture>),
 }
 
 impl Value {
@@ -245,6 +251,8 @@ impl Interpreter {
                         ModuleId::Scale => Module::Scale,
                         ModuleId::Color => Module::Color,
                         ModuleId::Lambertian => Module::Lambertian,
+                        ModuleId::Dielectric => Module::Dielectric,
+                        ModuleId::Metal => Module::Metal,
                         ModuleId::Camera => Module::Camera,
                         ModuleId::For => todo!("already handled"),
                         ModuleId::Identifier(_) => todo!("already handled"),
@@ -302,6 +310,7 @@ impl Interpreter {
                         Value::Vector { items } => todo!("items {items:?}"),
                         Value::True => todo!("true"),
                         Value::False => todo!("false"),
+                        Value::Texture(texture) => todo!("texture {texture:?}"),
                     })
                     .collect(),
             }
@@ -313,15 +322,18 @@ impl Interpreter {
                 Value::Vector { items } => todo!("{left:?} {operator:?} {items:?}"),
                 Value::True => todo!("{left:?} {operator:?} True"),
                 Value::False => todo!("{left:?} {operator:?} False"),
+                Value::Texture(texture) => todo!("{left:?} {operator:?} {texture:?}"),
             },
             Value::Vector { items } => match right {
                 Value::Number(right) => eval_vector_number(operator, items, right),
                 Value::Vector { items } => todo!("{items:?} {operator:?} {items:?}"),
                 Value::True => todo!("{items:?} {operator:?} true"),
                 Value::False => todo!("{items:?} {operator:?} false"),
+                Value::Texture(texture) => todo!("{items:?} {operator:?} {texture:?}"),
             },
             Value::True => todo!("true"),
             Value::False => todo!("false"),
+            Value::Texture(texture) => todo!("texture {texture:?}"),
         }
     }
 
@@ -410,7 +422,75 @@ impl Interpreter {
     }
 
     fn evaluate_function_call(&self, name: &str, arguments: &[CallArgumentWithPosition]) -> Value {
-        todo!("evaluate_function_call {name} {arguments:?}")
+        if name == "checker" {
+            self.evaluate_checker_function_call(arguments)
+        } else {
+            todo!("evaluate_function_call {name} {arguments:?}")
+        }
+    }
+
+    fn evaluate_checker_function_call(&self, arguments: &[CallArgumentWithPosition]) -> Value {
+        let arguments = self.convert_args(&["scale", "even", "odd"], &arguments);
+
+        let mut scale: f64 = 0.0;
+        let mut even: Arc<dyn Texture> = Arc::new(SolidColor::new(Color::new(0.0, 0.0, 0.0)));
+        let mut odd: Arc<dyn Texture> = Arc::new(SolidColor::new(Color::new(1.0, 1.0, 1.0)));
+
+        if let Some(arg) = arguments.get("scale") {
+            if let Some(value) = arg.to_number() {
+                scale = value;
+            }
+        }
+
+        if let Some(arg) = arguments.get("even") {
+            if let Some(value) = arg.to_color() {
+                even = Arc::new(SolidColor::new(value));
+            }
+        }
+
+        if let Some(arg) = arguments.get("odd") {
+            if let Some(value) = arg.to_color() {
+                odd = Arc::new(SolidColor::new(value));
+            }
+        }
+
+        Value::Texture(Arc::new(CheckerTexture::new(scale, even, odd)))
+    }
+
+    fn convert_args(
+        &self,
+        arg_names: &[&str],
+        arguments: &[CallArgumentWithPosition],
+    ) -> HashMap<String, Value> {
+        let mut results: HashMap<String, Value> = HashMap::new();
+
+        let mut found_named_arg = false;
+        for (pos, arg) in arguments.iter().enumerate() {
+            match &arg.item {
+                CallArgument::Expr { expr } => {
+                    if found_named_arg {
+                        todo!("add error, no positional args after named arg {pos}");
+                    }
+                    if let Some(arg_name) = arg_names.get(pos) {
+                        let value = self.expr_to_value(&expr);
+                        results.insert(arg_name.to_string(), value);
+                    } else {
+                        todo!("arg past end of list {pos}");
+                    }
+                }
+                CallArgument::NamedArgument { identifier, expr } => {
+                    found_named_arg = true;
+                    if arg_names.contains(&identifier.as_str()) {
+                        let value = self.expr_to_value(&expr);
+                        results.insert(identifier.to_string(), value);
+                    } else {
+                        todo!("unknown arg name: {identifier}");
+                    }
+                }
+            }
+        }
+
+        results
     }
 }
 

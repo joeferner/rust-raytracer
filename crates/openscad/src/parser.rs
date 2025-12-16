@@ -78,6 +78,8 @@ pub enum ModuleId {
     Color,
     Camera,
     Lambertian,
+    Dielectric,
+    Metal,
     /// <identifier>
     Identifier(String),
 }
@@ -458,6 +460,10 @@ impl Parser {
                         ModuleId::Camera
                     } else if identifier == "lambertian" {
                         ModuleId::Lambertian
+                    } else if identifier == "dielectric" {
+                        ModuleId::Dielectric
+                    } else if identifier == "metal" {
+                        ModuleId::Metal
                     } else {
                         ModuleId::Identifier(identifier.to_owned())
                     }

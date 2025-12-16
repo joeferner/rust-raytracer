@@ -2,7 +2,7 @@ use std::{collections::HashMap, rc::Rc, sync::Arc};
 
 use rust_raytracer_core::{
     Camera, CameraBuilder, Color, Node, SceneData, Vector3,
-    material::{Lambertian, Material},
+    material::{Dielectric, Lambertian, Material, Metal},
     object::{
         BoundingVolumeHierarchy, BoxPrimitive, ConeFrustum, Group, Rotate, Scale, Sphere, Translate,
     },
@@ -80,6 +80,12 @@ impl Converter {
         } else if module.instance.module == Module::Lambertian {
             let color = self.create_lambertian(&module.instance)?;
             self.material_stack.push(color);
+        } else if module.instance.module == Module::Dielectric {
+            let color = self.create_dielectric(&module.instance)?;
+            self.material_stack.push(color);
+        } else if module.instance.module == Module::Metal {
+            let color = self.create_metal(&module.instance)?;
+            self.material_stack.push(color);
         }
 
         for child_module in module.children.borrow().iter() {
@@ -98,11 +104,7 @@ impl Converter {
             Module::Rotate => self.create_rotate(&module.instance, child_nodes),
             Module::Scale => self.create_scale(&module.instance, child_nodes),
             Module::Camera => self.create_camera(&module.instance, child_nodes),
-            Module::Color => {
-                self.material_stack.pop();
-                Some(Arc::new(Group::from_list(&child_nodes)))
-            }
-            Module::Lambertian => {
+            Module::Color | Module::Lambertian | Module::Dielectric | Module::Metal => {
                 self.material_stack.pop();
                 Some(Arc::new(Group::from_list(&child_nodes)))
             }
@@ -360,12 +362,41 @@ impl Converter {
             let color = arg.to_color()?;
             return Some(Arc::new(Lambertian::new_from_color(color)));
         } else if let Some(arg) = arguments.get("t") {
-            todo!("{arg:?}");
-            // let color = arg.to_color()?;
-            // return Some(Arc::new(Lambertian::new(texture)));
+            match arg {
+                Value::Texture(texture) => Some(Arc::new(Lambertian::new(texture.clone()))),
+                _ => todo!("unhandled {arg:?}"),
+            }
+        } else {
+            todo!("missing arg");
+        }
+    }
+
+    fn create_dielectric(&self, instance: &ModuleInstance) -> Option<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["n"], &instance.arguments);
+
+        if let Some(arg) = arguments.get("n") {
+            let refraction_index = arg.to_number()?;
+            return Some(Arc::new(Dielectric::new(refraction_index)));
+        } else {
+            todo!("missing arg");
+        }
+    }
+
+    fn create_metal(&self, instance: &ModuleInstance) -> Option<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["c", "fuzz"], &instance.arguments);
+
+        let mut color = Color::WHITE;
+        let mut fuzz = 0.2;
+
+        if let Some(arg) = arguments.get("c") {
+            color = arg.to_color()?;
         }
 
-        todo!("missing arg");
+        if let Some(arg) = arguments.get("fuzz") {
+            fuzz = arg.to_number()?;
+        }
+
+        Some(Arc::new(Metal::new(color, fuzz)))
     }
 
     fn create_camera(
