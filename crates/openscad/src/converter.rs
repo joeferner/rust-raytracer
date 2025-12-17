@@ -74,8 +74,6 @@ impl Converter {
     }
 
     fn process_module(&mut self, module: Rc<ModuleInstanceTree>) -> Option<Arc<dyn Node>> {
-        let mut child_nodes: Vec<Arc<dyn Node>> = vec![];
-
         if module.instance.module == Module::Color {
             let color = self.create_color(&module.instance)?;
             self.material_stack.push(color);
@@ -88,15 +86,11 @@ impl Converter {
         } else if module.instance.module == Module::Metal {
             let color = self.create_metal(&module.instance)?;
             self.material_stack.push(color);
+        } else if module.instance.module == Module::For {
+            todo!("for");
         }
 
-        for child_module in module.children.borrow().iter() {
-            if let Some(child_node) = self.process_module(child_module.clone()) {
-                child_nodes.push(child_node);
-            } else {
-                return None;
-            }
-        }
+        let child_nodes = self.process_children(&module)?;
 
         match module.instance.module {
             Module::Cube => self.create_cube(&module.instance, child_nodes),
@@ -113,6 +107,18 @@ impl Converter {
             Module::For => todo!("for"),
             Module::Echo => self.evaluate_echo(&module.instance, child_nodes),
         }
+    }
+
+    fn process_children(&mut self, module: &Rc<ModuleInstanceTree>) -> Option<Vec<Arc<dyn Node>>> {
+        let mut child_nodes: Vec<Arc<dyn Node>> = vec![];
+        for child_module in module.children.borrow().iter() {
+            if let Some(child_node) = self.process_module(child_module.clone()) {
+                child_nodes.push(child_node);
+            } else {
+                return None;
+            }
+        }
+        Some(child_nodes)
     }
 
     fn convert_args<'a>(
