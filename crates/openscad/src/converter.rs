@@ -15,6 +15,7 @@ struct Converter {
     world: Vec<Arc<dyn Node>>,
     lights: Vec<Arc<dyn Node>>,
     material_stack: Vec<Arc<dyn Material>>,
+    variables: HashMap<String, Value>,
 }
 
 impl Converter {
@@ -24,6 +25,7 @@ impl Converter {
             world: vec![],
             lights: vec![],
             material_stack: vec![],
+            variables: HashMap::new(),
         }
     }
 
@@ -108,6 +110,8 @@ impl Converter {
                 self.material_stack.pop();
                 Some(Arc::new(Group::from_list(&child_nodes)))
             }
+            Module::For => todo!("for"),
+            Module::Echo => self.evaluate_echo(&module.instance, child_nodes),
         }
     }
 
@@ -397,6 +401,65 @@ impl Converter {
         }
 
         Some(Arc::new(Metal::new(color, fuzz)))
+    }
+
+    fn evaluate_echo(
+        &self,
+        instance: &ModuleInstance,
+        child_nodes: Vec<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        if !child_nodes.is_empty() {
+            todo!("should be empty");
+        }
+
+        let mut output = String::new();
+        for (i, arg) in instance.arguments.iter().enumerate() {
+            if i > 0 {
+                output += ", ";
+            }
+            match arg {
+                ModuleArgument::Positional(value) => output += &self.value_to_string(value),
+                ModuleArgument::NamedArgument { name, value } => {
+                    output += &format!("{name} = {}", self.value_to_string(value));
+                }
+            };
+        }
+        println!("{output}");
+
+        None
+    }
+
+    fn value_to_string(&self, value: &Value) -> String {
+        match value {
+            Value::Number(number) => format!("{number}"),
+            Value::Vector { items } => {
+                let mut output = String::new();
+                output += "[";
+                for (i, item) in items.iter().enumerate() {
+                    if i > 0 {
+                        output += ", ";
+                    }
+                    output += &self.value_to_string(item);
+                }
+                output += "]";
+                output
+            }
+            Value::True => "true".to_string(),
+            Value::False => "false".to_string(),
+            Value::Texture(texture) => todo!("texture {texture:?}"),
+            Value::Range {
+                start,
+                end,
+                increment,
+            } => todo!("range: {start:?} {end:?} {increment:?}"),
+            Value::Variable { name } => {
+                if let Some(v) = self.variables.get(name) {
+                    self.value_to_string(v)
+                } else {
+                    "undef".to_string()
+                }
+            }
+        }
     }
 
     fn create_camera(

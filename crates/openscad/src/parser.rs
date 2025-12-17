@@ -69,6 +69,7 @@ pub type ChildStatementWithPosition = WithPosition<ChildStatement>;
 pub enum ModuleId {
     /// "for"
     For,
+    Echo,
     Cube,
     Sphere,
     Cylinder,
@@ -106,13 +107,21 @@ pub enum Expr {
     // "false"
     False,
     // TODO "undef"
-    // TODO <identifier>
+    //  <identifier>
+    Identifier {
+        name: String,
+    },
     // TODO <expr> '.' <identifier>
     // TODO <string>
     /// <number>
     Number(f64),
     // TODO "let" <call_arguments> <expr>
-    // TODO '[' <expr> ':' <expr> ']'
+    // '[' <expr> ':' <expr> ']'
+    Range {
+        start: Box<ExprWithPosition>,
+        end: Box<ExprWithPosition>,
+        increment: Option<Box<ExprWithPosition>>,
+    },
     // TODO '[' <expr> ':' <expr> ':' <expr> ']'
     // TODO '[' <list_comprehension_elements> ']'
     // TODO '[' <optional_commas> ']'
@@ -442,7 +451,9 @@ impl Parser {
             let module_id = match &current.item {
                 Token::For => ModuleId::For,
                 Token::Identifier(identifier) => {
-                    if identifier == "cube" {
+                    if identifier == "echo" {
+                        ModuleId::Echo
+                    } else if identifier == "cube" {
                         ModuleId::Cube
                     } else if identifier == "sphere" {
                         ModuleId::Sphere
@@ -585,86 +596,147 @@ impl Parser {
     fn parse_expr(&mut self) -> Option<ExprWithPosition> {
         let start = self.current_token_start();
 
-        // TODO "let" <call_arguments> <expr>
-        // TODO '[' <expr> ':' <expr> ']'
-        // TODO '[' <expr> ':' <expr> ':' <expr> ']'
-        // TODO '[' <list_comprehension_elements> ']'
-        // TODO '[' <optional_commas> ']'
-
-        let lhs: ExprWithPosition = if self.current_matches(Token::LeftBracket) {
-            // '[' (<expr> ',' <optional_commas>)* ']'
-            self.advance();
-            let mut expressions = vec![];
-            while !self.current_matches(Token::RightBracket) {
-                if self.current_matches(Token::Comma) {
-                    self.advance();
-                    continue;
-                }
-                if let Some(expr) = self.parse_expr() {
-                    expressions.push(expr);
-                }
-            }
-            self.expect(Token::RightBracket);
-            ExprWithPosition::new(
-                Expr::Vector { items: expressions },
-                start,
-                self.current_token_start(),
-            )
-        } else if self.current_matches(Token::True) {
-            // "true"
-            self.advance();
-            ExprWithPosition::new(Expr::True, start, self.current_token_start())
-        } else if self.current_matches(Token::False) {
-            // "false"
-            self.advance();
-            ExprWithPosition::new(Expr::False, start, self.current_token_start())
-        } else if let Some(tok) = self.current()
-            && let Token::Identifier(identifier) = &tok.item
-        {
-            // TODO <identifier>
-
-            // <identifier> <call_arguments>
-            if self.peek_matches(1, Token::LeftParen) {
-                let name = identifier.clone();
-
-                self.advance(); // identifier
-                let arguments = self.parse_call_arguments()?;
-                ExprWithPosition::new(
-                    Expr::FunctionCall { name, arguments },
-                    start,
-                    self.current_token_start(),
-                )
-            } else {
-                todo!("add error");
-            }
-        }
-        // TODO "undef"
-        // TODO <expr> '.' <identifier>
-        // TODO <string>
-        else if let Some(tok) = self.current()
-            && let Token::Number(number) = &tok.item
-        {
-            // <number>
-            let number = *number;
-            self.advance();
-            ExprWithPosition::new(Expr::Number(number), start, self.current_token_start())
-        } else if self.current_matches(Token::Minus) {
-            // '-' <expr>
-            self.advance();
-            if let Some(rhs) = self.parse_expr() {
-                return Some(ExprWithPosition::new(
-                    Expr::Unary {
-                        operator: UnaryOperator::Minus,
-                        rhs: Box::new(rhs),
-                    },
-                    start,
-                    self.current_token_start(),
-                ));
-            } else {
-                return None;
-            }
+        let token = if let Some(token) = self.current() {
+            token
         } else {
-            todo!("{:?}", self.current());
+            todo!("error missing token");
+        };
+
+        let lhs: ExprWithPosition = match &token.item {
+            Token::LeftBracket => {
+                // '[' (<expr> ',' <optional_commas>)* ']'
+                // '[' <expr> ':' <expr> ']'
+                // '[' <expr> ':' <expr> ':' <expr> ']'
+                // '[' <list_comprehension_elements> ']'
+                // '[' <optional_commas> ']'
+
+                self.advance();
+                let mut expressions = vec![];
+                let mut found_comma = false;
+                let mut found_colon = false;
+                while !self.current_matches(Token::RightBracket) {
+                    if !found_colon && self.current_matches(Token::Comma) {
+                        found_comma = true;
+                        self.expect(Token::Comma);
+                        continue;
+                    }
+
+                    if !found_comma && self.current_matches(Token::Colon) {
+                        if expressions.len() == 0 {
+                            todo!("add error since leading colon is not allowed");
+                        }
+                        found_colon = true;
+                        self.expect(Token::Colon);
+                        continue;
+                    }
+
+                    if let Some(expr) = self.parse_expr() {
+                        expressions.push(expr);
+                    } else if found_colon {
+                        todo!("add error, expression is required in colon statements")
+                    }
+                }
+                self.expect(Token::RightBracket);
+
+                if found_colon {
+                    let (start_expr, end_expr, increment_expr) = if expressions.len() == 2 {
+                        let start_expr = Box::new(expressions.remove(0));
+                        let end_expr = Box::new(expressions.remove(0));
+                        (start_expr, end_expr, None)
+                    } else if expressions.len() == 3 {
+                        let start_expr = Box::new(expressions.remove(0));
+                        let increment_expr = Some(Box::new(expressions.remove(0)));
+                        let end_expr = Box::new(expressions.remove(0));
+                        (start_expr, end_expr, increment_expr)
+                    } else {
+                        todo!("add error since colon statements must be 2 or 3 expressions");
+                    };
+
+                    ExprWithPosition::new(
+                        Expr::Range {
+                            start: start_expr,
+                            end: end_expr,
+                            increment: increment_expr,
+                        },
+                        start,
+                        self.current_token_start(),
+                    )
+                } else {
+                    ExprWithPosition::new(
+                        Expr::Vector { items: expressions },
+                        start,
+                        self.current_token_start(),
+                    )
+                }
+            }
+
+            Token::True => {
+                // "true"
+                self.advance();
+                ExprWithPosition::new(Expr::True, start, self.current_token_start())
+            }
+
+            Token::False => {
+                // "false"
+                self.advance();
+                ExprWithPosition::new(Expr::False, start, self.current_token_start())
+            }
+
+            Token::Identifier(identifier) => {
+                if self.peek_matches(1, Token::LeftParen) {
+                    // <identifier> <call_arguments>
+                    let name = identifier.clone();
+
+                    self.advance(); // identifier
+                    let arguments = self.parse_call_arguments()?;
+                    ExprWithPosition::new(
+                        Expr::FunctionCall { name, arguments },
+                        start,
+                        self.current_token_start(),
+                    )
+                } else {
+                    // <identifier>
+                    let name = identifier.clone();
+                    self.advance(); // identifier
+                    ExprWithPosition::new(
+                        Expr::Identifier { name },
+                        start,
+                        self.current_token_start(),
+                    )
+                }
+            }
+
+            Token::Number(number) => {
+                // <number>
+                let number = *number;
+                self.advance();
+                ExprWithPosition::new(Expr::Number(number), start, self.current_token_start())
+            }
+
+            Token::Minus => {
+                // '-' <expr>
+                self.advance();
+                if let Some(rhs) = self.parse_expr() {
+                    ExprWithPosition::new(
+                        Expr::Unary {
+                            operator: UnaryOperator::Minus,
+                            rhs: Box::new(rhs),
+                        },
+                        start,
+                        self.current_token_start(),
+                    )
+                } else {
+                    return None;
+                }
+            }
+
+            other => {
+                // TODO "let" <call_arguments> <expr>
+                // TODO "undef"
+                // TODO <expr> '.' <identifier>
+                // TODO <string>
+                todo!("{:?}", other);
+            }
         };
 
         // TODO '+' <expr>
@@ -956,6 +1028,20 @@ mod tests {
                     sphere(r=100);
     ",
         ));
+        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(1, result.statements.len());
+    }
+
+    #[test]
+    fn test_for_loop() {
+        let result = openscad_parse(openscad_tokenize("for(a=[0:10]) sphere(r=a);"));
+        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(1, result.statements.len());
+    }
+
+    #[test]
+    fn test_for_loop_increment() {
+        let result = openscad_parse(openscad_tokenize("for(a=[0:2:10]) sphere(r=a);"));
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }

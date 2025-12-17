@@ -16,6 +16,9 @@ use crate::parser::{
 pub enum Module {
     Camera,
 
+    // flow control
+    For,
+
     // 3d
     Cube,
     Sphere,
@@ -29,6 +32,9 @@ pub enum Module {
     Lambertian,
     Dielectric,
     Metal,
+
+    // other
+    Echo,
 }
 
 #[derive(Debug)]
@@ -52,10 +58,20 @@ pub enum ModuleArgument {
 #[derive(Debug)]
 pub enum Value {
     Number(f64),
-    Vector { items: Vec<Value> },
+    Vector {
+        items: Vec<Value>,
+    },
     True,
     False,
     Texture(Arc<dyn Texture>),
+    Range {
+        start: Box<Value>,
+        end: Box<Value>,
+        increment: Option<Box<Value>>,
+    },
+    Variable {
+        name: String,
+    },
 }
 
 impl Value {
@@ -230,7 +246,6 @@ impl Interpreter {
                 module_id,
                 call_arguments,
             } => match &module_id.item {
-                ModuleId::For => todo!(),
                 ModuleId::Identifier(identifier) => {
                     if let Some(module) = self.modules.get(identifier) {
                         self.append_instance(ModuleInstance {
@@ -243,6 +258,8 @@ impl Interpreter {
                 }
                 built_in => {
                     let module = match built_in {
+                        ModuleId::For => Module::For,
+                        ModuleId::Echo => Module::Echo,
                         ModuleId::Cube => Module::Cube,
                         ModuleId::Sphere => Module::Sphere,
                         ModuleId::Cylinder => Module::Cylinder,
@@ -254,7 +271,6 @@ impl Interpreter {
                         ModuleId::Dielectric => Module::Dielectric,
                         ModuleId::Metal => Module::Metal,
                         ModuleId::Camera => Module::Camera,
-                        ModuleId::For => todo!("already handled"),
                         ModuleId::Identifier(_) => todo!("already handled"),
                     };
                     self.append_instance(ModuleInstance {
@@ -279,6 +295,12 @@ impl Interpreter {
             }
             Expr::Unary { operator, rhs } => self.evaluate_unary_expression(operator, rhs),
             Expr::FunctionCall { name, arguments } => self.evaluate_function_call(name, arguments),
+            Expr::Range {
+                start,
+                end,
+                increment,
+            } => self.evaluate_range_expression(start, end, increment),
+            Expr::Identifier { name } => self.evaluate_identifier(name),
         }
     }
 
@@ -311,6 +333,12 @@ impl Interpreter {
                         Value::True => todo!("true"),
                         Value::False => todo!("false"),
                         Value::Texture(texture) => todo!("texture {texture:?}"),
+                        Value::Range {
+                            start,
+                            end,
+                            increment,
+                        } => todo!("range: {start:?}, {end:?}, {increment:?}"),
+                        Value::Variable { name } => todo!("variable {name}"),
                     })
                     .collect(),
             }
@@ -323,6 +351,12 @@ impl Interpreter {
                 Value::True => todo!("{left:?} {operator:?} True"),
                 Value::False => todo!("{left:?} {operator:?} False"),
                 Value::Texture(texture) => todo!("{left:?} {operator:?} {texture:?}"),
+                Value::Range {
+                    start,
+                    end,
+                    increment,
+                } => todo!("{left:?} {operator:?} range({start:?}, {end:?}, {increment:?})"),
+                Value::Variable { name } => todo!("{left:?} {operator:?} var:{name}"),
             },
             Value::Vector { items } => match right {
                 Value::Number(right) => eval_vector_number(operator, items, right),
@@ -330,10 +364,22 @@ impl Interpreter {
                 Value::True => todo!("{items:?} {operator:?} true"),
                 Value::False => todo!("{items:?} {operator:?} false"),
                 Value::Texture(texture) => todo!("{items:?} {operator:?} {texture:?}"),
+                Value::Range {
+                    start,
+                    end,
+                    increment,
+                } => todo!("{items:?} {operator:?} range({start:?}, {end:?}, {increment:?})"),
+                Value::Variable { name } => todo!("{items:?} {operator:?} var:{name}"),
             },
             Value::True => todo!("true"),
             Value::False => todo!("false"),
             Value::Texture(texture) => todo!("texture {texture:?}"),
+            Value::Range {
+                start,
+                end,
+                increment,
+            } => todo!("range: {start:?}, {end:?}, {increment:?}"),
+            Value::Variable { name } => todo!("variable: {name}"),
         }
     }
 
@@ -492,6 +538,31 @@ impl Interpreter {
 
         results
     }
+
+    fn evaluate_range_expression(
+        &self,
+        start: &ExprWithPosition,
+        end: &ExprWithPosition,
+        increment: &Option<Box<ExprWithPosition>>,
+    ) -> Value {
+        let start = Box::new(self.expr_to_value(start));
+        let end = Box::new(self.expr_to_value(end));
+        let increment = increment
+            .as_ref()
+            .map(|v| Box::new(self.expr_to_value(v.as_ref())));
+
+        Value::Range {
+            start,
+            end,
+            increment,
+        }
+    }
+
+    fn evaluate_identifier(&self, name: &str) -> Value {
+        Value::Variable {
+            name: name.to_owned(),
+        }
+    }
 }
 
 pub fn openscad_interpret(statements: Vec<StatementWithPosition>) -> InterpreterResults {
@@ -530,5 +601,13 @@ mod tests {
 
         assert_eq!(Vec::<InterpreterError>::new(), result.errors);
         assert_eq!(0, result.trees.len());
+    }
+
+    #[test]
+    fn test_for_loop() {
+        let result = openscad_parse(openscad_tokenize("for(a=[0:10]) sphere(r=a);"));
+        let result = openscad_interpret(result.statements);
+        assert_eq!(Vec::<InterpreterError>::new(), result.errors);
+        assert_eq!(1, result.trees.len());
     }
 }

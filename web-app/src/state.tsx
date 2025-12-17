@@ -107,7 +107,7 @@ export function MyProvider({ children }: MyProviderProps): JSX.Element {
     useEffect(() => {
         console.log('load initial project');
         setTimeout(() => {
-            void loadExampleProject(Example.ThreeSpheres);
+            void loadExampleProject(Example.RandomSpheres);
         });
     }, []);
 

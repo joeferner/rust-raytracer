@@ -18,6 +18,8 @@ pub enum Token {
     RightCurlyBracket,
     /// ','
     Comma,
+    /// ':'
+    Colon,
     /// ';'
     Semicolon,
     /// '='
@@ -262,6 +264,10 @@ impl Tokenizer {
             Some(',') => {
                 self.advance();
                 Token::Comma
+            }
+            Some(':') => {
+                self.advance();
+                Token::Colon
             }
             Some(';') => {
                 self.advance();
