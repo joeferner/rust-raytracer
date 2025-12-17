@@ -301,6 +301,7 @@ impl Interpreter {
                 increment,
             } => self.evaluate_range_expression(start, end, increment),
             Expr::Identifier { name } => self.evaluate_identifier(name),
+            Expr::Index { lhs, index } => todo!("index {lhs:?} {index:?}"),
         }
     }
 
@@ -611,6 +612,14 @@ mod tests {
     #[test]
     fn test_for_loop() {
         let result = openscad_parse(openscad_tokenize("for(a=[0:10]) sphere(r=a);"));
+        let result = openscad_interpret(result.statements);
+        assert_eq!(Vec::<InterpreterError>::new(), result.errors);
+        assert_eq!(1, result.trees.len());
+    }
+
+    #[test]
+    fn test_rands() {
+        let result = openscad_parse(openscad_tokenize("choose_mat = rands(0,1,1)[0];"));
         let result = openscad_interpret(result.statements);
         assert_eq!(Vec::<InterpreterError>::new(), result.errors);
         assert_eq!(1, result.trees.len());

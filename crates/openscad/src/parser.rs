@@ -162,7 +162,12 @@ pub enum Expr {
     },
     // TODO '(' <expr> ')'
     // TODO <expr> '?' <expr> ':' <expr>
-    // TODO <expr> '[' <expr> ']'
+    // <expr> '[' <expr> ']'
+    Index {
+        lhs: Box<ExprWithPosition>,
+        index: Box<ExprWithPosition>,
+    },
+
     // <identifier> <call_arguments>
     FunctionCall {
         name: String,
@@ -791,7 +796,24 @@ impl Parser {
 
         // TODO '(' <expr> ')'
         // TODO <expr> '?' <expr> ':' <expr>
-        // TODO <expr> '[' <expr> ']'
+
+        // <expr> '[' <expr> ']'
+        if self.current_matches(Token::LeftBracket) {
+            self.expect(Token::LeftBracket);
+            if let Some(index) = self.parse_expr() {
+                self.expect(Token::RightBracket);
+                return Some(ExprWithPosition::new(
+                    Expr::Index {
+                        lhs: Box::new(lhs),
+                        index: Box::new(index),
+                    },
+                    start,
+                    self.current_token_start(),
+                ));
+            } else {
+                return None;
+            }
+        }
 
         Some(lhs)
     }
@@ -1058,6 +1080,20 @@ mod tests {
     #[test]
     fn test_for_loop_increment() {
         let result = openscad_parse(openscad_tokenize("for(a=[0:2:10]) sphere(r=a);"));
+        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(1, result.statements.len());
+    }
+
+    #[test]
+    fn test_variable_assignment() {
+        let result = openscad_parse(openscad_tokenize("a = 1;"));
+        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(1, result.statements.len());
+    }
+
+    #[test]
+    fn test_rands() {
+        let result = openscad_parse(openscad_tokenize("choose_mat = rands(0,1,1)[0];"));
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
