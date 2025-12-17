@@ -52,7 +52,16 @@ pub fn get_scene(ctx: &RenderContext, scene: Scene) -> Result<SceneData, String>
         Scene::CornellBoxSmoke => Ok(create_cornell_box_smoke_scene(ctx)),
         Scene::Final => Ok(create_final_scene(ctx)),
         Scene::OpenScad(filename) => {
-            openscad_file_to_scene_data(&filename).map_err(|err| format!("{err:?}"))
+            let results = openscad_file_to_scene_data(&filename).map_err(|err| format!("{err:?}"));
+            match results {
+                Ok(results) => {
+                    if !results.output.is_empty() {
+                        println!("{}", results.output);
+                    }
+                    Ok(results.scene_data)
+                }
+                Err(err) => Err(err),
+            }
         }
     }
 }

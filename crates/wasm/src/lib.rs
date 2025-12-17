@@ -12,11 +12,13 @@ static LOADED_SCENE_DATA: RefCell<Option<SceneData>> = const { RefCell::new(None
 }
 
 #[wasm_bindgen]
-pub fn load_openscad(input: &str) -> Result<(), JsValue> {
-    let scene_data =
+pub fn load_openscad(input: &str) -> Result<LoadResults, JsValue> {
+    let results =
         openscad_string_to_scene_data(input).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
-    LOADED_SCENE_DATA.with(|data| *data.borrow_mut() = Some(scene_data));
-    Ok(())
+    LOADED_SCENE_DATA.with(|data| *data.borrow_mut() = Some(results.scene_data));
+    Ok(LoadResults {
+        output: results.output,
+    })
 }
 
 #[wasm_bindgen]
@@ -60,6 +62,12 @@ pub fn render(xmin: u32, xmax: u32, ymin: u32, ymax: u32) -> Result<Vec<Color>, 
             Err(JsValue::from_str("Scene data not loaded"))
         }
     })
+}
+
+#[derive(Tsify, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct LoadResults {
+    pub output: String,
 }
 
 #[derive(Tsify, Serialize, Deserialize)]

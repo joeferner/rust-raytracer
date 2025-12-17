@@ -5,10 +5,10 @@ pub mod tokenizer;
 
 use std::fs;
 
-use rust_raytracer_core::SceneData;
-
 use crate::{
-    converter::openscad_convert, interpreter::openscad_interpret, parser::openscad_parse,
+    converter::{ConvertResults, openscad_convert},
+    interpreter::openscad_interpret,
+    parser::openscad_parse,
     tokenizer::openscad_tokenize,
 };
 
@@ -30,7 +30,7 @@ pub enum OpenscadError {
     FileReadError(String, String),
 }
 
-pub fn openscad_file_to_scene_data(filename: &str) -> Result<SceneData, OpenscadError> {
+pub fn openscad_file_to_scene_data(filename: &str) -> Result<ConvertResults, OpenscadError> {
     match fs::read_to_string(filename) {
         Ok(contents) => openscad_string_to_scene_data(&contents),
         Err(err) => Err(OpenscadError::FileReadError(
@@ -40,7 +40,7 @@ pub fn openscad_file_to_scene_data(filename: &str) -> Result<SceneData, Openscad
     }
 }
 
-pub fn openscad_string_to_scene_data(input: &str) -> Result<SceneData, OpenscadError> {
+pub fn openscad_string_to_scene_data(input: &str) -> Result<ConvertResults, OpenscadError> {
     let tokens = openscad_tokenize(input);
     let parse_results = openscad_parse(tokens);
 
@@ -53,7 +53,7 @@ pub fn openscad_string_to_scene_data(input: &str) -> Result<SceneData, OpenscadE
         todo!("{:?}", interpret_results.errors);
     }
 
-    let scene_data = openscad_convert(interpret_results.trees);
+    let results = openscad_convert(interpret_results.trees);
 
-    Ok(scene_data)
+    Ok(results)
 }

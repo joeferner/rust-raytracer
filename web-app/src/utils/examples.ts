@@ -3,7 +3,7 @@ import type { Project } from '../types';
 export enum Example {
     Car = 'Car',
     ThreeSpheres = 'ThreeSpheres',
-    RandomSpheres = 'RandomSpheres'
+    RandomSpheres = 'RandomSpheres',
 }
 
 export function getExampleProject(example: Example): Project {

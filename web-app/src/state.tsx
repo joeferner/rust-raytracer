@@ -65,7 +65,8 @@ export function MyProvider({ children }: MyProviderProps): JSX.Element {
         const input = files[0].contents;
 
         await initWasm();
-        loadOpenscad(input);
+        const results = loadOpenscad(input);
+        console.log(results.output);
 
         const cameraInfo = getCameraInfo();
         const { threadCount } = renderOptions;

@@ -622,7 +622,7 @@ impl Parser {
                     }
 
                     if !found_comma && self.current_matches(Token::Colon) {
-                        if expressions.len() == 0 {
+                        if expressions.is_empty() {
                             todo!("add error since leading colon is not allowed");
                         }
                         found_colon = true;

@@ -10,12 +10,18 @@ use rust_raytracer_core::{
 
 use crate::interpreter::{Module, ModuleArgument, ModuleInstance, ModuleInstanceTree, Value};
 
+pub struct ConvertResults {
+    pub scene_data: SceneData,
+    pub output: String,
+}
+
 struct Converter {
     camera: Option<Arc<Camera>>,
     world: Vec<Arc<dyn Node>>,
     lights: Vec<Arc<dyn Node>>,
     material_stack: Vec<Arc<dyn Material>>,
     variables: HashMap<String, Value>,
+    output: String,
 }
 
 impl Converter {
@@ -26,10 +32,11 @@ impl Converter {
             lights: vec![],
             material_stack: vec![],
             variables: HashMap::new(),
+            output: String::new(),
         }
     }
 
-    fn convert(mut self, modules: Vec<Rc<ModuleInstanceTree>>) -> SceneData {
+    fn convert(mut self, modules: Vec<Rc<ModuleInstanceTree>>) -> ConvertResults {
         for module in modules {
             if let Some(node) = self.process_module(module) {
                 self.world.push(node);
@@ -54,7 +61,7 @@ impl Converter {
 
         // TODO check for errors
 
-        SceneData {
+        let scene_data = SceneData {
             camera,
             world: Arc::new(BoundingVolumeHierarchy::new(&self.world)),
             lights: if self.lights.is_empty() {
@@ -62,6 +69,11 @@ impl Converter {
             } else {
                 Some(Arc::new(BoundingVolumeHierarchy::new(&self.lights)))
             },
+        };
+
+        ConvertResults {
+            scene_data,
+            output: self.output,
         }
     }
 
@@ -87,7 +99,7 @@ impl Converter {
             let color = self.create_metal(&module.instance)?;
             self.material_stack.push(color);
         } else if module.instance.module == Module::For {
-            todo!("for");
+            return self.process_for_loop(module);
         }
 
         let child_nodes = self.process_children(&module)?;
@@ -104,7 +116,7 @@ impl Converter {
                 self.material_stack.pop();
                 Some(Arc::new(Group::from_list(&child_nodes)))
             }
-            Module::For => todo!("for"),
+            Module::For => panic!("already handled"),
             Module::Echo => self.evaluate_echo(&module.instance, child_nodes),
         }
     }
@@ -370,7 +382,7 @@ impl Converter {
 
         if let Some(arg) = arguments.get("c") {
             let color = arg.to_color()?;
-            return Some(Arc::new(Lambertian::new_from_color(color)));
+            Some(Arc::new(Lambertian::new_from_color(color)))
         } else if let Some(arg) = arguments.get("t") {
             match arg {
                 Value::Texture(texture) => Some(Arc::new(Lambertian::new(texture.clone()))),
@@ -386,7 +398,7 @@ impl Converter {
 
         if let Some(arg) = arguments.get("n") {
             let refraction_index = arg.to_number()?;
-            return Some(Arc::new(Dielectric::new(refraction_index)));
+            Some(Arc::new(Dielectric::new(refraction_index)))
         } else {
             todo!("missing arg");
         }
@@ -410,7 +422,7 @@ impl Converter {
     }
 
     fn evaluate_echo(
-        &self,
+        &mut self,
         instance: &ModuleInstance,
         child_nodes: Vec<Arc<dyn Node>>,
     ) -> Option<Arc<dyn Node>> {
@@ -430,7 +442,8 @@ impl Converter {
                 }
             };
         }
-        println!("{output}");
+
+        self.output += &format!("{output}\n");
 
         None
     }
@@ -562,9 +575,84 @@ impl Converter {
 
         None
     }
+
+    fn process_for_loop(&mut self, module: Rc<ModuleInstanceTree>) -> Option<Arc<dyn Node>> {
+        if module.instance.arguments.len() != 1 {
+            todo!("for loop should only have one argument");
+        }
+
+        let arg = &module.instance.arguments[0];
+        let (name, value) = match arg {
+            ModuleArgument::Positional(value) => {
+                todo!("for loop should have named argument {value:?}")
+            }
+            ModuleArgument::NamedArgument { name, value } => (name, value),
+        };
+
+        let (start, end, increment) = match value {
+            Value::Range {
+                start,
+                end,
+                increment,
+            } => (start, end, increment),
+            other => todo!("for loop should have range argument {other:?}"),
+        };
+
+        let start = start.to_number()?;
+        let end = end.to_number()?;
+        let increment = if let Some(increment) = increment {
+            increment.to_number()?
+        } else {
+            1.0
+        };
+
+        if end >= start && increment <= 0.0 {
+            todo!("increment should be greater than 0");
+        } else if end < start && increment >= 0.0 {
+            todo!("increment should be less than 0");
+        }
+
+        let mut i = start;
+        loop {
+            if (end >= start && i >= end) || (end < start && i <= end) {
+                break;
+            }
+
+            self.variables.insert(name.to_owned(), Value::Number(i));
+            self.process_children(&module);
+
+            i += increment;
+        }
+
+        None
+    }
 }
 
-pub fn openscad_convert(modules: Vec<Rc<ModuleInstanceTree>>) -> SceneData {
+pub fn openscad_convert(modules: Vec<Rc<ModuleInstanceTree>>) -> ConvertResults {
     let converter = Converter::new();
     converter.convert(modules)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        interpreter::openscad_interpret, parser::openscad_parse, tokenizer::openscad_tokenize,
+    };
+
+    use super::*;
+
+    #[test]
+    fn test_for_loop() {
+        let result = openscad_parse(openscad_tokenize(
+            "
+                for(a = [-1 : 1])
+                    for(b = [0 : 2])
+                        echo(a,b);
+            ",
+        ));
+        let result = openscad_interpret(result.statements);
+        let result = openscad_convert(result.trees);
+
+        assert_eq!(result.output, "-1, 0\n-1, 1\n0, 0\n0, 1\n");
+    }
 }

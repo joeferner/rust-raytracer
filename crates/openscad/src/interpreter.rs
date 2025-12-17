@@ -476,28 +476,28 @@ impl Interpreter {
     }
 
     fn evaluate_checker_function_call(&self, arguments: &[CallArgumentWithPosition]) -> Value {
-        let arguments = self.convert_args(&["scale", "even", "odd"], &arguments);
+        let arguments = self.convert_args(&["scale", "even", "odd"], arguments);
 
         let mut scale: f64 = 0.0;
         let mut even: Arc<dyn Texture> = Arc::new(SolidColor::new(Color::new(0.0, 0.0, 0.0)));
         let mut odd: Arc<dyn Texture> = Arc::new(SolidColor::new(Color::new(1.0, 1.0, 1.0)));
 
-        if let Some(arg) = arguments.get("scale") {
-            if let Some(value) = arg.to_number() {
-                scale = value;
-            }
+        if let Some(arg) = arguments.get("scale")
+            && let Some(value) = arg.to_number()
+        {
+            scale = value;
         }
 
-        if let Some(arg) = arguments.get("even") {
-            if let Some(value) = arg.to_color() {
-                even = Arc::new(SolidColor::new(value));
-            }
+        if let Some(arg) = arguments.get("even")
+            && let Some(value) = arg.to_color()
+        {
+            even = Arc::new(SolidColor::new(value));
         }
 
-        if let Some(arg) = arguments.get("odd") {
-            if let Some(value) = arg.to_color() {
-                odd = Arc::new(SolidColor::new(value));
-            }
+        if let Some(arg) = arguments.get("odd")
+            && let Some(value) = arg.to_color()
+        {
+            odd = Arc::new(SolidColor::new(value));
         }
 
         Value::Texture(Arc::new(CheckerTexture::new(scale, even, odd)))
@@ -518,7 +518,7 @@ impl Interpreter {
                         todo!("add error, no positional args after named arg {pos}");
                     }
                     if let Some(arg_name) = arg_names.get(pos) {
-                        let value = self.expr_to_value(&expr);
+                        let value = self.expr_to_value(expr);
                         results.insert(arg_name.to_string(), value);
                     } else {
                         todo!("arg past end of list {pos}");
@@ -527,7 +527,7 @@ impl Interpreter {
                 CallArgument::NamedArgument { identifier, expr } => {
                     found_named_arg = true;
                     if arg_names.contains(&identifier.as_str()) {
-                        let value = self.expr_to_value(&expr);
+                        let value = self.expr_to_value(expr);
                         results.insert(identifier.to_string(), value);
                     } else {
                         todo!("unknown arg name: {identifier}");
