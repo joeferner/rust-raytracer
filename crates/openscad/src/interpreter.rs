@@ -1,5 +1,6 @@
-use std::{collections::HashMap, fmt::Display, rc::Rc, sync::Arc};
+use std::{cell::RefCell, collections::HashMap, mem::swap, rc::Rc, sync::Arc};
 
+use rand_mt::Mt64;
 use rust_raytracer_core::{
     Camera, CameraBuilder, Color, Node, SceneData, Vector3,
     material::{Dielectric, Lambertian, Material, Metal},
@@ -9,11 +10,14 @@ use rust_raytracer_core::{
     texture::{CheckerTexture, SolidColor, Texture},
 };
 
-use crate::parser::{
-    BinaryOperator, CallArgument, CallArgumentWithPosition, ChildStatement,
-    ChildStatementWithPosition, Expr, ExprWithPosition, ModuleId, ModuleInstantiation,
-    ModuleInstantiationWithPosition, SingleModuleInstantiation, Statement, StatementWithPosition,
-    UnaryOperator,
+use crate::{
+    parser::{
+        BinaryOperator, CallArgument, CallArgumentWithPosition, ChildStatement,
+        ChildStatementWithPosition, Expr, ExprWithPosition, ModuleId, ModuleInstantiation,
+        ModuleInstantiationWithPosition, SingleModuleInstantiation, Statement,
+        StatementWithPosition, UnaryOperator,
+    },
+    value::{Value, ValueConversionError},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -53,142 +57,20 @@ pub enum ModuleArgument {
     NamedArgument { name: String, value: Value },
 }
 
-#[derive(Debug)]
-pub enum Value {
-    Number(f64),
-    Vector {
-        items: Vec<Value>,
-    },
-    True,
-    False,
-    Texture(Arc<dyn Texture>),
-    Range {
-        start: Box<Value>,
-        end: Box<Value>,
-        increment: Option<Box<Value>>,
-    },
-}
-
-impl Value {
-    pub fn to_number(&self) -> Option<f64> {
-        match self {
-            Value::Number(value) => Some(*value),
-            _ => todo!(),
-        }
-    }
-
-    pub fn to_vector3(&self) -> Option<Vector3> {
-        match self {
-            Value::Number(value) => Some(Vector3::new(-*value, *value, *value)),
-            Value::Vector { items } => Self::values_to_vector3(items),
-            _ => todo!(),
-        }
-    }
-
-    pub fn to_color(&self) -> Option<Color> {
-        match self {
-            Value::Number(value) => Some(Color::new(*value, *value, *value)),
-            Value::Vector { items } => Self::values_to_color(items),
-            _ => todo!(),
-        }
-    }
-
-    pub fn to_boolean(&self) -> Option<bool> {
-        match self {
-            Value::True => Some(true),
-            Value::False => Some(false),
-            _ => todo!(),
-        }
-    }
-
-    pub fn values_to_vector3(items: &[Value]) -> Option<Vector3> {
-        if items.len() != 3 {
-            todo!();
-        }
-
-        let x = if let Value::Number(x) = items[0] {
-            x
-        } else {
-            todo!();
-        };
-
-        let y = if let Value::Number(y) = items[1] {
-            y
-        } else {
-            todo!();
-        };
-
-        let z = if let Value::Number(z) = items[2] {
-            z
-        } else {
-            todo!();
-        };
-
-        // OpenSCAD x,y,z is different than ours so flip z and y
-        Some(Vector3::new(-x, z, y))
-    }
-
-    pub fn values_to_color(items: &[Value]) -> Option<Color> {
-        if items.len() != 3 {
-            todo!();
-        }
-
-        let r = if let Value::Number(r) = items[0] {
-            r
-        } else {
-            todo!();
-        };
-
-        let g = if let Value::Number(g) = items[1] {
-            g
-        } else {
-            todo!();
-        };
-
-        let b = if let Value::Number(b) = items[2] {
-            b
-        } else {
-            todo!();
-        };
-
-        Some(Color::new(r, g, b))
-    }
-}
-
-impl Display for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Value::Number(number) => write!(f, "{number}"),
-            Value::Vector { items } => {
-                let mut output = String::new();
-                output += "[";
-                for (i, item) in items.iter().enumerate() {
-                    if i > 0 {
-                        output += ", ";
-                    }
-                    output += &item.to_string();
-                }
-                output += "]";
-                write!(f, "{output}")
-            }
-            Value::True => write!(f, "true"),
-            Value::False => write!(f, "false"),
-            Value::Texture(texture) => todo!("texture {texture:?}"),
-            Value::Range {
-                start,
-                end,
-                increment,
-            } => todo!("range: {start:?} {end:?} {increment:?}"),
-        }
-    }
-}
-
 #[derive(Debug, PartialEq)]
 pub struct InterpreterError {
     pub message: String,
     pub start: usize,
     pub end: usize,
 }
+
+impl From<ValueConversionError> for InterpreterError {
+    fn from(value: ValueConversionError) -> Self {
+        todo!("From<ValueConversionError> {value:?}");
+    }
+}
+
+type Result<T> = std::result::Result<T, InterpreterError>;
 
 #[derive(Debug)]
 pub struct InterpreterResults {
@@ -207,6 +89,7 @@ struct Interpreter {
     material_stack: Vec<Arc<dyn Material>>,
     variables: HashMap<String, Value>,
     output: String,
+    rng: RefCell<Mt64>,
 }
 
 impl Interpreter {
@@ -231,12 +114,15 @@ impl Interpreter {
             lights: vec![],
             material_stack: vec![],
             output: String::new(),
+            rng: RefCell::new(Mt64::new_unseeded()),
         }
     }
 
     fn interpret(mut self, statements: Vec<StatementWithPosition>) -> InterpreterResults {
         for statement in statements {
-            self.process_statement(&statement);
+            if let Err(err) = self.process_statement(&statement) {
+                todo!("error {err:?}");
+            }
         }
 
         let camera = if let Some(camera) = self.camera {
@@ -272,13 +158,18 @@ impl Interpreter {
         }
     }
 
-    fn process_statement(&mut self, statement: &StatementWithPosition) -> Option<Arc<dyn Node>> {
+    fn process_statement(
+        &mut self,
+        statement: &StatementWithPosition,
+    ) -> Result<Option<Arc<dyn Node>>> {
         match &statement.item {
-            Statement::Empty => None,
+            Statement::Empty => Ok(None),
             Statement::ModuleInstantiation {
                 module_instantiation,
             } => self.process_module_instantiation(module_instantiation),
-            Statement::Assignment { identifier, expr } => self.process_assignment(identifier, expr),
+            Statement::Assignment { identifier, expr } => {
+                self.process_assignment(identifier, expr).map(|_| None)
+            }
             Statement::Include { filename } => self.process_include(filename),
         }
     }
@@ -286,7 +177,7 @@ impl Interpreter {
     fn process_module_instantiation(
         &mut self,
         module_instantiation: &ModuleInstantiationWithPosition,
-    ) -> Option<Arc<dyn Node>> {
+    ) -> Result<Option<Arc<dyn Node>>> {
         match &module_instantiation.item {
             ModuleInstantiation::SingleModuleInstantiation {
                 single_module_instantiation,
@@ -309,28 +200,30 @@ impl Interpreter {
                         let color = self.create_metal(arguments)?;
                         self.material_stack.push(color);
                     } else if module_id.item == ModuleId::For {
-                        return self.process_for_loop(arguments, child_statement);
+                        return self
+                            .process_for_loop(arguments, child_statement)
+                            .map(|_| None);
                     }
 
-                    let child = self.process_child_statement(child_statement);
+                    let child = self.process_child_statement(child_statement)?;
 
                     match &module_id.item {
-                        ModuleId::Cube => self.create_cube(arguments, child),
-                        ModuleId::Sphere => self.create_sphere(arguments, child),
-                        ModuleId::Cylinder => self.create_cylinder(arguments, child),
-                        ModuleId::Translate => self.create_translate(arguments, child),
-                        ModuleId::Rotate => self.create_rotate(arguments, child),
-                        ModuleId::Scale => self.create_scale(arguments, child),
-                        ModuleId::Camera => self.create_camera(arguments, child),
+                        ModuleId::Cube => self.create_cube(arguments, child).map(Some),
+                        ModuleId::Sphere => self.create_sphere(arguments, child).map(Some),
+                        ModuleId::Cylinder => self.create_cylinder(arguments, child).map(Some),
+                        ModuleId::Translate => self.create_translate(arguments, child).map(Some),
+                        ModuleId::Rotate => self.create_rotate(arguments, child).map(Some),
+                        ModuleId::Scale => self.create_scale(arguments, child).map(Some),
+                        ModuleId::Camera => self.create_camera(arguments, child).map(|_| None),
                         ModuleId::Color
                         | ModuleId::Lambertian
                         | ModuleId::Dielectric
                         | ModuleId::Metal => {
                             self.material_stack.pop();
-                            None
+                            Ok(None)
                         }
                         ModuleId::For => panic!("already handled"),
-                        ModuleId::Echo => self.evaluate_echo(arguments, child),
+                        ModuleId::Echo => self.evaluate_echo(arguments, child).map(|_| None),
                         ModuleId::Identifier(identifier) => {
                             todo!("ModuleId::Identifier {identifier}")
                         }
@@ -352,7 +245,7 @@ impl Interpreter {
         &self,
         arguments: &[CallArgumentWithPosition],
         child: Option<Arc<dyn Node>>,
-    ) -> Option<Arc<dyn Node>> {
+    ) -> Result<Arc<dyn Node>> {
         if child.is_some() {
             todo!("should not have children");
         }
@@ -360,7 +253,7 @@ impl Interpreter {
         let mut size = Vector3::new(0.0, 0.0, 0.0);
         let mut center = false;
 
-        let arguments = self.convert_args(&["size", "center"], arguments);
+        let arguments = self.convert_args(&["size", "center"], arguments)?;
 
         if let Some(arg) = arguments.get("size") {
             size = arg.to_vector3()?;
@@ -377,21 +270,21 @@ impl Interpreter {
             b = b - (size / 2.0);
         }
 
-        Some(Arc::new(BoxPrimitive::new(a, b, self.current_material())))
+        Ok(Arc::new(BoxPrimitive::new(a, b, self.current_material())))
     }
 
     fn create_sphere(
         &self,
         arguments: &[CallArgumentWithPosition],
         child: Option<Arc<dyn Node>>,
-    ) -> Option<Arc<dyn Node>> {
+    ) -> Result<Arc<dyn Node>> {
         if child.is_some() {
             todo!("should not have children");
         }
 
         let mut radius = 1.0;
 
-        let arguments = self.convert_args(&["r", "d"], arguments);
+        let arguments = self.convert_args(&["r", "d"], arguments)?;
 
         if let Some(arg) = arguments.get("r") {
             radius = arg.to_number()?;
@@ -399,7 +292,7 @@ impl Interpreter {
             radius = arg.to_number()? / 2.0;
         }
 
-        Some(Arc::new(Sphere::new(
+        Ok(Arc::new(Sphere::new(
             Vector3::ZERO,
             radius,
             self.current_material(),
@@ -410,7 +303,7 @@ impl Interpreter {
         &self,
         arguments: &[CallArgumentWithPosition],
         child: Option<Arc<dyn Node>>,
-    ) -> Option<Arc<dyn Node>> {
+    ) -> Result<Arc<dyn Node>> {
         if child.is_some() {
             todo!("should not have children");
         }
@@ -423,7 +316,7 @@ impl Interpreter {
         let arguments = self.convert_args(
             &["h", "r1", "r2", "center", "r", "d", "d1", "d2"],
             arguments,
-        );
+        )?;
 
         if let Some(arg) = arguments.get("h") {
             height = arg.to_number()?;
@@ -466,7 +359,7 @@ impl Interpreter {
             center_vec.y -= height / 2.0;
         }
 
-        Some(Arc::new(ConeFrustum::new(
+        Ok(Arc::new(ConeFrustum::new(
             center_vec,
             height,
             radius1,
@@ -479,29 +372,29 @@ impl Interpreter {
         &self,
         arguments: &[CallArgumentWithPosition],
         child: Option<Arc<dyn Node>>,
-    ) -> Option<Arc<dyn Node>> {
+    ) -> Result<Arc<dyn Node>> {
         let child = child.unwrap_or_else(|| todo!("should have children"));
 
         let mut offset = Vector3::new(0.0, 0.0, 0.0);
 
-        let arguments = self.convert_args(&["v"], arguments);
+        let arguments = self.convert_args(&["v"], arguments)?;
 
         if let Some(arg) = arguments.get("v") {
             offset = arg.to_vector3()?;
         }
 
         let translate = Translate::new(child, offset);
-        Some(Arc::new(translate))
+        Ok(Arc::new(translate))
     }
 
     fn create_rotate(
         &self,
         arguments: &[CallArgumentWithPosition],
         child: Option<Arc<dyn Node>>,
-    ) -> Option<Arc<dyn Node>> {
+    ) -> Result<Arc<dyn Node>> {
         let child = child.unwrap_or_else(|| todo!("should have children"));
 
-        let arguments = self.convert_args(&["a", "v"], arguments);
+        let arguments = self.convert_args(&["a", "v"], arguments)?;
 
         if let Some(arg) = arguments.get("a") {
             match arg {
@@ -518,7 +411,7 @@ impl Interpreter {
                     if a.z != 0.0 {
                         result = Arc::new(Rotate::rotate_z(result, a.z));
                     }
-                    return Some(result);
+                    return Ok(result);
                 }
                 _ => todo!("add error"),
             }
@@ -535,14 +428,14 @@ impl Interpreter {
         &self,
         arguments: &[CallArgumentWithPosition],
         child: Option<Arc<dyn Node>>,
-    ) -> Option<Arc<dyn Node>> {
+    ) -> Result<Arc<dyn Node>> {
         let child = child.unwrap_or_else(|| todo!("should have children"));
 
-        let arguments = self.convert_args(&["v"], arguments);
+        let arguments = self.convert_args(&["v"], arguments)?;
 
         if let Some(arg) = arguments.get("v") {
             let v = arg.to_vector3()?;
-            return Some(Arc::new(Scale::new(child, v.x, v.y, v.z)));
+            return Ok(Arc::new(Scale::new(child, v.x, v.y, v.z)));
         }
 
         todo!("missing arg");
@@ -552,7 +445,7 @@ impl Interpreter {
         &mut self,
         arguments: &[CallArgumentWithPosition],
         child: Option<Arc<dyn Node>>,
-    ) -> Option<Arc<dyn Node>> {
+    ) -> Result<()> {
         if child.is_some() {
             todo!("should not have children");
         }
@@ -573,7 +466,7 @@ impl Interpreter {
                 "aspect_ratio",
             ],
             arguments,
-        );
+        )?;
 
         let mut camera_builder = CameraBuilder::new();
 
@@ -640,14 +533,14 @@ impl Interpreter {
 
         self.camera = Some(Arc::new(camera_builder.build()));
 
-        None
+        Ok(())
     }
 
     fn evaluate_echo(
         &mut self,
         arguments: &[CallArgumentWithPosition],
         child: Option<Arc<dyn Node>>,
-    ) -> Option<Arc<dyn Node>> {
+    ) -> Result<()> {
         if child.is_some() {
             todo!("should not have children");
         }
@@ -658,25 +551,25 @@ impl Interpreter {
                 output += ", ";
             }
             match &arg.item {
-                CallArgument::Expr { expr } => output += &self.expr_to_string(expr),
+                CallArgument::Expr { expr } => output += &self.expr_to_string(expr)?,
                 CallArgument::NamedArgument { identifier, expr } => {
-                    output += &format!("{identifier} = {}", self.expr_to_string(expr));
+                    output += &format!("{identifier} = {}", self.expr_to_string(expr)?);
                 }
             };
         }
 
         self.output += &format!("{output}\n");
 
-        None
+        Ok(())
     }
 
-    fn expr_to_string(&self, expr: &ExprWithPosition) -> String {
-        let value = self.expr_to_value(expr);
-        format!("{value}")
+    fn expr_to_string(&self, expr: &ExprWithPosition) -> Result<String> {
+        let value = self.expr_to_value(expr)?;
+        Ok(format!("{value}"))
     }
 
-    fn create_color(&self, arguments: &[CallArgumentWithPosition]) -> Option<Arc<dyn Material>> {
-        let arguments = self.convert_args(&["c", "alpha"], arguments);
+    fn create_color(&self, arguments: &[CallArgumentWithPosition]) -> Result<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["c", "alpha"], arguments)?;
 
         if let Some(arg) = arguments.get("alpha") {
             todo!("handle alpha {arg:?}");
@@ -684,7 +577,7 @@ impl Interpreter {
 
         if let Some(arg) = arguments.get("c") {
             let color = arg.to_color()?;
-            return Some(Arc::new(Lambertian::new_from_color(color)));
+            return Ok(Arc::new(Lambertian::new_from_color(color)));
         }
 
         todo!("missing arg");
@@ -693,15 +586,15 @@ impl Interpreter {
     fn create_lambertian(
         &self,
         arguments: &[CallArgumentWithPosition],
-    ) -> Option<Arc<dyn Material>> {
-        let arguments = self.convert_args(&["c", "t"], arguments);
+    ) -> Result<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["c", "t"], arguments)?;
 
         if let Some(arg) = arguments.get("c") {
             let color = arg.to_color()?;
-            Some(Arc::new(Lambertian::new_from_color(color)))
+            Ok(Arc::new(Lambertian::new_from_color(color)))
         } else if let Some(arg) = arguments.get("t") {
             match arg {
-                Value::Texture(texture) => Some(Arc::new(Lambertian::new(texture.clone()))),
+                Value::Texture(texture) => Ok(Arc::new(Lambertian::new(texture.clone()))),
                 _ => todo!("unhandled {arg:?}"),
             }
         } else {
@@ -712,19 +605,19 @@ impl Interpreter {
     fn create_dielectric(
         &self,
         arguments: &[CallArgumentWithPosition],
-    ) -> Option<Arc<dyn Material>> {
-        let arguments = self.convert_args(&["n"], arguments);
+    ) -> Result<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["n"], arguments)?;
 
         if let Some(arg) = arguments.get("n") {
             let refraction_index = arg.to_number()?;
-            Some(Arc::new(Dielectric::new(refraction_index)))
+            Ok(Arc::new(Dielectric::new(refraction_index)))
         } else {
             todo!("missing arg");
         }
     }
 
-    fn create_metal(&self, arguments: &[CallArgumentWithPosition]) -> Option<Arc<dyn Material>> {
-        let arguments = self.convert_args(&["c", "fuzz"], arguments);
+    fn create_metal(&self, arguments: &[CallArgumentWithPosition]) -> Result<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["c", "fuzz"], arguments)?;
 
         let mut color = Color::WHITE;
         let mut fuzz = 0.2;
@@ -737,14 +630,14 @@ impl Interpreter {
             fuzz = arg.to_number()?;
         }
 
-        Some(Arc::new(Metal::new(color, fuzz)))
+        Ok(Arc::new(Metal::new(color, fuzz)))
     }
 
     fn process_for_loop(
         &mut self,
         arguments: &[CallArgumentWithPosition],
         child_statement: &ChildStatementWithPosition,
-    ) -> Option<Arc<dyn Node>> {
+    ) -> Result<()> {
         if arguments.len() != 1 {
             todo!("for loop should only have one argument");
         }
@@ -755,7 +648,7 @@ impl Interpreter {
                 todo!("for loop should have named argument {expr:?}")
             }
             CallArgument::NamedArgument { identifier, expr } => {
-                (identifier, self.expr_to_value(expr))
+                (identifier, self.expr_to_value(expr)?)
             }
         };
 
@@ -789,35 +682,39 @@ impl Interpreter {
             }
 
             self.variables.insert(name.to_owned(), Value::Number(i));
-            self.process_child_statement(child_statement);
+            self.process_child_statement(child_statement)?;
 
             i += increment;
         }
 
-        None
+        Ok(())
     }
 
-    fn expr_to_value(&self, expr: &ExprWithPosition) -> Value {
-        match &expr.item {
+    fn expr_to_value(&self, expr: &ExprWithPosition) -> Result<Value> {
+        Ok(match &expr.item {
             Expr::Number(number) => Value::Number(*number),
-            Expr::Vector { items } => Value::Vector {
-                items: items.iter().map(|v| self.expr_to_value(v)).collect(),
-            },
+            Expr::Vector { items } => {
+                let items: Result<Vec<Value>> =
+                    items.iter().map(|v| self.expr_to_value(v)).collect();
+                Value::Vector { items: items? }
+            }
             Expr::True => Value::True,
             Expr::False => Value::False,
             Expr::Binary { operator, lhs, rhs } => {
-                self.evaluate_binary_expression(operator, lhs, rhs)
+                self.evaluate_binary_expression(operator, lhs, rhs)?
             }
-            Expr::Unary { operator, rhs } => self.evaluate_unary_expression(operator, rhs),
-            Expr::FunctionCall { name, arguments } => self.evaluate_function_call(name, arguments),
+            Expr::Unary { operator, rhs } => self.evaluate_unary_expression(operator, rhs)?,
+            Expr::FunctionCall { name, arguments } => {
+                self.evaluate_function_call(name, arguments)?
+            }
             Expr::Range {
                 start,
                 end,
                 increment,
-            } => self.evaluate_range_expression(start, end, increment),
-            Expr::Identifier { name } => self.evaluate_identifier(name),
-            Expr::Index { lhs, index } => todo!("index {lhs:?} {index:?}"),
-        }
+            } => self.evaluate_range_expression(start, end, increment)?,
+            Expr::Identifier { name } => self.evaluate_identifier(name)?,
+            Expr::Index { lhs, index } => self.evaluate_index(lhs, index)?,
+        })
     }
 
     fn evaluate_binary_expression(
@@ -825,9 +722,9 @@ impl Interpreter {
         operator: &BinaryOperator,
         lhs: &ExprWithPosition,
         rhs: &ExprWithPosition,
-    ) -> Value {
-        let left = self.expr_to_value(lhs);
-        let right = self.expr_to_value(rhs);
+    ) -> Result<Value> {
+        let left = self.expr_to_value(lhs)?;
+        let right = self.expr_to_value(rhs)?;
 
         fn eval_number_number(operator: &BinaryOperator, left: f64, right: f64) -> Value {
             match operator {
@@ -859,7 +756,7 @@ impl Interpreter {
             }
         }
 
-        match left {
+        Ok(match left {
             Value::Number(left) => match right {
                 Value::Number(right) => eval_number_number(operator, left, right),
                 Value::Vector { items } => todo!("{left:?} {operator:?} {items:?}"),
@@ -892,15 +789,19 @@ impl Interpreter {
                 end,
                 increment,
             } => todo!("range: {start:?}, {end:?}, {increment:?}"),
-        }
+        })
     }
 
-    fn evaluate_unary_expression(&self, operator: &UnaryOperator, rhs: &ExprWithPosition) -> Value {
-        let right = self.expr_to_value(rhs);
+    fn evaluate_unary_expression(
+        &self,
+        operator: &UnaryOperator,
+        rhs: &ExprWithPosition,
+    ) -> Result<Value> {
+        let right = self.expr_to_value(rhs)?;
 
         if let Value::Number(right) = right {
             match operator {
-                UnaryOperator::Minus => Value::Number(-right),
+                UnaryOperator::Minus => Ok(Value::Number(-right)),
             }
         } else {
             todo!("{operator:?} {right:?}");
@@ -910,33 +811,29 @@ impl Interpreter {
     fn process_child_statement(
         &mut self,
         child_statement: &ChildStatementWithPosition,
-    ) -> Option<Arc<dyn Node>> {
-        match &child_statement.item {
+    ) -> Result<Option<Arc<dyn Node>>> {
+        Ok(match &child_statement.item {
             ChildStatement::Empty => {
                 self.stack.clear();
                 None
             }
             ChildStatement::ModuleInstantiation {
                 module_instantiation,
-            } => self.process_module_instantiation(module_instantiation),
+            } => self.process_module_instantiation(module_instantiation)?,
             ChildStatement::MultipleStatements { statements } => {
                 let mut nodes = vec![];
                 for statement in statements {
-                    if let Some(node) = self.process_statement(statement.as_ref()) {
+                    if let Some(node) = self.process_statement(statement.as_ref())? {
                         nodes.push(node);
                     }
                 }
                 Some(Arc::new(Group::from_list(&nodes)))
             }
-        }
+        })
     }
 
-    fn process_assignment(
-        &mut self,
-        identifier: &str,
-        expr: &ExprWithPosition,
-    ) -> Option<Arc<dyn Node>> {
-        let value = self.expr_to_value(expr);
+    fn process_assignment(&mut self, identifier: &str, expr: &ExprWithPosition) -> Result<()> {
+        let value = self.expr_to_value(expr)?;
 
         if identifier.starts_with("$") {
             match value {
@@ -946,58 +843,115 @@ impl Interpreter {
         }
 
         self.variables.insert(identifier.to_owned(), value);
-        None
+        Ok(())
     }
 
-    fn process_include(&self, filename: &str) -> Option<Arc<dyn Node>> {
+    fn process_include(&self, filename: &str) -> Result<Option<Arc<dyn Node>>> {
         if filename.ends_with("ray_trace.scad") {
-            return None;
+            return Ok(None);
         }
 
         todo!("include {filename}")
     }
 
-    fn evaluate_function_call(&self, name: &str, arguments: &[CallArgumentWithPosition]) -> Value {
+    fn evaluate_function_call(
+        &self,
+        name: &str,
+        arguments: &[CallArgumentWithPosition],
+    ) -> Result<Value> {
         if name == "checker" {
             self.evaluate_checker_function_call(arguments)
+        } else if name == "rands" {
+            self.evaluate_rands_function_call(arguments)
         } else {
             todo!("evaluate_function_call {name} {arguments:?}")
         }
     }
 
-    fn evaluate_checker_function_call(&self, arguments: &[CallArgumentWithPosition]) -> Value {
-        let arguments = self.convert_args(&["scale", "even", "odd"], arguments);
+    fn evaluate_rands_function_call(
+        &self,
+        arguments: &[CallArgumentWithPosition],
+    ) -> Result<Value> {
+        let arguments = self.convert_args(
+            &["min_value", "max_value", "value_count", "seed_value"],
+            arguments,
+        )?;
+
+        let mut min_value = if let Some(arg) = arguments.get("min_value") {
+            arg.to_number()?
+        } else {
+            todo!("min_value required");
+        };
+
+        let mut max_value = if let Some(arg) = arguments.get("max_value") {
+            arg.to_number()?
+        } else {
+            todo!("max_value required");
+        };
+
+        let value_count = if let Some(arg) = arguments.get("value_count") {
+            arg.to_u64()?
+        } else {
+            todo!("value_count required");
+        };
+
+        let seed_value = if let Some(arg) = arguments.get("seed_value") {
+            Some(arg.to_number()?)
+        } else {
+            None
+        };
+
+        if max_value < min_value {
+            swap(&mut min_value, &mut max_value);
+        }
+
+        let mut items = vec![];
+        for _ in 0..value_count {
+            let rand_value = if let Some(seed_value) = seed_value {
+                todo!("rands with seed {seed_value}");
+            } else {
+                self.rng.borrow_mut().next_u64()
+            };
+
+            let normalized = rand_value as f64 / u64::MAX as f64;
+            let v = min_value + normalized * (max_value - min_value);
+            items.push(Value::Number(v));
+        }
+        Ok(Value::Vector { items })
+    }
+
+    fn evaluate_checker_function_call(
+        &self,
+        arguments: &[CallArgumentWithPosition],
+    ) -> Result<Value> {
+        let arguments = self.convert_args(&["scale", "even", "odd"], arguments)?;
 
         let mut scale: f64 = 0.0;
         let mut even: Arc<dyn Texture> = Arc::new(SolidColor::new(Color::new(0.0, 0.0, 0.0)));
         let mut odd: Arc<dyn Texture> = Arc::new(SolidColor::new(Color::new(1.0, 1.0, 1.0)));
 
-        if let Some(arg) = arguments.get("scale")
-            && let Some(value) = arg.to_number()
-        {
-            scale = value;
+        if let Some(arg) = arguments.get("scale") {
+            scale = arg.to_number()?;
         }
 
-        if let Some(arg) = arguments.get("even")
-            && let Some(value) = arg.to_color()
-        {
-            even = Arc::new(SolidColor::new(value));
+        if let Some(arg) = arguments.get("even") {
+            even = Arc::new(SolidColor::new(arg.to_color()?));
         }
 
-        if let Some(arg) = arguments.get("odd")
-            && let Some(value) = arg.to_color()
-        {
-            odd = Arc::new(SolidColor::new(value));
+        if let Some(arg) = arguments.get("odd") {
+            odd = Arc::new(SolidColor::new(arg.to_color()?));
         }
 
-        Value::Texture(Arc::new(CheckerTexture::new(scale, even, odd)))
+        Ok(Value::Texture(Arc::new(CheckerTexture::new(
+            scale, even, odd,
+        ))))
     }
 
     fn convert_args(
         &self,
         arg_names: &[&str],
         arguments: &[CallArgumentWithPosition],
-    ) -> HashMap<String, Value> {
+    ) -> Result<HashMap<String, Value>> {
         let mut results: HashMap<String, Value> = HashMap::new();
 
         let mut found_named_arg = false;
@@ -1008,7 +962,7 @@ impl Interpreter {
                         todo!("add error, no positional args after named arg {pos}");
                     }
                     if let Some(arg_name) = arg_names.get(pos) {
-                        let value = self.expr_to_value(expr);
+                        let value = self.expr_to_value(expr)?;
                         results.insert(arg_name.to_string(), value);
                     } else {
                         todo!("arg past end of list {pos}");
@@ -1017,7 +971,7 @@ impl Interpreter {
                 CallArgument::NamedArgument { identifier, expr } => {
                     found_named_arg = true;
                     if arg_names.contains(&identifier.as_str()) {
-                        let value = self.expr_to_value(expr);
+                        let value = self.expr_to_value(expr)?;
                         results.insert(identifier.to_string(), value);
                     } else {
                         todo!("unknown arg name: {identifier}");
@@ -1026,7 +980,7 @@ impl Interpreter {
             }
         }
 
-        results
+        Ok(results)
     }
 
     fn evaluate_range_expression(
@@ -1034,22 +988,54 @@ impl Interpreter {
         start: &ExprWithPosition,
         end: &ExprWithPosition,
         increment: &Option<Box<ExprWithPosition>>,
-    ) -> Value {
-        let start = Box::new(self.expr_to_value(start));
-        let end = Box::new(self.expr_to_value(end));
-        let increment = increment
-            .as_ref()
-            .map(|v| Box::new(self.expr_to_value(v.as_ref())));
+    ) -> Result<Value> {
+        let start = Box::new(self.expr_to_value(start)?);
+        let end = Box::new(self.expr_to_value(end)?);
+        let increment = if let Some(increment) = increment {
+            Some(Box::new(self.expr_to_value(increment)?))
+        } else {
+            None
+        };
 
-        Value::Range {
+        Ok(Value::Range {
             start,
             end,
             increment,
+        })
+    }
+
+    fn evaluate_identifier(&self, name: &str) -> Result<Value> {
+        if let Some(v) = self.variables.get(name) {
+            Ok(v.clone())
+        } else {
+            todo!("missing variable {name}");
         }
     }
 
-    fn evaluate_identifier(&self, name: &str) -> Value {
-        todo!("evaluate_identifier {name}");
+    fn evaluate_index(&self, lhs: &ExprWithPosition, index: &ExprWithPosition) -> Result<Value> {
+        let lhs = self.expr_to_value(lhs)?;
+        let index = self.expr_to_value(index)?.to_u64()? as usize;
+
+        let value: Value = match &lhs {
+            Value::Number(index) => todo!("evaluate_index {lhs:?} {index:?}"),
+            Value::Vector { items } => {
+                if let Some(item) = items.get(index) {
+                    item.clone()
+                } else {
+                    todo!("index out of range");
+                }
+            }
+            Value::True => todo!("evaluate_index {lhs:?} true"),
+            Value::False => todo!("evaluate_index {lhs:?} false"),
+            Value::Texture(texture) => todo!("evaluate_index {lhs:?} {texture:?}"),
+            Value::Range {
+                start,
+                end,
+                increment,
+            } => todo!("evaluate_index {lhs:?} {start:?} {end:?} {increment:?}"),
+        };
+
+        Ok(value)
     }
 }
 

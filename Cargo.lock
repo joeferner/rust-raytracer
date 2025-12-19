@@ -793,6 +793,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_mt"
+version = "5.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9375873db1061df25ed185eb584cd8839196db7a43803daa0612c5ae53be5b5"
+dependencies = [
+ "rand_core",
+]
+
+[[package]]
 name = "rav1e"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -899,6 +908,7 @@ dependencies = [
 name = "rust-raytracer-openscad"
 version = "0.1.0"
 dependencies = [
+ "rand_mt",
  "rust-raytracer-core",
 ]
 
