@@ -591,42 +591,116 @@ impl Parser {
         todo!();
     }
 
-    /// <expr> ::=
-    ///   "true"
-    ///   "false"
-    ///   "undef"
-    ///   <identifier>
-    ///   <expr> '.' <identifier>
-    ///   <string>
-    ///   <number>
-    ///   "let" <call_arguments> <expr>
-    ///   '[' <expr> ':' <expr> ']'
-    ///   '[' <expr> ':' <expr> ':' <expr> ']'
-    ///   '[' <list_comprehension_elements> ']'
-    ///   '[' <optional_commas> ']'
-    ///   '[' (<expr> ',' <optional_commas>)* ']'
-    ///   <expr> '*' <expr>
-    ///   <expr> '/' <expr>
-    ///   <expr> '%' <expr>
-    ///   <expr> '+' <expr>
-    ///   <expr> '-' <expr>
-    ///   <expr> '<' <expr>
-    ///   <expr> "<=" <expr>
-    ///   <expr> "==" <expr>
-    ///   <expr> "!=" <expr>
-    ///   <expr> ">=" <expr>
-    ///   <expr> '>' <expr>
-    ///   <expr> "&&" <expr>
-    ///   <expr> "||" <expr>
-    ///   '+' <expr>
-    ///   '-' <expr>
-    ///   '!' <expr>
-    ///   '(' <expr> ')'
-    ///   <expr> '?' <expr> ':' <expr>
-    ///   <expr> '[' <expr> ']'
-    ///   <identifier> <call_arguments>
+    /// <expr> '.' <identifier>
+    /// <expr> '?' <expr> ':' <expr>
+    /// <expr> '[' <expr> ']'
+    /// <binary expression>
     fn parse_expr(&mut self) -> Option<ExprWithPosition> {
+        self.parse_binary_expr(0)
+    }
+
+    /// <expr> '*' <expr>
+    /// <expr> '/' <expr>
+    /// <expr> '%' <expr>
+    /// <expr> '+' <expr>
+    /// <expr> '-' <expr>
+    /// <expr> '<' <expr>
+    /// <expr> "<=" <expr>
+    /// <expr> "==" <expr>
+    /// <expr> "!=" <expr>
+    /// <expr> ">=" <expr>
+    /// <expr> '>' <expr>
+    /// <expr> "&&" <expr>
+    /// <expr> "||" <expr>
+    /// <unary expression>
+    fn parse_binary_expr(&mut self, min_precedence: u8) -> Option<ExprWithPosition> {
         let start = self.current_token_start();
+
+        // TODO <expr> '%' <expr>
+        // TODO <expr> '<' <expr>
+        // TODO <expr> "<=" <expr>
+        // TODO <expr> "==" <expr>
+        // TODO <expr> "!=" <expr>
+        // TODO <expr> ">=" <expr>
+        // TODO <expr> '>' <expr>
+        // TODO <expr> "&&" <expr>
+        // TODO <expr> "||" <expr>
+
+        // <expr> '+' <expr>
+        // <expr> '-' <expr>
+        // <expr> '*' <expr>
+        // <expr> '/' <expr>
+
+        let mut lhs = self.parse_unary_expr()?;
+
+        while let Some(operator) = self.current_to_binary_operator() {
+            if operator.precedence() < min_precedence {
+                break; // Stop if operator has lower precedence
+            }
+
+            self.advance(); // consume operator
+
+            if let Some(rhs) = self.parse_binary_expr(operator.precedence() + 1) {
+                lhs = ExprWithPosition::new(
+                    Expr::Binary {
+                        operator,
+                        lhs: Box::new(lhs),
+                        rhs: Box::new(rhs),
+                    },
+                    start,
+                    self.current_token_start(),
+                );
+            } else {
+                return None;
+            }
+        }
+
+        // TODO '(' <expr> ')'
+        // TODO <expr> '?' <expr> ':' <expr>
+
+        // <expr> '[' <expr> ']'
+        if self.current_matches(Token::LeftBracket) {
+            self.expect(Token::LeftBracket);
+            if let Some(index) = self.parse_expr() {
+                self.expect(Token::RightBracket);
+                return Some(ExprWithPosition::new(
+                    Expr::Index {
+                        lhs: Box::new(lhs),
+                        index: Box::new(index),
+                    },
+                    start,
+                    self.current_token_start(),
+                ));
+            } else {
+                return None;
+            }
+        }
+
+        Some(lhs)
+    }
+
+    /// "true"
+    /// "false"
+    /// "undef"
+    /// <identifier>
+    /// <string>
+    /// <number>
+    /// "let" <call_arguments> <expr>
+    /// '[' <expr> ':' <expr> ']'
+    /// '[' <expr> ':' <expr> ':' <expr> ']'
+    /// '[' <list_comprehension_elements> ']'
+    /// '[' <optional_commas> ']'
+    /// '[' (<expr> ',' <optional_commas>)* ']'
+    /// '+' <expr>
+    /// '-' <expr>
+    /// '!' <expr>
+    /// '(' <expr> ')'
+    /// <identifier> <call_arguments>
+    fn parse_unary_expr(&mut self) -> Option<ExprWithPosition> {
+        let start = self.current_token_start();
+
+        // TODO '+' <expr>
+        // TODO '!' <expr>
 
         let token = if let Some(token) = self.current() {
             token
@@ -770,61 +844,6 @@ impl Parser {
                 todo!("{:?}", other);
             }
         };
-
-        // TODO '+' <expr>
-        // TODO '!' <expr>
-
-        // TODO <expr> '%' <expr>
-        // TODO <expr> '<' <expr>
-        // TODO <expr> "<=" <expr>
-        // TODO <expr> "==" <expr>
-        // TODO <expr> "!=" <expr>
-        // TODO <expr> ">=" <expr>
-        // TODO <expr> '>' <expr>
-        // TODO <expr> "&&" <expr>
-        // TODO <expr> "||" <expr>
-
-        // <expr> '+' <expr>
-        // <expr> '-' <expr>
-        // <expr> '*' <expr>
-        // <expr> '/' <expr>
-        if let Some(operator) = self.current_to_binary_operator() {
-            self.advance();
-            if let Some(rhs) = self.parse_expr() {
-                return Some(ExprWithPosition::new(
-                    Expr::Binary {
-                        operator,
-                        lhs: Box::new(lhs),
-                        rhs: Box::new(rhs),
-                    },
-                    start,
-                    self.current_token_start(),
-                ));
-            } else {
-                return None;
-            }
-        }
-
-        // TODO '(' <expr> ')'
-        // TODO <expr> '?' <expr> ':' <expr>
-
-        // <expr> '[' <expr> ']'
-        if self.current_matches(Token::LeftBracket) {
-            self.expect(Token::LeftBracket);
-            if let Some(index) = self.parse_expr() {
-                self.expect(Token::RightBracket);
-                return Some(ExprWithPosition::new(
-                    Expr::Index {
-                        lhs: Box::new(lhs),
-                        index: Box::new(index),
-                    },
-                    start,
-                    self.current_token_start(),
-                ));
-            } else {
-                return None;
-            }
-        }
 
         Some(lhs)
     }
