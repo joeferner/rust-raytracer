@@ -6,8 +6,7 @@ pub mod tokenizer;
 use std::fs;
 
 use crate::{
-    converter::{ConvertResults, openscad_convert},
-    interpreter::openscad_interpret,
+    interpreter::{InterpreterResults, openscad_interpret},
     parser::openscad_parse,
     tokenizer::openscad_tokenize,
 };
@@ -30,7 +29,7 @@ pub enum OpenscadError {
     FileReadError(String, String),
 }
 
-pub fn openscad_file_to_scene_data(filename: &str) -> Result<ConvertResults, OpenscadError> {
+pub fn openscad_file_to_scene_data(filename: &str) -> Result<InterpreterResults, OpenscadError> {
     match fs::read_to_string(filename) {
         Ok(contents) => openscad_string_to_scene_data(&contents),
         Err(err) => Err(OpenscadError::FileReadError(
@@ -40,7 +39,7 @@ pub fn openscad_file_to_scene_data(filename: &str) -> Result<ConvertResults, Ope
     }
 }
 
-pub fn openscad_string_to_scene_data(input: &str) -> Result<ConvertResults, OpenscadError> {
+pub fn openscad_string_to_scene_data(input: &str) -> Result<InterpreterResults, OpenscadError> {
     let tokens = openscad_tokenize(input);
     let parse_results = openscad_parse(tokens);
 
@@ -53,7 +52,5 @@ pub fn openscad_string_to_scene_data(input: &str) -> Result<ConvertResults, Open
         todo!("{:?}", interpret_results.errors);
     }
 
-    let results = openscad_convert(interpret_results.trees);
-
-    Ok(results)
+    Ok(interpret_results)
 }

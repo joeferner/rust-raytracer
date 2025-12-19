@@ -8,6 +8,7 @@ use crate::{
     texture::Texture,
 };
 
+#[derive(Debug)]
 pub struct ConstantMedium {
     boundary: Arc<dyn Node>,
     neg_inv_density: f64,

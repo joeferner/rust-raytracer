@@ -1,15 +1,19 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
+use std::{collections::HashMap, fmt::Display, rc::Rc, sync::Arc};
 
 use rust_raytracer_core::{
-    Color, Vector3,
+    Camera, CameraBuilder, Color, Node, SceneData, Vector3,
+    material::{Dielectric, Lambertian, Material, Metal},
+    object::{
+        BoundingVolumeHierarchy, BoxPrimitive, ConeFrustum, Group, Rotate, Scale, Sphere, Translate,
+    },
     texture::{CheckerTexture, SolidColor, Texture},
 };
 
 use crate::parser::{
     BinaryOperator, CallArgument, CallArgumentWithPosition, ChildStatement,
     ChildStatementWithPosition, Expr, ExprWithPosition, ModuleId, ModuleInstantiation,
-    ModuleInstantiationWithPosition, SingleModuleInstantiation,
-    SingleModuleInstantiationWithPosition, Statement, StatementWithPosition, UnaryOperator,
+    ModuleInstantiationWithPosition, SingleModuleInstantiation, Statement, StatementWithPosition,
+    UnaryOperator,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -44,12 +48,6 @@ pub struct ModuleInstance {
 }
 
 #[derive(Debug)]
-pub struct ModuleInstanceTree {
-    pub instance: ModuleInstance,
-    pub children: RefCell<Vec<Rc<ModuleInstanceTree>>>,
-}
-
-#[derive(Debug)]
 pub enum ModuleArgument {
     Positional(Value),
     NamedArgument { name: String, value: Value },
@@ -68,9 +66,6 @@ pub enum Value {
         start: Box<Value>,
         end: Box<Value>,
         increment: Option<Box<Value>>,
-    },
-    Variable {
-        name: String,
     },
 }
 
@@ -160,6 +155,34 @@ impl Value {
     }
 }
 
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Number(number) => write!(f, "{number}"),
+            Value::Vector { items } => {
+                let mut output = String::new();
+                output += "[";
+                for (i, item) in items.iter().enumerate() {
+                    if i > 0 {
+                        output += ", ";
+                    }
+                    output += &item.to_string();
+                }
+                output += "]";
+                write!(f, "{output}")
+            }
+            Value::True => write!(f, "true"),
+            Value::False => write!(f, "false"),
+            Value::Texture(texture) => todo!("texture {texture:?}"),
+            Value::Range {
+                start,
+                end,
+                increment,
+            } => todo!("range: {start:?} {end:?} {increment:?}"),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct InterpreterError {
     pub message: String,
@@ -169,15 +192,21 @@ pub struct InterpreterError {
 
 #[derive(Debug)]
 pub struct InterpreterResults {
-    pub trees: Vec<Rc<ModuleInstanceTree>>,
+    pub scene_data: SceneData,
+    pub output: String,
     pub errors: Vec<InterpreterError>,
 }
 
 struct Interpreter {
-    modules: HashMap<String, Module>,
-    stack: Vec<Rc<ModuleInstanceTree>>,
-    results: Vec<Rc<ModuleInstanceTree>>,
+    _modules: HashMap<String, Module>,
+    stack: Vec<Rc<ModuleInstance>>,
+
+    camera: Option<Arc<Camera>>,
+    world: Vec<Arc<dyn Node>>,
+    lights: Vec<Arc<dyn Node>>,
+    material_stack: Vec<Arc<dyn Material>>,
     variables: HashMap<String, Value>,
+    output: String,
 }
 
 impl Interpreter {
@@ -194,10 +223,14 @@ impl Interpreter {
         };
 
         Self {
-            modules: HashMap::new(),
+            _modules: HashMap::new(),
             stack: vec![],
-            results: vec![],
             variables,
+            camera: None,
+            world: vec![],
+            lights: vec![],
+            material_stack: vec![],
+            output: String::new(),
         }
     }
 
@@ -205,18 +238,46 @@ impl Interpreter {
         for statement in statements {
             self.process_statement(&statement);
         }
+
+        let camera = if let Some(camera) = self.camera {
+            camera
+        } else {
+            let mut camera_builder = CameraBuilder::new();
+            camera_builder.aspect_ratio = 1.0;
+            camera_builder.image_width = 600;
+            camera_builder.samples_per_pixel = 10;
+            camera_builder.max_depth = 50;
+            camera_builder.defocus_angle = 0.0;
+            camera_builder.background = Color::new(0.7, 0.8, 1.0);
+            camera_builder.look_at = Vector3::new(0.0, 0.0, 0.0);
+            camera_builder.look_from = Vector3::new(-50.0, 70.0, -50.0);
+            camera_builder.up = Vector3::new(0.0, 1.0, 0.0);
+            Arc::new(camera_builder.build())
+        };
+
+        let scene_data = SceneData {
+            camera,
+            world: Arc::new(BoundingVolumeHierarchy::new(&self.world)),
+            lights: if self.lights.is_empty() {
+                None
+            } else {
+                Some(Arc::new(BoundingVolumeHierarchy::new(&self.lights)))
+            },
+        };
+
         InterpreterResults {
-            trees: self.results,
+            scene_data,
+            output: self.output,
             errors: vec![], // TODO
         }
     }
 
-    fn process_statement(&mut self, statement: &StatementWithPosition) {
+    fn process_statement(&mut self, statement: &StatementWithPosition) -> Option<Arc<dyn Node>> {
         match &statement.item {
-            Statement::Empty => (),
+            Statement::Empty => None,
             Statement::ModuleInstantiation {
                 module_instantiation,
-            } => self.process_module_instantiation(&module_instantiation),
+            } => self.process_module_instantiation(module_instantiation),
             Statement::Assignment { identifier, expr } => self.process_assignment(identifier, expr),
             Statement::Include { filename } => self.process_include(filename),
         }
@@ -225,61 +286,515 @@ impl Interpreter {
     fn process_module_instantiation(
         &mut self,
         module_instantiation: &ModuleInstantiationWithPosition,
-    ) {
+    ) -> Option<Arc<dyn Node>> {
         match &module_instantiation.item {
             ModuleInstantiation::SingleModuleInstantiation {
                 single_module_instantiation,
                 child_statement,
-            } => {
-                self.process_single_module_instantiation(single_module_instantiation);
-                self.process_child_statement(child_statement)
-            }
-        }
-    }
-
-    fn process_single_module_instantiation(
-        &mut self,
-        single_module_instantiation: &SingleModuleInstantiationWithPosition,
-    ) {
-        match &single_module_instantiation.item {
-            SingleModuleInstantiation::Module {
-                module_id,
-                call_arguments,
-            } => match &module_id.item {
-                ModuleId::Identifier(identifier) => {
-                    if let Some(module) = self.modules.get(identifier) {
-                        self.append_instance(ModuleInstance {
-                            module: *module,
-                            arguments: self.process_call_arguments(call_arguments),
-                        });
-                    } else {
-                        todo!("handle unknown module \"{identifier}\"");
+            } => match &single_module_instantiation.item {
+                SingleModuleInstantiation::Module {
+                    module_id,
+                    call_arguments: arguments,
+                } => {
+                    if module_id.item == ModuleId::Color {
+                        let color = self.create_color(arguments)?;
+                        self.material_stack.push(color);
+                    } else if module_id.item == ModuleId::Lambertian {
+                        let color = self.create_lambertian(arguments)?;
+                        self.material_stack.push(color);
+                    } else if module_id.item == ModuleId::Dielectric {
+                        let color = self.create_dielectric(arguments)?;
+                        self.material_stack.push(color);
+                    } else if module_id.item == ModuleId::Metal {
+                        let color = self.create_metal(arguments)?;
+                        self.material_stack.push(color);
+                    } else if module_id.item == ModuleId::For {
+                        return self.process_for_loop(arguments, child_statement);
                     }
-                }
-                built_in => {
-                    let module = match built_in {
-                        ModuleId::For => Module::For,
-                        ModuleId::Echo => Module::Echo,
-                        ModuleId::Cube => Module::Cube,
-                        ModuleId::Sphere => Module::Sphere,
-                        ModuleId::Cylinder => Module::Cylinder,
-                        ModuleId::Translate => Module::Translate,
-                        ModuleId::Rotate => Module::Rotate,
-                        ModuleId::Scale => Module::Scale,
-                        ModuleId::Color => Module::Color,
-                        ModuleId::Lambertian => Module::Lambertian,
-                        ModuleId::Dielectric => Module::Dielectric,
-                        ModuleId::Metal => Module::Metal,
-                        ModuleId::Camera => Module::Camera,
-                        ModuleId::Identifier(_) => todo!("already handled"),
-                    };
-                    self.append_instance(ModuleInstance {
-                        module,
-                        arguments: self.process_call_arguments(call_arguments),
-                    });
+
+                    let child = self.process_child_statement(child_statement);
+
+                    match &module_id.item {
+                        ModuleId::Cube => self.create_cube(arguments, child),
+                        ModuleId::Sphere => self.create_sphere(arguments, child),
+                        ModuleId::Cylinder => self.create_cylinder(arguments, child),
+                        ModuleId::Translate => self.create_translate(arguments, child),
+                        ModuleId::Rotate => self.create_rotate(arguments, child),
+                        ModuleId::Scale => self.create_scale(arguments, child),
+                        ModuleId::Camera => self.create_camera(arguments, child),
+                        ModuleId::Color
+                        | ModuleId::Lambertian
+                        | ModuleId::Dielectric
+                        | ModuleId::Metal => {
+                            self.material_stack.pop();
+                            None
+                        }
+                        ModuleId::For => panic!("already handled"),
+                        ModuleId::Echo => self.evaluate_echo(arguments, child),
+                        ModuleId::Identifier(identifier) => {
+                            todo!("ModuleId::Identifier {identifier}")
+                        }
+                    }
                 }
             },
         }
+    }
+
+    fn current_material(&self) -> Arc<dyn Material> {
+        if let Some(mat) = self.material_stack.last() {
+            mat.clone()
+        } else {
+            Arc::new(Lambertian::new_from_color(Color::new(0.99, 0.85, 0.26)))
+        }
+    }
+
+    fn create_cube(
+        &self,
+        arguments: &[CallArgumentWithPosition],
+        child: Option<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        if child.is_some() {
+            todo!("should not have children");
+        }
+
+        let mut size = Vector3::new(0.0, 0.0, 0.0);
+        let mut center = false;
+
+        let arguments = self.convert_args(&["size", "center"], arguments);
+
+        if let Some(arg) = arguments.get("size") {
+            size = arg.to_vector3()?;
+        }
+
+        if let Some(arg) = arguments.get("center") {
+            center = arg.to_boolean()?;
+        }
+
+        let mut a = Vector3::new(0.0, 0.0, 0.0);
+        let mut b = size;
+        if center {
+            a = a - (size / 2.0);
+            b = b - (size / 2.0);
+        }
+
+        Some(Arc::new(BoxPrimitive::new(a, b, self.current_material())))
+    }
+
+    fn create_sphere(
+        &self,
+        arguments: &[CallArgumentWithPosition],
+        child: Option<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        if child.is_some() {
+            todo!("should not have children");
+        }
+
+        let mut radius = 1.0;
+
+        let arguments = self.convert_args(&["r", "d"], arguments);
+
+        if let Some(arg) = arguments.get("r") {
+            radius = arg.to_number()?;
+        } else if let Some(arg) = arguments.get("d") {
+            radius = arg.to_number()? / 2.0;
+        }
+
+        Some(Arc::new(Sphere::new(
+            Vector3::ZERO,
+            radius,
+            self.current_material(),
+        )))
+    }
+
+    fn create_cylinder(
+        &self,
+        arguments: &[CallArgumentWithPosition],
+        child: Option<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        if child.is_some() {
+            todo!("should not have children");
+        }
+
+        let mut height = 1.0;
+        let mut radius1 = 1.0;
+        let mut radius2 = 1.0;
+        let mut center = false;
+
+        let arguments = self.convert_args(
+            &["h", "r1", "r2", "center", "r", "d", "d1", "d2"],
+            arguments,
+        );
+
+        if let Some(arg) = arguments.get("h") {
+            height = arg.to_number()?;
+        }
+
+        if let Some(arg) = arguments.get("r1") {
+            radius1 = arg.to_number()?;
+        }
+
+        if let Some(arg) = arguments.get("r2") {
+            radius2 = arg.to_number()?;
+        }
+
+        if let Some(arg) = arguments.get("r") {
+            let r = arg.to_number()?;
+            radius1 = r;
+            radius2 = r;
+        }
+
+        if let Some(arg) = arguments.get("d1") {
+            radius1 = arg.to_number()? / 2.0;
+        }
+
+        if let Some(arg) = arguments.get("d2") {
+            radius2 = arg.to_number()? / 2.0;
+        }
+
+        if let Some(arg) = arguments.get("d") {
+            let r = arg.to_number()? / 2.0;
+            radius1 = r;
+            radius2 = r;
+        }
+
+        if let Some(arg) = arguments.get("center") {
+            center = arg.to_boolean()?;
+        }
+
+        let mut center_vec = Vector3::new(0.0, 0.0, 0.0);
+        if center {
+            center_vec.y -= height / 2.0;
+        }
+
+        Some(Arc::new(ConeFrustum::new(
+            center_vec,
+            height,
+            radius1,
+            radius2,
+            self.current_material(),
+        )))
+    }
+
+    fn create_translate(
+        &self,
+        arguments: &[CallArgumentWithPosition],
+        child: Option<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        let child = child.unwrap_or_else(|| todo!("should have children"));
+
+        let mut offset = Vector3::new(0.0, 0.0, 0.0);
+
+        let arguments = self.convert_args(&["v"], arguments);
+
+        if let Some(arg) = arguments.get("v") {
+            offset = arg.to_vector3()?;
+        }
+
+        let translate = Translate::new(child, offset);
+        Some(Arc::new(translate))
+    }
+
+    fn create_rotate(
+        &self,
+        arguments: &[CallArgumentWithPosition],
+        child: Option<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        let child = child.unwrap_or_else(|| todo!("should have children"));
+
+        let arguments = self.convert_args(&["a", "v"], arguments);
+
+        if let Some(arg) = arguments.get("a") {
+            match arg {
+                Value::Number(_deg_a) => todo!(),
+                Value::Vector { items } => {
+                    let a = Value::values_to_vector3(items)?;
+                    let mut result: Arc<dyn Node> = child;
+                    if a.x != 0.0 {
+                        result = Arc::new(Rotate::rotate_x(result, a.x));
+                    }
+                    if a.y != 0.0 {
+                        result = Arc::new(Rotate::rotate_y(result, a.y));
+                    }
+                    if a.z != 0.0 {
+                        result = Arc::new(Rotate::rotate_z(result, a.z));
+                    }
+                    return Some(result);
+                }
+                _ => todo!("add error"),
+            }
+        }
+
+        if let Some(_arg) = arguments.get("v") {
+            todo!();
+        }
+
+        todo!();
+    }
+
+    fn create_scale(
+        &self,
+        arguments: &[CallArgumentWithPosition],
+        child: Option<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        let child = child.unwrap_or_else(|| todo!("should have children"));
+
+        let arguments = self.convert_args(&["v"], arguments);
+
+        if let Some(arg) = arguments.get("v") {
+            let v = arg.to_vector3()?;
+            return Some(Arc::new(Scale::new(child, v.x, v.y, v.z)));
+        }
+
+        todo!("missing arg");
+    }
+
+    fn create_camera(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+        child: Option<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        if child.is_some() {
+            todo!("should not have children");
+        }
+
+        let arguments = self.convert_args(
+            &[
+                "image_width",
+                "image_height",
+                "samples_per_pixel",
+                "max_depth",
+                "vertical_fov",
+                "look_from",
+                "look_at",
+                "up",
+                "defocus_angle",
+                "focus_distance",
+                "background",
+                "aspect_ratio",
+            ],
+            arguments,
+        );
+
+        let mut camera_builder = CameraBuilder::new();
+
+        let mut seen_aspect_ratio = false;
+        let mut seen_image_width = false;
+
+        if let Some(arg) = arguments.get("aspect_ratio") {
+            camera_builder.aspect_ratio = arg.to_number()?;
+            seen_aspect_ratio = true;
+        }
+
+        if let Some(arg) = arguments.get("image_width") {
+            camera_builder.image_width = arg.to_number()? as u32;
+            seen_image_width = true;
+        }
+
+        if let Some(arg) = arguments.get("samples_per_pixel") {
+            camera_builder.samples_per_pixel = arg.to_number()? as u32;
+        }
+
+        if let Some(arg) = arguments.get("max_depth") {
+            camera_builder.max_depth = arg.to_number()? as u32;
+        }
+
+        if let Some(arg) = arguments.get("vertical_fov") {
+            camera_builder.vertical_fov = arg.to_number()?;
+        }
+
+        if let Some(arg) = arguments.get("defocus_angle") {
+            camera_builder.defocus_angle = arg.to_number()?;
+        }
+
+        if let Some(arg) = arguments.get("focus_distance") {
+            camera_builder.focus_distance = arg.to_number()?;
+        }
+
+        if let Some(arg) = arguments.get("image_height") {
+            let height = arg.to_number()?;
+            if seen_image_width {
+                camera_builder.aspect_ratio = camera_builder.image_width as f64 / height;
+            } else if seen_aspect_ratio {
+                camera_builder.image_width = (camera_builder.aspect_ratio * height) as u32;
+            } else {
+                camera_builder.aspect_ratio = 1.0;
+                camera_builder.image_width = height as u32;
+            }
+        }
+
+        if let Some(arg) = arguments.get("look_from") {
+            camera_builder.look_from = arg.to_vector3()?;
+        }
+
+        if let Some(arg) = arguments.get("look_at") {
+            camera_builder.look_at = arg.to_vector3()?;
+        }
+
+        if let Some(arg) = arguments.get("up") {
+            camera_builder.up = arg.to_vector3()?;
+        }
+
+        if let Some(arg) = arguments.get("background") {
+            camera_builder.background = arg.to_color()?;
+        }
+
+        self.camera = Some(Arc::new(camera_builder.build()));
+
+        None
+    }
+
+    fn evaluate_echo(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+        child: Option<Arc<dyn Node>>,
+    ) -> Option<Arc<dyn Node>> {
+        if child.is_some() {
+            todo!("should not have children");
+        }
+
+        let mut output = String::new();
+        for (i, arg) in arguments.iter().enumerate() {
+            if i > 0 {
+                output += ", ";
+            }
+            match &arg.item {
+                CallArgument::Expr { expr } => output += &self.expr_to_string(expr),
+                CallArgument::NamedArgument { identifier, expr } => {
+                    output += &format!("{identifier} = {}", self.expr_to_string(expr));
+                }
+            };
+        }
+
+        self.output += &format!("{output}\n");
+
+        None
+    }
+
+    fn expr_to_string(&self, expr: &ExprWithPosition) -> String {
+        let value = self.expr_to_value(expr);
+        format!("{value}")
+    }
+
+    fn create_color(&self, arguments: &[CallArgumentWithPosition]) -> Option<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["c", "alpha"], arguments);
+
+        if let Some(arg) = arguments.get("alpha") {
+            todo!("handle alpha {arg:?}");
+        }
+
+        if let Some(arg) = arguments.get("c") {
+            let color = arg.to_color()?;
+            return Some(Arc::new(Lambertian::new_from_color(color)));
+        }
+
+        todo!("missing arg");
+    }
+
+    fn create_lambertian(
+        &self,
+        arguments: &[CallArgumentWithPosition],
+    ) -> Option<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["c", "t"], arguments);
+
+        if let Some(arg) = arguments.get("c") {
+            let color = arg.to_color()?;
+            Some(Arc::new(Lambertian::new_from_color(color)))
+        } else if let Some(arg) = arguments.get("t") {
+            match arg {
+                Value::Texture(texture) => Some(Arc::new(Lambertian::new(texture.clone()))),
+                _ => todo!("unhandled {arg:?}"),
+            }
+        } else {
+            todo!("missing arg");
+        }
+    }
+
+    fn create_dielectric(
+        &self,
+        arguments: &[CallArgumentWithPosition],
+    ) -> Option<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["n"], arguments);
+
+        if let Some(arg) = arguments.get("n") {
+            let refraction_index = arg.to_number()?;
+            Some(Arc::new(Dielectric::new(refraction_index)))
+        } else {
+            todo!("missing arg");
+        }
+    }
+
+    fn create_metal(&self, arguments: &[CallArgumentWithPosition]) -> Option<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["c", "fuzz"], arguments);
+
+        let mut color = Color::WHITE;
+        let mut fuzz = 0.2;
+
+        if let Some(arg) = arguments.get("c") {
+            color = arg.to_color()?;
+        }
+
+        if let Some(arg) = arguments.get("fuzz") {
+            fuzz = arg.to_number()?;
+        }
+
+        Some(Arc::new(Metal::new(color, fuzz)))
+    }
+
+    fn process_for_loop(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+        child_statement: &ChildStatementWithPosition,
+    ) -> Option<Arc<dyn Node>> {
+        if arguments.len() != 1 {
+            todo!("for loop should only have one argument");
+        }
+
+        let arg = &arguments[0];
+        let (name, value) = match &arg.item {
+            CallArgument::Expr { expr } => {
+                todo!("for loop should have named argument {expr:?}")
+            }
+            CallArgument::NamedArgument { identifier, expr } => {
+                (identifier, self.expr_to_value(expr))
+            }
+        };
+
+        let (start, end, increment) = match value {
+            Value::Range {
+                start,
+                end,
+                increment,
+            } => (start, end, increment),
+            other => todo!("for loop should have range argument {other:?}"),
+        };
+
+        let start = start.to_number()?;
+        let end = end.to_number()?;
+        let increment = if let Some(increment) = increment {
+            increment.to_number()?
+        } else {
+            1.0
+        };
+
+        if end >= start && increment <= 0.0 {
+            todo!("increment should be greater than 0");
+        } else if end < start && increment >= 0.0 {
+            todo!("increment should be less than 0");
+        }
+
+        let mut i = start;
+        loop {
+            if (end >= start && i >= end) || (end < start && i <= end) {
+                break;
+            }
+
+            self.variables.insert(name.to_owned(), Value::Number(i));
+            self.process_child_statement(child_statement);
+
+            i += increment;
+        }
+
+        None
     }
 
     fn expr_to_value(&self, expr: &ExprWithPosition) -> Value {
@@ -339,7 +854,6 @@ impl Interpreter {
                             end,
                             increment,
                         } => todo!("range: {start:?}, {end:?}, {increment:?}"),
-                        Value::Variable { name } => todo!("variable {name}"),
                     })
                     .collect(),
             }
@@ -357,7 +871,6 @@ impl Interpreter {
                     end,
                     increment,
                 } => todo!("{left:?} {operator:?} range({start:?}, {end:?}, {increment:?})"),
-                Value::Variable { name } => todo!("{left:?} {operator:?} var:{name}"),
             },
             Value::Vector { items } => match right {
                 Value::Number(right) => eval_vector_number(operator, items, right),
@@ -370,7 +883,6 @@ impl Interpreter {
                     end,
                     increment,
                 } => todo!("{items:?} {operator:?} range({start:?}, {end:?}, {increment:?})"),
-                Value::Variable { name } => todo!("{items:?} {operator:?} var:{name}"),
             },
             Value::True => todo!("true"),
             Value::False => todo!("false"),
@@ -380,7 +892,6 @@ impl Interpreter {
                 end,
                 increment,
             } => todo!("range: {start:?}, {end:?}, {increment:?}"),
-            Value::Variable { name } => todo!("variable: {name}"),
         }
     }
 
@@ -396,64 +907,36 @@ impl Interpreter {
         }
     }
 
-    fn process_call_arguments(
-        &self,
-        call_arguments: &Vec<CallArgumentWithPosition>,
-    ) -> Vec<ModuleArgument> {
-        let mut results: Vec<ModuleArgument> = vec![];
-
-        for call_argument in call_arguments {
-            match &call_argument.item {
-                CallArgument::Expr { expr } => {
-                    results.push(ModuleArgument::Positional(self.expr_to_value(expr)))
-                }
-                CallArgument::NamedArgument { identifier, expr } => {
-                    let value = self.expr_to_value(expr);
-                    results.push(ModuleArgument::NamedArgument {
-                        name: identifier.to_string(),
-                        value,
-                    })
-                }
-            }
-        }
-
-        results
-    }
-
-    fn process_child_statement(&mut self, child_statement: &ChildStatementWithPosition) {
+    fn process_child_statement(
+        &mut self,
+        child_statement: &ChildStatementWithPosition,
+    ) -> Option<Arc<dyn Node>> {
         match &child_statement.item {
             ChildStatement::Empty => {
                 self.stack.clear();
+                None
             }
             ChildStatement::ModuleInstantiation {
                 module_instantiation,
             } => self.process_module_instantiation(module_instantiation),
             ChildStatement::MultipleStatements { statements } => {
+                let mut nodes = vec![];
                 for statement in statements {
-                    self.process_statement(statement.as_ref());
+                    if let Some(node) = self.process_statement(statement.as_ref()) {
+                        nodes.push(node);
+                    }
                 }
+                Some(Arc::new(Group::from_list(&nodes)))
             }
         }
     }
 
-    fn append_instance(&mut self, instance: ModuleInstance) {
-        let tree = Rc::new(ModuleInstanceTree {
-            instance,
-            children: RefCell::new(vec![]),
-        });
-
-        if let Some(last) = self.stack.last_mut() {
-            last.children.borrow_mut().push(tree.clone());
-        } else {
-            // empty stack we need to push to results
-            self.results.push(tree.clone());
-        }
-
-        self.stack.push(tree);
-    }
-
-    fn process_assignment(&mut self, identifier: &str, expr: &ExprWithPosition) {
-        let value = self.expr_to_value(&expr);
+    fn process_assignment(
+        &mut self,
+        identifier: &str,
+        expr: &ExprWithPosition,
+    ) -> Option<Arc<dyn Node>> {
+        let value = self.expr_to_value(expr);
 
         if identifier.starts_with("$") {
             match value {
@@ -463,11 +946,12 @@ impl Interpreter {
         }
 
         self.variables.insert(identifier.to_owned(), value);
+        None
     }
 
-    fn process_include(&self, filename: &str) {
+    fn process_include(&self, filename: &str) -> Option<Arc<dyn Node>> {
         if filename.ends_with("ray_trace.scad") {
-            return;
+            return None;
         }
 
         todo!("include {filename}")
@@ -565,9 +1049,7 @@ impl Interpreter {
     }
 
     fn evaluate_identifier(&self, name: &str) -> Value {
-        Value::Variable {
-            name: name.to_owned(),
-        }
+        todo!("evaluate_identifier {name}");
     }
 }
 
@@ -588,7 +1070,6 @@ mod tests {
         let result = openscad_interpret(result.statements);
 
         assert_eq!(Vec::<InterpreterError>::new(), result.errors);
-        assert_eq!(1, result.trees.len());
     }
 
     #[test]
@@ -597,7 +1078,6 @@ mod tests {
         let result = openscad_interpret(result.statements);
 
         assert_eq!(Vec::<InterpreterError>::new(), result.errors);
-        assert_eq!(1, result.trees.len());
     }
 
     #[test]
@@ -606,15 +1086,20 @@ mod tests {
         let result = openscad_interpret(result.statements);
 
         assert_eq!(Vec::<InterpreterError>::new(), result.errors);
-        assert_eq!(0, result.trees.len());
     }
 
     #[test]
     fn test_for_loop() {
-        let result = openscad_parse(openscad_tokenize("for(a=[0:10]) sphere(r=a);"));
+        let result = openscad_parse(openscad_tokenize(
+            "
+                for(a = [-1 : 1])
+                    for(b = [0 : 2])
+                        echo(a,b);
+            ",
+        ));
         let result = openscad_interpret(result.statements);
-        assert_eq!(Vec::<InterpreterError>::new(), result.errors);
-        assert_eq!(1, result.trees.len());
+
+        assert_eq!(result.output, "-1, 0\n-1, 1\n0, 0\n0, 1\n");
     }
 
     #[test]
@@ -622,6 +1107,5 @@ mod tests {
         let result = openscad_parse(openscad_tokenize("choose_mat = rands(0,1,1)[0];"));
         let result = openscad_interpret(result.statements);
         assert_eq!(Vec::<InterpreterError>::new(), result.errors);
-        assert_eq!(1, result.trees.len());
     }
 }

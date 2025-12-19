@@ -35,6 +35,7 @@ pub struct RenderContext {
     pub random: Arc<dyn Random>,
 }
 
+#[derive(Debug)]
 pub struct SceneData {
     pub camera: Arc<Camera>,
     pub world: Arc<dyn Node>,

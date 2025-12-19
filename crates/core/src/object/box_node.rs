@@ -6,6 +6,7 @@ use crate::{
     object::{Group, HitRecord, Quad},
 };
 
+#[derive(Debug)]
 pub struct BoxPrimitive {
     group: Group,
 }

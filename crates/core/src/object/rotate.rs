@@ -6,6 +6,7 @@ use crate::{
     object::HitRecord,
 };
 
+#[derive(Debug)]
 pub struct Rotate {
     object: Arc<dyn Node>,
     rotation_matrix: Matrix3x3,

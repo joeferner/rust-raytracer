@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use crate::{
     AxisAlignedBoundingBox, Interval, RenderContext, material::Material, ray::Ray, vector::Vector3,
@@ -51,7 +51,7 @@ impl HitRecord {
     }
 }
 
-pub trait Node: Send + Sync {
+pub trait Node: Send + Sync + Debug {
     fn hit(&self, ctx: &RenderContext, ray: &Ray, ray_t: Interval) -> Option<HitRecord>;
 
     fn bounding_box(&self) -> &AxisAlignedBoundingBox;

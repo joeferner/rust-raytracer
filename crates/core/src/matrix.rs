@@ -18,6 +18,7 @@ use std::ops::{Index, Mul};
 ///     [0.0, 0.0, 1.0],
 /// ]);
 /// ```
+#[derive(Debug)]
 pub struct Matrix3x3 {
     /// Internal storage for the 3x3 matrix in row-major order.
     /// `matrix[row][col]` accesses the element at the given row and column.

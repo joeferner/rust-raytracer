@@ -7,6 +7,7 @@ use crate::{
     object::{Disc, Group, HitRecord},
 };
 
+#[derive(Debug)]
 pub struct ConeFrustum {
     pub object_node: Group,
 }

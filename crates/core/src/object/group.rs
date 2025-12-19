@@ -5,6 +5,7 @@ use crate::{
     object::{HitRecord, Node},
 };
 
+#[derive(Debug)]
 pub struct Group {
     nodes: Vec<Arc<dyn Node>>,
     bbox: AxisAlignedBoundingBox,

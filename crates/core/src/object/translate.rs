@@ -4,6 +4,7 @@ use crate::{
     AxisAlignedBoundingBox, Interval, Node, Ray, RenderContext, Vector3, object::HitRecord,
 };
 
+#[derive(Debug)]
 pub struct Translate {
     object: Arc<dyn Node>,
     offset: Vector3,

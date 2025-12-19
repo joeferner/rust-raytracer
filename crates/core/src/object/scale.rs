@@ -5,6 +5,7 @@ use crate::{
     Axis, AxisAlignedBoundingBox, Interval, Matrix3x3, Node, Ray, RenderContext, object::HitRecord,
 };
 
+#[derive(Debug)]
 pub struct Scale {
     object: Arc<dyn Node>,
     scale_matrix: Matrix3x3,

@@ -198,6 +198,7 @@ impl Default for CameraBuilder {
 /// - Path tracing with importance sampling
 ///
 /// Use [`CameraBuilder`] to construct a `Camera` instance.
+#[derive(Debug)]
 pub struct Camera {
     /// Rendered image width in pixels
     image_width: u32,

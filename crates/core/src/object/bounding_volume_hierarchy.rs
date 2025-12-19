@@ -5,6 +5,7 @@ use crate::{
     object::{Group, HitRecord, Node},
 };
 
+#[derive(Debug)]
 pub struct BoundingVolumeHierarchy {
     left: Arc<dyn Node>,
     right: Arc<dyn Node>,
