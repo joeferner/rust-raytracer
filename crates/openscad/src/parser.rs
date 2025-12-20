@@ -201,13 +201,21 @@ pub enum BinaryOperator {
     Subtract,
     Multiply,
     Divide,
+    LessThan,
+    LessThanEqual,
+    GreaterThan,
+    GreaterThanEqual,
 }
 
 impl BinaryOperator {
     pub fn precedence(&self) -> u8 {
         match self {
-            BinaryOperator::Add | BinaryOperator::Subtract => 1,
-            BinaryOperator::Multiply | BinaryOperator::Divide => 2,
+            BinaryOperator::LessThan
+            | BinaryOperator::LessThanEqual
+            | BinaryOperator::GreaterThan
+            | BinaryOperator::GreaterThanEqual => 1,
+            BinaryOperator::Add | BinaryOperator::Subtract => 2,
+            BinaryOperator::Multiply | BinaryOperator::Divide => 3,
         }
     }
 }
@@ -650,21 +658,6 @@ impl Parser {
     fn parse_binary_expr(&mut self, min_precedence: u8) -> Option<ExprWithPosition> {
         let start = self.current_token_start();
 
-        // TODO <expr> '%' <expr>
-        // TODO <expr> '<' <expr>
-        // TODO <expr> "<=" <expr>
-        // TODO <expr> "==" <expr>
-        // TODO <expr> "!=" <expr>
-        // TODO <expr> ">=" <expr>
-        // TODO <expr> '>' <expr>
-        // TODO <expr> "&&" <expr>
-        // TODO <expr> "||" <expr>
-
-        // <expr> '+' <expr>
-        // <expr> '-' <expr>
-        // <expr> '*' <expr>
-        // <expr> '/' <expr>
-
         let mut lhs = self.parse_unary_expr()?;
 
         while let Some(operator) = self.current_to_binary_operator() {
@@ -945,10 +938,19 @@ impl Parser {
     fn current_to_binary_operator(&self) -> Option<BinaryOperator> {
         if let Some(current) = self.current() {
             match current.item {
+                // TODO <expr> '%' <expr>
+                // TODO <expr> "==" <expr>
+                // TODO <expr> "!=" <expr>
+                // TODO <expr> "&&" <expr>
+                // TODO <expr> "||" <expr>
                 Token::Plus => Some(BinaryOperator::Add),
                 Token::Minus => Some(BinaryOperator::Subtract),
                 Token::Asterisk => Some(BinaryOperator::Multiply),
                 Token::ForwardSlash => Some(BinaryOperator::Divide),
+                Token::LessThan => Some(BinaryOperator::LessThan),
+                Token::LessThanEqual => Some(BinaryOperator::LessThanEqual),
+                Token::GreaterThan => Some(BinaryOperator::GreaterThan),
+                Token::GreaterThanEqual => Some(BinaryOperator::GreaterThanEqual),
                 _ => None,
             }
         } else {

@@ -35,30 +35,30 @@ for(a = [-11 : 11]) {
               b + 0.9 * rands(0,1,1)[0],
         ];
 
-        //  if (center - Vector3::new(4.0, 0.2, 0.0)).length() > 0.9 {
-        //      if choose_mat < 0.8 {
-        //          // diffuse
-        //          let albedo = Color::random(&*ctx.random) * Color::random(&*ctx.random);
-        //          let sphere_material = Arc::new(Lambertian::new_from_color(albedo));
-        //          let mut sphere = Sphere::new(center, 0.2, sphere_material);
-        //          sphere.set_direction(Vector3::new(
-        //              0.0,
-        //              ctx.random.rand_interval(0.0, 0.5),
-        //              0.0,
-        //          ));
-        //          world.push(Arc::new(sphere));
-        //      } else if choose_mat < 0.95 {
-        //          // metal
-        //          let albedo = Color::random_interval(&*ctx.random, 0.5, 1.0);
-        //          let fuzz = ctx.random.rand_interval(0.0, 0.5);
-        //          let sphere_material = Arc::new(Metal::new(albedo, fuzz));
-        //          world.push(Arc::new(Sphere::new(center, 0.2, sphere_material)));
-        //      } else {
-        //          // glass
-        //          let sphere_material = Arc::new(Dielectric::new(1.5));
-        //          world.push(Arc::new(Sphere::new(center, 0.2, sphere_material)));
-        //      }
-        //  }
+        if (distance(center - [4.0, 0.2, 0.0]) > 0.9) {
+          // if choose_mat < 0.8 {
+          //     // diffuse
+          //     let albedo = Color::random(&*ctx.random) * Color::random(&*ctx.random);
+          //     let sphere_material = Arc::new(Lambertian::new_from_color(albedo));
+          //     let mut sphere = Sphere::new(center, 0.2, sphere_material);
+          //     sphere.set_direction(Vector3::new(
+          //         0.0,
+          //         ctx.random.rand_interval(0.0, 0.5),
+          //         0.0,
+          //     ));
+          //     world.push(Arc::new(sphere));
+          // } else if choose_mat < 0.95 {
+          //     // metal
+          //     let albedo = Color::random_interval(&*ctx.random, 0.5, 1.0);
+          //     let fuzz = ctx.random.rand_interval(0.0, 0.5);
+          //     let sphere_material = Arc::new(Metal::new(albedo, fuzz));
+          //     world.push(Arc::new(Sphere::new(center, 0.2, sphere_material)));
+          // } else {
+          //     // glass
+          //     let sphere_material = Arc::new(Dielectric::new(1.5));
+          //     world.push(Arc::new(Sphere::new(center, 0.2, sphere_material)));
+          // }
+        }
     }
 }
 

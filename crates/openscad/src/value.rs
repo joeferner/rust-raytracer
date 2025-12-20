@@ -13,8 +13,7 @@ pub enum Value {
     Vector {
         items: Vec<Value>,
     },
-    True,
-    False,
+    Boolean(bool),
     Texture(Arc<dyn Texture>),
     Range {
         start: Box<Value>,
@@ -53,8 +52,7 @@ impl Value {
 
     pub fn to_boolean(&self) -> Result<bool> {
         match self {
-            Value::True => Ok(true),
-            Value::False => Ok(false),
+            Value::Boolean(b) => Ok(*b),
             _ => todo!(),
         }
     }
@@ -129,8 +127,7 @@ impl Display for Value {
                 output += "]";
                 write!(f, "{output}")
             }
-            Value::True => write!(f, "true"),
-            Value::False => write!(f, "false"),
+            Value::Boolean(b) => write!(f, "{b}"),
             Value::Texture(texture) => todo!("texture {texture:?}"),
             Value::Range {
                 start,

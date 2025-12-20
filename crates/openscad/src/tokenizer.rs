@@ -34,8 +34,12 @@ pub enum Token {
     ForwardSlash,
     /// '<'
     LessThan,
+    /// '<='
+    LessThanEqual,
     /// '>'
     GreaterThan,
+    /// '>='
+    GreaterThanEqual,
     /// 'for'
     For,
     /// 'true'
@@ -299,11 +303,23 @@ impl Tokenizer {
             }
             Some('<') => {
                 self.advance();
-                Token::LessThan
+                if let Some(ch) = self.current()
+                    && ch == '='
+                {
+                    Token::LessThanEqual
+                } else {
+                    Token::LessThan
+                }
             }
             Some('>') => {
                 self.advance();
-                Token::GreaterThan
+                if let Some(ch) = self.current()
+                    && ch == '='
+                {
+                    Token::GreaterThanEqual
+                } else {
+                    Token::GreaterThan
+                }
             }
             Some(ch) if ch.is_alphabetic() || ch == '_' || ch == '$' => {
                 let identifier = self.read_identifier();

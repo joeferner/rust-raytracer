@@ -56,6 +56,9 @@ mod tests {
 
         let result = interpret("echo(2 * 3 + 5);");
         assert_eq!(result.output, "11\n");
+
+        let result = interpret("echo(2 + 3 * 5 < 15);");
+        assert_eq!(result.output, "false\n");
     }
 
     #[test]

@@ -364,8 +364,8 @@ impl Interpreter {
                     items.iter().map(|v| self.expr_to_value(v)).collect();
                 Value::Vector { items: items? }
             }
-            Expr::True => Value::True,
-            Expr::False => Value::False,
+            Expr::True => Value::Boolean(true),
+            Expr::False => Value::Boolean(false),
             Expr::Binary { operator, lhs, rhs } => {
                 self.evaluate_binary_expression(operator, lhs, rhs)?
             }
@@ -398,6 +398,10 @@ impl Interpreter {
                 BinaryOperator::Subtract => Value::Number(left - right),
                 BinaryOperator::Multiply => Value::Number(left * right),
                 BinaryOperator::Divide => Value::Number(left / right),
+                BinaryOperator::LessThan => Value::Boolean(left < right),
+                BinaryOperator::LessThanEqual => Value::Boolean(left <= right),
+                BinaryOperator::GreaterThan => Value::Boolean(left > right),
+                BinaryOperator::GreaterThanEqual => Value::Boolean(left >= right),
             }
         }
 
@@ -411,10 +415,13 @@ impl Interpreter {
                             BinaryOperator::Divide => Value::Number(v / right),
                             BinaryOperator::Add => todo!(),
                             BinaryOperator::Multiply => todo!(),
+                            BinaryOperator::LessThan => todo!(),
+                            BinaryOperator::LessThanEqual => todo!(),
+                            BinaryOperator::GreaterThan => todo!(),
+                            BinaryOperator::GreaterThanEqual => todo!(),
                         },
                         Value::Vector { items } => todo!("items {items:?}"),
-                        Value::True => todo!("true"),
-                        Value::False => todo!("false"),
+                        Value::Boolean(b) => todo!("{b}"),
                         Value::Texture(texture) => todo!("texture {texture:?}"),
                         Value::Range {
                             start,
@@ -430,8 +437,7 @@ impl Interpreter {
             Value::Number(left) => match right {
                 Value::Number(right) => eval_number_number(operator, left, right),
                 Value::Vector { items } => todo!("{left:?} {operator:?} {items:?}"),
-                Value::True => todo!("{left:?} {operator:?} True"),
-                Value::False => todo!("{left:?} {operator:?} False"),
+                Value::Boolean(b) => todo!("{left:?} {operator:?} {b}"),
                 Value::Texture(texture) => todo!("{left:?} {operator:?} {texture:?}"),
                 Value::Range {
                     start,
@@ -442,8 +448,7 @@ impl Interpreter {
             Value::Vector { items } => match right {
                 Value::Number(right) => eval_vector_number(operator, items, right),
                 Value::Vector { items } => todo!("{items:?} {operator:?} {items:?}"),
-                Value::True => todo!("{items:?} {operator:?} true"),
-                Value::False => todo!("{items:?} {operator:?} false"),
+                Value::Boolean(b) => todo!("{items:?} {operator:?} {b}"),
                 Value::Texture(texture) => todo!("{items:?} {operator:?} {texture:?}"),
                 Value::Range {
                     start,
@@ -451,8 +456,7 @@ impl Interpreter {
                     increment,
                 } => todo!("{items:?} {operator:?} range({start:?}, {end:?}, {increment:?})"),
             },
-            Value::True => todo!("true"),
-            Value::False => todo!("false"),
+            Value::Boolean(b) => todo!("{b}"),
             Value::Texture(texture) => todo!("texture {texture:?}"),
             Value::Range {
                 start,
@@ -609,8 +613,7 @@ impl Interpreter {
                     todo!("index out of range");
                 }
             }
-            Value::True => todo!("evaluate_index {lhs:?} true"),
-            Value::False => todo!("evaluate_index {lhs:?} false"),
+            Value::Boolean(b) => todo!("evaluate_index {lhs:?} {b}"),
             Value::Texture(texture) => todo!("evaluate_index {lhs:?} {texture:?}"),
             Value::Range {
                 start,
