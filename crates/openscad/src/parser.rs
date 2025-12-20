@@ -43,7 +43,7 @@ pub enum ModuleInstantiation {
     /// <single_module_instantiation> <child_statement>
     SingleModuleInstantiation {
         single_module_instantiation: SingleModuleInstantiationWithPosition,
-        child_statement: ChildStatementWithPosition,
+        child_statements: Vec<StatementWithPosition>,
     },
 }
 
@@ -60,24 +60,7 @@ pub enum SingleModuleInstantiation {
 pub type SingleModuleInstantiationWithPosition = WithPosition<SingleModuleInstantiation>;
 
 #[derive(Debug, PartialEq)]
-pub enum ChildStatement {
-    // ';'
-    Empty,
-    // '{' <child_statements> '}'
-    MultipleStatements {
-        statements: Vec<Box<StatementWithPosition>>,
-    },
-    // <module_instantiation>
-    ModuleInstantiation {
-        module_instantiation: Box<ModuleInstantiationWithPosition>,
-    },
-}
-
-pub type ChildStatementWithPosition = WithPosition<ChildStatement>;
-
-#[derive(Debug, PartialEq)]
 pub enum ModuleId {
-    /// "for"
     For,
     Echo,
     Cube,
@@ -413,15 +396,19 @@ impl Parser {
         // TODO '#' <module_instantiation>
         // TODO '%' <module_instantiation>
         // TODO '*' <module_instantiation>
-        // TODO <ifelse_statement>
+
+        // <ifelse_statement>
+        if self.current_matches(Token::If) {
+            return self.parse_ifelse_statement();
+        }
 
         // <single_module_instantiation> <child_statement>
         if let Some(single_module_instantiation) = self.parse_single_module_instantiation() {
-            if let Some(child_statement) = self.parse_child_statement() {
+            if let Some(child_statements) = self.parse_child_statement() {
                 return Some(ModuleInstantiationWithPosition::new(
                     ModuleInstantiation::SingleModuleInstantiation {
                         single_module_instantiation,
-                        child_statement,
+                        child_statements,
                     },
                     start,
                     self.current_token_start(),
@@ -464,7 +451,7 @@ impl Parser {
     ///   ';'
     ///   '{' <child_statements> '}'
     ///   <module_instantiation>
-    fn parse_child_statement(&mut self) -> Option<ChildStatementWithPosition> {
+    fn parse_child_statement(&mut self) -> Option<Vec<StatementWithPosition>> {
         let start = self.current_token_start();
 
         // ';'
@@ -472,44 +459,35 @@ impl Parser {
             if !self.expect(Token::Semicolon) {
                 return None;
             }
-            return Some(ChildStatementWithPosition::new(
-                ChildStatement::Empty,
-                start,
-                self.current_token_start(),
-            ));
+            return Some(vec![]);
         }
 
         if self.current_matches(Token::LeftCurlyBracket) {
             if !self.expect(Token::LeftCurlyBracket) {
                 return None;
             }
-            let mut child_statments: Vec<Box<StatementWithPosition>> = vec![];
+            let mut child_statments: Vec<StatementWithPosition> = vec![];
             while !self.current_matches(Token::RightCurlyBracket) {
                 if let Some(stmt) = self.parse_statement() {
-                    child_statments.push(Box::new(stmt));
+                    child_statments.push(stmt);
                 }
             }
             if !self.expect(Token::RightCurlyBracket) {
                 return None;
             }
-            return Some(ChildStatementWithPosition::new(
-                ChildStatement::MultipleStatements {
-                    statements: child_statments,
-                },
-                start,
-                self.current_token_start(),
-            ));
+            return Some(child_statments);
         }
 
         // <module_instantiation>
         if let Some(module_instantiation) = self.parse_module_instantiation() {
-            return Some(ChildStatementWithPosition::new(
-                ChildStatement::ModuleInstantiation {
-                    module_instantiation: Box::new(module_instantiation),
-                },
+            let stmt = Statement::ModuleInstantiation {
+                module_instantiation,
+            };
+            return Some(vec![StatementWithPosition::new(
+                stmt,
                 start,
                 self.current_token_start(),
-            ));
+            )]);
         }
 
         None
@@ -1044,6 +1022,35 @@ impl Parser {
             ))
         }
     }
+
+    /// <ifelse_statement> ::=
+    ///   <if_statement>
+    ///   <if_statement> "else" <child_statement>
+    /// <if_statement> ::=
+    ///   "if" '(' <expr> ')' <child_statement>
+    fn parse_ifelse_statement(&mut self) -> Option<ModuleInstantiationWithPosition> {
+        if !self.expect(Token::If) {
+            return None;
+        }
+
+        if !self.expect(Token::LeftParen) {
+            return None;
+        }
+
+        let expr = self.parse_expr()?;
+
+        if !self.expect(Token::RightParen) {
+            return None;
+        }
+
+        let child_statement = self.parse_child_statement()?;
+
+        if self.current_matches(Token::Else) {
+            todo!("else");
+        }
+
+        todo!("if {expr:?} {child_statement:?}");
+    }
 }
 
 pub fn openscad_parse(tokens: Vec<TokenWithPosition>) -> ParseResult {
@@ -1091,11 +1098,7 @@ mod tests {
                                 0,
                                 8
                             ),
-                            child_statement: ChildStatementWithPosition::new(
-                                ChildStatement::Empty,
-                                8,
-                                9
-                            )
+                            child_statements: vec![]
                         },
                         0,
                         9
@@ -1125,13 +1128,13 @@ mod tests {
         };
 
         // ModuleInstantiation::SingleModuleInstantiation
-        let (single_module_instantiation, child_statement) =
+        let (single_module_instantiation, child_statements) =
             if let ModuleInstantiation::SingleModuleInstantiation {
                 single_module_instantiation,
-                child_statement,
+                child_statements,
             } = module_instantiation_item
             {
-                (single_module_instantiation, child_statement)
+                (single_module_instantiation, child_statements)
             } else {
                 panic!("expected ModuleInstantiation::SingleModuleInstantiation")
             };
@@ -1165,7 +1168,7 @@ mod tests {
         }
 
         // child_statement
-        if child_statement.item != ChildStatement::Empty {
+        if !child_statements.is_empty() {
             panic!("expected ChildStatement::Empty");
         }
     }

@@ -42,6 +42,10 @@ pub enum Token {
     GreaterThanEqual,
     /// 'for'
     For,
+    /// 'if'
+    If,
+    /// 'else'
+    Else,
     /// 'true'
     True,
     /// 'false'
@@ -333,6 +337,10 @@ impl Tokenizer {
                     }
                 } else if identifier == "for" {
                     Token::For
+                } else if identifier == "if" {
+                    Token::If
+                } else if identifier == "else" {
+                    Token::Else
                 } else if identifier == "true" {
                     Token::True
                 } else if identifier == "false" {

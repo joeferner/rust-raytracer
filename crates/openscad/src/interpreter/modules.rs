@@ -22,7 +22,7 @@ impl Interpreter {
         match &module_instantiation.item {
             ModuleInstantiation::SingleModuleInstantiation {
                 single_module_instantiation,
-                child_statement,
+                child_statements,
             } => match &single_module_instantiation.item {
                 SingleModuleInstantiation::Module {
                     module_id,
@@ -42,11 +42,11 @@ impl Interpreter {
                         self.material_stack.push(color);
                     } else if module_id.item == ModuleId::For {
                         return self
-                            .process_for_loop(arguments, child_statement)
+                            .process_for_loop(arguments, child_statements)
                             .map(|_| None);
                     }
 
-                    let child = self.process_child_statement(child_statement)?;
+                    let child = self.process_child_statements(child_statements)?;
 
                     match &module_id.item {
                         ModuleId::Cube => self.create_cube(arguments, child).map(Some),

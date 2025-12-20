@@ -3,7 +3,7 @@ pub mod modules;
 #[cfg(test)]
 pub mod tests;
 
-use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
+use std::{cell::RefCell, collections::HashMap, sync::Arc};
 
 use rand_mt::Mt64;
 use rust_raytracer_core::{
@@ -14,9 +14,9 @@ use rust_raytracer_core::{
 
 use crate::{
     parser::{
-        BinaryOperator, CallArgument, CallArgumentWithPosition, ChildStatement,
-        ChildStatementWithPosition, DeclArgument, DeclArgumentWithPosition, Expr, ExprWithPosition,
-        Statement, StatementWithPosition, UnaryOperator,
+        BinaryOperator, CallArgument, CallArgumentWithPosition, DeclArgument,
+        DeclArgumentWithPosition, Expr, ExprWithPosition, Statement, StatementWithPosition,
+        UnaryOperator,
     },
     value::{Value, ValueConversionError},
 };
@@ -113,7 +113,6 @@ impl Function {
 
 struct Interpreter {
     _modules: HashMap<String, Module>,
-    stack: Vec<Rc<ModuleInstance>>,
 
     camera: Option<Arc<Camera>>,
     world: Vec<Arc<dyn Node>>,
@@ -140,7 +139,6 @@ impl Interpreter {
 
         Self {
             _modules: HashMap::new(),
-            stack: vec![],
             variables: RefCell::new(vec![variables]),
             functions: HashMap::new(),
             camera: None,
@@ -302,7 +300,7 @@ impl Interpreter {
     fn process_for_loop(
         &mut self,
         arguments: &[CallArgumentWithPosition],
-        child_statement: &ChildStatementWithPosition,
+        child_statements: &Vec<StatementWithPosition>,
     ) -> Result<()> {
         if arguments.len() != 1 {
             todo!("for loop should only have one argument");
@@ -348,7 +346,7 @@ impl Interpreter {
             }
 
             self.set_variable(name, Value::Number(i));
-            self.process_child_statement(child_statement)?;
+            self.process_child_statements(child_statements)?;
 
             i += increment;
         }
@@ -482,28 +480,21 @@ impl Interpreter {
         }
     }
 
-    fn process_child_statement(
+    fn process_child_statements(
         &mut self,
-        child_statement: &ChildStatementWithPosition,
+        child_statements: &Vec<StatementWithPosition>,
     ) -> Result<Option<Arc<dyn Node>>> {
-        Ok(match &child_statement.item {
-            ChildStatement::Empty => {
-                self.stack.clear();
-                None
+        if child_statements.is_empty() {
+            return Ok(None);
+        }
+
+        let mut nodes = vec![];
+        for statement in child_statements {
+            if let Some(node) = self.process_statement(statement)? {
+                nodes.push(node);
             }
-            ChildStatement::ModuleInstantiation {
-                module_instantiation,
-            } => self.process_module_instantiation(module_instantiation)?,
-            ChildStatement::MultipleStatements { statements } => {
-                let mut nodes = vec![];
-                for statement in statements {
-                    if let Some(node) = self.process_statement(statement.as_ref())? {
-                        nodes.push(node);
-                    }
-                }
-                Some(Arc::new(Group::from_list(&nodes)))
-            }
-        })
+        }
+        Ok(Some(Arc::new(Group::from_list(&nodes))))
     }
 
     fn process_assignment(&mut self, identifier: &str, expr: &ExprWithPosition) -> Result<()> {
