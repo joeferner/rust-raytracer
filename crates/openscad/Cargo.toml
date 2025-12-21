@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 rand_mt = "5.0.0"
 rust-raytracer-core = { path = "../core" }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 assert-eq-float = { workspace = true }

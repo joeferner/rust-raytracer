@@ -9,7 +9,7 @@ mod tests {
     };
 
     fn interpret(expr: &str) -> InterpreterResults {
-        let result = openscad_parse(openscad_tokenize(expr));
+        let result = openscad_parse(openscad_tokenize(expr).unwrap());
         openscad_interpret(result.statements)
     }
 
@@ -70,5 +70,21 @@ mod tests {
 
         let result = interpret(s);
         assert_eq_float!(result.output.trim().parse().unwrap(), 10.246950765959598);
+    }
+
+    #[test]
+    fn test_if_else() {
+        let s = r#"
+            if (1 > 2) {
+              echo("false");
+            } else if (5 > 2) {
+              echo("ok");
+            } else {
+              echo("fail");
+            }
+        "#;
+
+        let result = interpret(s);
+        assert_eq!(result.output, "ok");
     }
 }

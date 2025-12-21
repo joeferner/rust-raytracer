@@ -1,9 +1,22 @@
+use thiserror::Error;
+
 use crate::WithPosition;
+
+#[derive(Error, Debug, PartialEq)]
+#[error("Tokenizer error: {message} [{start}:{end}]")]
+pub struct TokenizerError {
+    pub message: String,
+    pub start: usize,
+    pub end: usize,
+}
+
+pub type Result<T> = std::result::Result<T, TokenizerError>;
 
 #[derive(Debug, Clone)]
 pub enum Token {
     Identifier(String),
     Number(f64),
+    String(String),
     /// '('
     LeftParen,
     /// ')'
@@ -59,7 +72,6 @@ pub enum Token {
         filename: String,
     },
 
-    Unknown(char),
     Eof,
 }
 
@@ -89,13 +101,13 @@ impl Tokenizer {
         }
     }
 
-    pub fn tokenize(mut self) -> Vec<TokenWithPosition> {
+    pub fn tokenize(mut self) -> Result<Vec<TokenWithPosition>> {
         let mut tokens = Vec::new();
-        while let Some(tok) = self.next() {
+        while let Some(tok) = self.next()? {
             tokens.push(tok);
         }
         tokens.push(TokenWithPosition::new(Token::Eof, self.pos, self.pos));
-        tokens
+        Ok(tokens)
     }
 
     fn current(&self) -> Option<char> {
@@ -108,6 +120,28 @@ impl Tokenizer {
             Some(self.input[idx])
         } else {
             None
+        }
+    }
+
+    fn expect(&mut self, expected_ch: char) -> Result<()> {
+        let start = self.pos;
+        if let Some(found_ch) = self.current() {
+            if found_ch == expected_ch {
+                self.advance();
+                Ok(())
+            } else {
+                Err(TokenizerError {
+                    message: format!("Expected '{expected_ch}' but found '{found_ch}'"),
+                    start,
+                    end: start,
+                })
+            }
+        } else {
+            Err(TokenizerError {
+                message: format!("Expected '{expected_ch}' but found EOF"),
+                start,
+                end: start,
+            })
         }
     }
 
@@ -240,14 +274,14 @@ impl Tokenizer {
         }
     }
 
-    fn next(&mut self) -> Option<TokenWithPosition> {
+    fn next(&mut self) -> Result<Option<TokenWithPosition>> {
         self.skip_whitespace_and_comments();
 
         let start = self.pos;
 
         let token = match self.current() {
             None => {
-                return None;
+                return Ok(None);
             }
             Some('(') => {
                 self.advance();
@@ -325,6 +359,7 @@ impl Tokenizer {
                     Token::GreaterThan
                 }
             }
+            Some('"') => self.parse_string()?,
             Some(ch) if ch.is_alphabetic() || ch == '_' || ch == '$' => {
                 let identifier = self.read_identifier();
                 if identifier == "include" {
@@ -354,12 +389,16 @@ impl Tokenizer {
                     Token::Number(number)
                 } else {
                     self.advance();
-                    Token::Unknown(ch)
+                    return Err(TokenizerError {
+                        message: format!("Invalid character '{ch}'"),
+                        start,
+                        end: start + 1,
+                    });
                 }
             }
         };
 
-        Some(TokenWithPosition::new(token, start, self.pos))
+        Ok(Some(TokenWithPosition::new(token, start, self.pos)))
     }
 
     fn read_include_filename(&mut self) -> String {
@@ -381,9 +420,30 @@ impl Tokenizer {
 
         filename
     }
+
+    fn parse_string(&mut self) -> Result<Token> {
+        let result = String::new();
+
+        self.expect('"')?;
+
+        while let Some(ch) = self.current() {
+            if ch == '"' {
+                break;
+            } else if ch == '\\' {
+                self.advance();
+                self.advance();
+            } else {
+                self.advance();
+            }
+        }
+
+        self.expect('"')?;
+
+        Ok(Token::String(result))
+    }
 }
 
-pub fn openscad_tokenize(input: &str) -> Vec<TokenWithPosition> {
+pub fn openscad_tokenize(input: &str) -> Result<Vec<TokenWithPosition>> {
     let tokenizer = Tokenizer::new(input);
     tokenizer.tokenize()
 }
@@ -393,12 +453,12 @@ mod tests {
     use super::*;
 
     fn assert_tokens_with_pos(input: &str, expected: &[TokenWithPosition]) {
-        let found = openscad_tokenize(input);
+        let found = openscad_tokenize(input).unwrap();
         assert_eq!(found, expected);
     }
 
     fn assert_tokens(input: &str, expected: &[Token]) {
-        let found = openscad_tokenize(input);
+        let found = openscad_tokenize(input).unwrap();
         let found_without_pos: Vec<Token> = found.iter().map(|tok| tok.item.clone()).collect();
         assert_eq!(found_without_pos, expected);
     }
@@ -547,6 +607,14 @@ mod tests {
                 },
                 Token::Eof,
             ],
+        );
+    }
+
+    #[test]
+    fn test_string() {
+        assert_tokens(
+            r#" "Test \"quotes\"" "#,
+            &vec![Token::String("Test \"quotes\"".to_owned()), Token::Eof],
         );
     }
 }

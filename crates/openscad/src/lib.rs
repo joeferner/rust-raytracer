@@ -5,10 +5,12 @@ pub mod value;
 
 use std::fs;
 
+use thiserror::Error;
+
 use crate::{
     interpreter::{InterpreterResults, openscad_interpret},
     parser::openscad_parse,
-    tokenizer::openscad_tokenize,
+    tokenizer::{TokenizerError, openscad_tokenize},
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -24,23 +26,26 @@ impl<T: PartialEq> WithPosition<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum OpenscadError {
-    FileReadError(String, String),
+    #[error("File read error \"{filename}\": {message}")]
+    FileReadError { filename: String, message: String },
+    #[error("Tokenizer error: {0:?}")]
+    TokenizerError(#[from] TokenizerError),
 }
 
 pub fn openscad_file_to_scene_data(filename: &str) -> Result<InterpreterResults, OpenscadError> {
     match fs::read_to_string(filename) {
         Ok(contents) => openscad_string_to_scene_data(&contents),
-        Err(err) => Err(OpenscadError::FileReadError(
-            filename.to_owned(),
-            err.to_string(),
-        )),
+        Err(err) => Err(OpenscadError::FileReadError {
+            filename: filename.to_owned(),
+            message: err.to_string(),
+        }),
     }
 }
 
 pub fn openscad_string_to_scene_data(input: &str) -> Result<InterpreterResults, OpenscadError> {
-    let tokens = openscad_tokenize(input);
+    let tokens = openscad_tokenize(input)?;
     let parse_results = openscad_parse(tokens);
 
     if !parse_results.errors.is_empty() {

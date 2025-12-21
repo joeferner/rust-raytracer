@@ -911,6 +911,7 @@ dependencies = [
  "assert-eq-float",
  "rand_mt",
  "rust-raytracer-core",
+ "thiserror",
 ]
 
 [[package]]

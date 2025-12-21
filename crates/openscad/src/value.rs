@@ -10,6 +10,7 @@ pub type Result<T> = std::result::Result<T, ValueConversionError>;
 #[derive(Debug, Clone)]
 pub enum Value {
     Number(f64),
+    String(String),
     Vector {
         items: Vec<Value>,
     },
@@ -115,6 +116,7 @@ impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Number(number) => write!(f, "{number}"),
+            Value::String(str) => write!(f, "{str:?}"),
             Value::Vector { items } => {
                 let mut output = String::new();
                 output += "[";
@@ -135,5 +137,16 @@ impl Display for Value {
                 increment,
             } => todo!("range: {start:?} {end:?} {increment:?}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_display_string() {
+        let v = Value::String("Test\nLine 2".to_owned());
+        assert_eq!("\"Test\\nLine 2\"", v.to_string());
     }
 }

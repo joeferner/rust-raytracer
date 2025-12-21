@@ -100,7 +100,8 @@ pub enum Expr {
         name: String,
     },
     // TODO <expr> '.' <identifier>
-    // TODO <string>
+    // <string>
+    String(String),
     /// <number>
     Number(f64),
     // TODO "let" <call_arguments> <expr>
@@ -762,6 +763,13 @@ impl Parser {
                 ExprWithPosition::new(Expr::Number(number), start, self.current_token_start())
             }
 
+            Token::String(str) => {
+                // <string>
+                let str = str.clone();
+                self.advance();
+                ExprWithPosition::new(Expr::String(str), start, self.current_token_start())
+            }
+
             Token::Minus => {
                 // '-' <expr>
                 self.advance();
@@ -783,7 +791,6 @@ impl Parser {
                 // TODO "let" <call_arguments> <expr>
                 // TODO "undef"
                 // TODO <expr> '.' <identifier>
-                // TODO <string>
                 todo!("{:?}", other);
             }
         };
@@ -1014,9 +1021,13 @@ mod tests {
 
     use super::*;
 
+    fn parse(value: &str) -> ParseResult {
+        openscad_parse(openscad_tokenize(value).unwrap())
+    }
+
     #[test]
     fn test_empty_statement() {
-        let result = openscad_parse(openscad_tokenize(";"));
+        let result = parse(";");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(
             result.statements,
@@ -1026,7 +1037,7 @@ mod tests {
 
     #[test]
     fn test_cube() {
-        let result = openscad_parse(openscad_tokenize("cube(10);"));
+        let result = parse("cube(10);");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(
             result.statements,
@@ -1050,7 +1061,7 @@ mod tests {
 
     #[test]
     fn test_cube_vector() {
-        let result = openscad_parse(openscad_tokenize("cube([20,30,50]);"));
+        let result = parse("cube([20,30,50]);");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
 
@@ -1094,99 +1105,97 @@ mod tests {
 
     #[test]
     fn test_cube_vector_and_named_parameter() {
-        let result = openscad_parse(openscad_tokenize("cube([20,30,50],center=true);"));
+        let result = parse("cube([20,30,50],center=true);");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_translate_cube_vector_and_named_parameter() {
-        let result = openscad_parse(openscad_tokenize(
-            "translate([0,0,5]) cube([20,30,50],center=true);",
-        ));
+        let result = parse("translate([0,0,5]) cube([20,30,50],center=true);");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_binary_expression() {
-        let result = openscad_parse(openscad_tokenize("cube(20 - 0.1);"));
+        let result = parse("cube(20 - 0.1);");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_binary_expression_divide() {
-        let result = openscad_parse(openscad_tokenize("color([0,125,255]/255);"));
+        let result = parse("color([0,125,255]/255);");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_unary_expression() {
-        let result = openscad_parse(openscad_tokenize("cube(-20);"));
+        let result = parse("cube(-20);");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_set_fa() {
-        let result = openscad_parse(openscad_tokenize("$fa = 1;"));
+        let result = parse("$fa = 1;");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_include() {
-        let result = openscad_parse(openscad_tokenize("include <ray_trace.scad>"));
+        let result = parse("include <ray_trace.scad>");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_function_call() {
-        let result = openscad_parse(openscad_tokenize(
+        let result = parse(
             "
             lambertian(checker(scale=0.32, even=[0.2, 0.3, 0.1], odd=[0.9, 0.9, 0.9]))
                 translate([0.0, -1.0, -100.5])
                     sphere(r=100);
     ",
-        ));
+        );
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_for_loop() {
-        let result = openscad_parse(openscad_tokenize("for(a=[0:10]) sphere(r=a);"));
+        let result = parse("for(a=[0:10]) sphere(r=a);");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_for_loop_increment() {
-        let result = openscad_parse(openscad_tokenize("for(a=[0:2:10]) sphere(r=a);"));
+        let result = parse("for(a=[0:2:10]) sphere(r=a);");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_variable_assignment() {
-        let result = openscad_parse(openscad_tokenize("a = 1;"));
+        let result = parse("a = 1;");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_rands() {
-        let result = openscad_parse(openscad_tokenize("choose_mat = rands(0,1,1)[0];"));
+        let result = parse("choose_mat = rands(0,1,1)[0];");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_subtract_indexed() {
-        let result = openscad_parse(openscad_tokenize("v = pt2[0][1] - pt1[0];"));
+        let result = parse("v = pt2[0][1] - pt1[0];");
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
@@ -1194,24 +1203,24 @@ mod tests {
     #[test]
     fn test_function_decl() {
         let s = "function distance(pt1, pt2) = sqrt(pow(pt2[0]-pt1[0], 2) + pow(pt2[1]-pt1[1], 2) + pow(pt2[2]-pt1[2], 2));";
-        let result = openscad_parse(openscad_tokenize(s));
+        let result = parse(s);
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_if_else() {
-        let result = openscad_parse(openscad_tokenize(
+        let result = parse(
             r#"
             if (1 > 2) {
               echo("false");
             } else if (5 > 2) {
-              echo("true");
+              echo("ok");
             } else {
               echo("fail");
-            };
+            }
         "#,
-        ));
+        );
         assert_eq!(Vec::<ParseError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }

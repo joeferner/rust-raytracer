@@ -359,6 +359,7 @@ impl Interpreter {
     fn expr_to_value(&mut self, expr: &ExprWithPosition) -> Result<Value> {
         Ok(match &expr.item {
             Expr::Number(number) => Value::Number(*number),
+            Expr::String(str) => Value::String(str.clone()),
             Expr::Vector { items } => {
                 let items: Result<Vec<Value>> =
                     items.iter().map(|v| self.expr_to_value(v)).collect();
@@ -422,6 +423,7 @@ impl Interpreter {
                         },
                         Value::Vector { items } => todo!("items {items:?}"),
                         Value::Boolean(b) => todo!("{b}"),
+                        Value::String(str) => todo!("{str}"),
                         Value::Texture(texture) => todo!("texture {texture:?}"),
                         Value::Range {
                             start,
@@ -437,6 +439,7 @@ impl Interpreter {
             Value::Number(left) => match right {
                 Value::Number(right) => eval_number_number(operator, left, right),
                 Value::Vector { items } => todo!("{left:?} {operator:?} {items:?}"),
+                Value::String(str) => todo!("{left:?} {operator:?} {str}"),
                 Value::Boolean(b) => todo!("{left:?} {operator:?} {b}"),
                 Value::Texture(texture) => todo!("{left:?} {operator:?} {texture:?}"),
                 Value::Range {
@@ -449,6 +452,7 @@ impl Interpreter {
                 Value::Number(right) => eval_vector_number(operator, items, right),
                 Value::Vector { items } => todo!("{items:?} {operator:?} {items:?}"),
                 Value::Boolean(b) => todo!("{items:?} {operator:?} {b}"),
+                Value::String(str) => todo!("{items:?} {operator:?} {str}"),
                 Value::Texture(texture) => todo!("{items:?} {operator:?} {texture:?}"),
                 Value::Range {
                     start,
@@ -457,6 +461,7 @@ impl Interpreter {
                 } => todo!("{items:?} {operator:?} range({start:?}, {end:?}, {increment:?})"),
             },
             Value::Boolean(b) => todo!("{b}"),
+            Value::String(str) => todo!("{str}"),
             Value::Texture(texture) => todo!("texture {texture:?}"),
             Value::Range {
                 start,
@@ -607,6 +612,7 @@ impl Interpreter {
                 }
             }
             Value::Boolean(b) => todo!("evaluate_index {lhs:?} {b}"),
+            Value::String(str) => todo!("evaluate_index {lhs:?} {str}"),
             Value::Texture(texture) => todo!("evaluate_index {lhs:?} {texture:?}"),
             Value::Range {
                 start,
