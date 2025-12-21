@@ -212,6 +212,11 @@ impl Interpreter {
             } => self
                 .process_function_decl(function_name, arguments, expr)
                 .map(|_| None),
+            Statement::If {
+                expr,
+                true_statements,
+                false_statements,
+            } => self.process_if(expr, true_statements, false_statements),
         }
     }
 
@@ -665,6 +670,20 @@ impl Interpreter {
         self.variables.borrow_mut().push(HashMap::new());
         Scope {
             variables: self.variables.clone(),
+        }
+    }
+
+    fn process_if(
+        &mut self,
+        expr: &ExprWithPosition,
+        true_statements: &[StatementWithPosition],
+        false_statements: &[StatementWithPosition],
+    ) -> Result<Option<Arc<dyn Node>>> {
+        let v = self.expr_to_value(expr)?;
+        if v.is_truthy() {
+            self.process_child_statements(true_statements)
+        } else {
+            self.process_child_statements(false_statements)
         }
     }
 }

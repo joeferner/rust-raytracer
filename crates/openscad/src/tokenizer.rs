@@ -422,17 +422,38 @@ impl Tokenizer {
     }
 
     fn parse_string(&mut self) -> Result<Token> {
-        let result = String::new();
-
         self.expect('"')?;
 
+        let mut result = String::new();
         while let Some(ch) = self.current() {
             if ch == '"' {
                 break;
             } else if ch == '\\' {
                 self.advance();
-                self.advance();
+                if let Some(ch) = self.current() {
+                    match ch {
+                        'n' => result.push('\n'),
+                        't' => result.push('\t'),
+                        'r' => result.push('\r'),
+                        '\\' => result.push('\\'),
+                        '\'' => result.push('\''),
+                        '"' => result.push('"'),
+                        _ => {
+                            // If not a recognized escape, keep both characters
+                            result.push('\\');
+                            result.push(ch);
+                        }
+                    }
+                    self.advance();
+                } else {
+                    return Err(TokenizerError {
+                        message: "Expected escape character but found EOF".to_string(),
+                        start: self.pos,
+                        end: self.pos,
+                    });
+                }
             } else {
+                result.push(ch);
                 self.advance();
             }
         }

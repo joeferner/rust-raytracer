@@ -110,6 +110,21 @@ impl Value {
 
         Ok(Color::new(r, g, b))
     }
+
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Value::Number(number) => todo!("is_truthy {number}"),
+            Value::String(str) => todo!("is_truthy {str}"),
+            Value::Vector { items } => todo!("is_truthy {items:?}"),
+            Value::Boolean(b) => *b,
+            Value::Texture(texture) => todo!("is_truthy {texture:?}"),
+            Value::Range {
+                start,
+                end,
+                increment,
+            } => todo!("is_truthy {start:?} {end:?} {increment:?}"),
+        }
+    }
 }
 
 impl Display for Value {

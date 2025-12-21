@@ -16,6 +16,7 @@
         "rustup",
         "Schlick's",
         "serde",
+        "thiserror",
         "tmax",
         "tmin",
         "tsify"

@@ -1,9 +1,21 @@
 use std::vec;
 
+use thiserror::Error;
+
 use crate::{
     WithPosition,
     tokenizer::{Token, TokenWithPosition},
 };
+
+#[derive(Error, Debug, PartialEq)]
+#[error("Tokenizer error: {message} [{start}:{end}]")]
+pub struct ParserError {
+    pub message: String,
+    pub start: usize,
+    pub end: usize,
+}
+
+pub type Result<T> = std::result::Result<T, ParserError>;
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
@@ -30,7 +42,12 @@ pub enum Statement {
     // TODO '#' <module_instantiation>
     // TODO '%' <module_instantiation>
     // TODO '*' <module_instantiation>
-    // TODO <ifelse_statement>
+    //  <ifelse_statement>
+    If {
+        expr: ExprWithPosition,
+        true_statements: Vec<StatementWithPosition>,
+        false_statements: Vec<StatementWithPosition>,
+    },
     /// <single_module_instantiation> <child_statement>
     ModuleInstantiation {
         module_id: ModuleIdWithPosition,
@@ -193,23 +210,16 @@ pub enum UnaryOperator {
 
 pub type ExprWithPosition = WithPosition<Expr>;
 
-#[derive(Debug, PartialEq)]
-pub struct ParseError {
-    pub message: String,
-    pub start: usize,
-    pub end: usize,
-}
-
 #[derive(Debug)]
 pub struct ParseResult {
     pub statements: Vec<StatementWithPosition>,
-    pub errors: Vec<ParseError>,
+    pub errors: Vec<ParserError>,
 }
 
 struct Parser {
     tokens: Vec<TokenWithPosition>,
     pos: usize,
-    errors: Vec<ParseError>,
+    errors: Vec<ParserError>,
 }
 
 impl Parser {
@@ -260,41 +270,48 @@ impl Parser {
         }
     }
 
-    #[must_use]
-    fn expect(&mut self, expected: Token) -> bool {
+    fn expect(&mut self, expected: Token) -> Result<()> {
         match self.current() {
-            None => {
-                self.errors.push(ParseError {
-                    message: format!("Expected {:?}, found EOF", expected),
-                    start: 0,
-                    end: 0,
-                });
-                false
-            }
+            None => Err(ParserError {
+                message: format!("Expected {:?}, found EOF", expected),
+                start: 0,
+                end: 0,
+            }),
             Some(tok) => {
                 if tok.item == expected {
                     self.advance();
-                    true
+                    Ok(())
                 } else {
-                    self.errors.push(ParseError {
+                    Err(ParserError {
                         message: format!("Expected {:?}, found {:?}", expected, tok.item),
                         start: tok.start,
                         end: tok.end,
-                    });
-                    false
+                    })
                 }
             }
         }
     }
 
-    fn synchronize(&mut self) {
-        // Skip tokens until we find a semicolon or EOF
-        while let Some(tok) = self.current() {
-            if tok.item == Token::Semicolon {
-                self.advance();
-                break;
+    fn expect_identifier(&mut self) -> Result<String> {
+        match self.current() {
+            None => Err(ParserError {
+                message: "Expected identifier, found EOF".to_string(),
+                start: 0,
+                end: 0,
+            }),
+            Some(tok) => {
+                if let Token::Identifier(identifier) = &tok.item {
+                    let identifier = identifier.clone();
+                    self.advance();
+                    Ok(identifier)
+                } else {
+                    Err(ParserError {
+                        message: format!("Expected identifier, found {:?}", tok.item),
+                        start: tok.start,
+                        end: tok.end,
+                    })
+                }
             }
-            self.advance();
         }
     }
 
@@ -307,13 +324,13 @@ impl Parser {
     ///   "function" <identifier> '(' <arguments_decl> <optional_commas> ')' '=' <expr> ';'
     ///   <assignment>
     ///   <module_instantiation>
-    fn parse_statement(&mut self) -> Option<StatementWithPosition> {
+    fn parse_statement(&mut self) -> Result<StatementWithPosition> {
         let start = self.current_token_start();
 
         // ';'
         if self.current_matches(Token::Semicolon) {
             self.advance();
-            return Some(StatementWithPosition::new(
+            return Ok(StatementWithPosition::new(
                 Statement::Empty,
                 start,
                 self.current_token_start(),
@@ -329,7 +346,7 @@ impl Parser {
         {
             let filename = filename.to_owned();
             self.advance();
-            return Some(StatementWithPosition::new(
+            return Ok(StatementWithPosition::new(
                 Statement::Include { filename },
                 start,
                 self.current_token_start(),
@@ -352,11 +369,7 @@ impl Parser {
         }
 
         // <module_instantiation>
-        if let Some(module_instantiation) = self.parse_module_instantiation() {
-            return Some(module_instantiation);
-        }
-
-        todo!();
+        self.parse_module_instantiation()
     }
 
     /// <module_instantiation> ::=
@@ -366,7 +379,7 @@ impl Parser {
     ///   '*' <module_instantiation>
     ///   <ifelse_statement>
     ///   <single_module_instantiation> <child_statement>
-    fn parse_module_instantiation(&mut self) -> Option<StatementWithPosition> {
+    fn parse_module_instantiation(&mut self) -> Result<StatementWithPosition> {
         // TODO '!' <module_instantiation>
         // TODO '#' <module_instantiation>
         // TODO '%' <module_instantiation>
@@ -378,17 +391,13 @@ impl Parser {
         }
 
         // <single_module_instantiation> <child_statement>
-        if let Some(single_module_instantiation) = self.parse_single_module_instantiation() {
-            return Some(single_module_instantiation);
-        }
-
-        todo!();
+        self.parse_single_module_instantiation()
     }
 
     /// <single_module_instantiation> <child_statement>
     /// <single_module_instantiation> ::=
     ///   <module_id> '(' <call_arguments> ')'
-    fn parse_single_module_instantiation(&mut self) -> Option<StatementWithPosition> {
+    fn parse_single_module_instantiation(&mut self) -> Result<StatementWithPosition> {
         let start = self.current_token_start();
 
         // <module_id> '(' <call_arguments> ')'
@@ -396,7 +405,7 @@ impl Parser {
         let call_arguments = self.parse_call_arguments()?;
         let child_statements = self.parse_child_statements()?;
 
-        Some(StatementWithPosition::new(
+        Ok(StatementWithPosition::new(
             Statement::ModuleInstantiation {
                 module_id,
                 call_arguments,
@@ -411,43 +420,33 @@ impl Parser {
     ///   ';'
     ///   '{' <child_statements> '}'
     ///   <module_instantiation>
-    fn parse_child_statements(&mut self) -> Option<Vec<StatementWithPosition>> {
+    fn parse_child_statements(&mut self) -> Result<Vec<StatementWithPosition>> {
         // ';'
         if self.current_matches(Token::Semicolon) {
-            if !self.expect(Token::Semicolon) {
-                return None;
-            }
-            return Some(vec![]);
+            self.expect(Token::Semicolon)?;
+            return Ok(vec![]);
         }
 
         if self.current_matches(Token::LeftCurlyBracket) {
-            if !self.expect(Token::LeftCurlyBracket) {
-                return None;
-            }
+            self.expect(Token::LeftCurlyBracket)?;
             let mut child_statments: Vec<StatementWithPosition> = vec![];
             while !self.current_matches(Token::RightCurlyBracket) {
-                if let Some(stmt) = self.parse_statement() {
-                    child_statments.push(stmt);
-                }
+                let stmt = self.parse_statement()?;
+                child_statments.push(stmt);
             }
-            if !self.expect(Token::RightCurlyBracket) {
-                return None;
-            }
-            return Some(child_statments);
+            self.expect(Token::RightCurlyBracket)?;
+            return Ok(child_statments);
         }
 
         // <module_instantiation>
-        if let Some(module_instantiation) = self.parse_module_instantiation() {
-            return Some(vec![module_instantiation]);
-        }
-
-        None
+        let module_instantiation = self.parse_module_instantiation()?;
+        Ok(vec![module_instantiation])
     }
 
     /// <module_id> ::=
     ///   "for"
     ///   <identifier>
-    fn parse_module_id(&mut self) -> Option<ModuleIdWithPosition> {
+    fn parse_module_id(&mut self) -> Result<ModuleIdWithPosition> {
         let start = self.current_token_start();
 
         if let Some(current) = self.current() {
@@ -485,7 +484,7 @@ impl Parser {
                 _ => todo!("throw error {:?}", current.item),
             };
             self.advance();
-            return Some(ModuleIdWithPosition::new(
+            return Ok(ModuleIdWithPosition::new(
                 module_id,
                 start,
                 self.current_token_start(),
@@ -498,14 +497,12 @@ impl Parser {
     /// <call_arguments> ::=
     ///   '(' ')'
     ///   '(' <argument_call> (',' <optional_commas> <argument_call>)* ')'
-    fn parse_call_arguments(&mut self) -> Option<Vec<CallArgumentWithPosition>> {
-        if !self.expect(Token::LeftParen) {
-            self.synchronize();
-            return None;
-        }
+    fn parse_call_arguments(&mut self) -> Result<Vec<CallArgumentWithPosition>> {
+        self.expect(Token::LeftParen)?;
 
         let mut argument_calls: Vec<CallArgumentWithPosition> = vec![];
-        while let Some(argument_call) = self.parse_argument_call() {
+        loop {
+            let argument_call = self.parse_argument_call()?;
             argument_calls.push(argument_call);
 
             if self.current_matches(Token::RightParen) {
@@ -518,18 +515,15 @@ impl Parser {
             }
         }
 
-        if !self.expect(Token::RightParen) {
-            self.synchronize();
-            return None;
-        }
+        self.expect(Token::RightParen)?;
 
-        Some(argument_calls)
+        Ok(argument_calls)
     }
 
     /// <call_argument> ::=
     ///   <identifier> '=' <expr>
     ///   <expr>
-    fn parse_argument_call(&mut self) -> Option<CallArgumentWithPosition> {
+    fn parse_argument_call(&mut self) -> Result<CallArgumentWithPosition> {
         let start = self.current_token_start();
 
         // <identifier> '=' <expr>
@@ -538,35 +532,30 @@ impl Parser {
         {
             let identifier = identifier.to_owned();
             self.advance(); // identifier
-            self.advance(); // equals
-            if let Some(expr) = self.parse_expr() {
-                return Some(CallArgumentWithPosition::new(
-                    CallArgument::NamedArgument { identifier, expr },
-                    start,
-                    self.current_token_start(),
-                ));
-            } else {
-                return None;
-            }
-        }
+            self.expect(Token::Equals)?;
 
-        // <expr>
-        if let Some(expr) = self.parse_expr() {
-            return Some(CallArgumentWithPosition::new(
-                CallArgument::Expr { expr },
+            let expr = self.parse_expr()?;
+            return Ok(CallArgumentWithPosition::new(
+                CallArgument::NamedArgument { identifier, expr },
                 start,
                 self.current_token_start(),
             ));
         }
 
-        todo!();
+        // <expr>
+        let expr = self.parse_expr()?;
+        Ok(CallArgumentWithPosition::new(
+            CallArgument::Expr { expr },
+            start,
+            self.current_token_start(),
+        ))
     }
 
     /// <expr> '.' <identifier>
     /// <expr> '?' <expr> ':' <expr>
     /// <expr> '[' <expr> ']'
     /// <binary expression>
-    fn parse_expr(&mut self) -> Option<ExprWithPosition> {
+    fn parse_expr(&mut self) -> Result<ExprWithPosition> {
         self.parse_binary_expr(0)
     }
 
@@ -584,7 +573,7 @@ impl Parser {
     /// <expr> "&&" <expr>
     /// <expr> "||" <expr>
     /// <unary expression>
-    fn parse_binary_expr(&mut self, min_precedence: u8) -> Option<ExprWithPosition> {
+    fn parse_binary_expr(&mut self, min_precedence: u8) -> Result<ExprWithPosition> {
         let start = self.current_token_start();
 
         let mut lhs = self.parse_unary_expr()?;
@@ -596,25 +585,22 @@ impl Parser {
 
             self.advance(); // consume operator
 
-            if let Some(rhs) = self.parse_binary_expr(operator.precedence() + 1) {
-                lhs = ExprWithPosition::new(
-                    Expr::Binary {
-                        operator,
-                        lhs: Box::new(lhs),
-                        rhs: Box::new(rhs),
-                    },
-                    start,
-                    self.current_token_start(),
-                );
-            } else {
-                return None;
-            }
+            let rhs = self.parse_binary_expr(operator.precedence() + 1)?;
+            lhs = ExprWithPosition::new(
+                Expr::Binary {
+                    operator,
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                },
+                start,
+                self.current_token_start(),
+            );
         }
 
         // TODO '(' <expr> ')'
         // TODO <expr> '?' <expr> ':' <expr>
 
-        Some(lhs)
+        Ok(lhs)
     }
 
     /// "true"
@@ -634,7 +620,7 @@ impl Parser {
     /// '!' <expr>
     /// '(' <expr> ')'
     /// <identifier> <call_arguments>
-    fn parse_unary_expr(&mut self) -> Option<ExprWithPosition> {
+    fn parse_unary_expr(&mut self) -> Result<ExprWithPosition> {
         let start = self.current_token_start();
 
         // TODO '+' <expr>
@@ -661,9 +647,7 @@ impl Parser {
                 while !self.current_matches(Token::RightBracket) {
                     if !found_colon && self.current_matches(Token::Comma) {
                         found_comma = true;
-                        if !self.expect(Token::Comma) {
-                            return None;
-                        }
+                        self.expect(Token::Comma)?;
                         continue;
                     }
 
@@ -672,21 +656,14 @@ impl Parser {
                             todo!("add error since leading colon is not allowed");
                         }
                         found_colon = true;
-                        if !self.expect(Token::Colon) {
-                            return None;
-                        }
+                        self.expect(Token::Colon)?;
                         continue;
                     }
 
-                    if let Some(expr) = self.parse_expr() {
-                        expressions.push(expr);
-                    } else if found_colon {
-                        todo!("add error, expression is required in colon statements")
-                    }
+                    let expr = self.parse_expr()?;
+                    expressions.push(expr);
                 }
-                if !self.expect(Token::RightBracket) {
-                    return None;
-                }
+                self.expect(Token::RightBracket)?;
 
                 if found_colon {
                     let (start_expr, end_expr, increment_expr) = if expressions.len() == 2 {
@@ -772,19 +749,16 @@ impl Parser {
 
             Token::Minus => {
                 // '-' <expr>
-                self.advance();
-                if let Some(rhs) = self.parse_expr() {
-                    ExprWithPosition::new(
-                        Expr::Unary {
-                            operator: UnaryOperator::Minus,
-                            rhs: Box::new(rhs),
-                        },
-                        start,
-                        self.current_token_start(),
-                    )
-                } else {
-                    return None;
-                }
+                self.expect(Token::Minus)?;
+                let rhs = self.parse_expr()?;
+                ExprWithPosition::new(
+                    Expr::Unary {
+                        operator: UnaryOperator::Minus,
+                        rhs: Box::new(rhs),
+                    },
+                    start,
+                    self.current_token_start(),
+                )
             }
 
             other => {
@@ -797,15 +771,12 @@ impl Parser {
 
         // <expr> '[' <expr> ']'
         while self.current_matches(Token::LeftBracket) {
-            if !self.expect(Token::LeftBracket) {
-                return None;
-            }
+            self.expect(Token::LeftBracket)?;
 
             let index = self.parse_expr()?;
 
-            if !self.expect(Token::RightBracket) {
-                return None;
-            }
+            self.expect(Token::RightBracket)?;
+
             lhs = ExprWithPosition::new(
                 Expr::Index {
                     lhs: Box::new(lhs),
@@ -816,7 +787,7 @@ impl Parser {
             );
         }
 
-        Some(lhs)
+        Ok(lhs)
     }
 
     pub fn parse(mut self) -> ParseResult {
@@ -826,8 +797,9 @@ impl Parser {
             if tok.item == Token::Eof {
                 break;
             }
-            if let Some(stmt) = self.parse_statement() {
-                statements.push(stmt);
+            match self.parse_statement() {
+                Ok(stmt) => statements.push(stmt),
+                Err(err) => self.errors.push(err),
             }
         }
 
@@ -839,7 +811,7 @@ impl Parser {
 
     /// <assignment> ::=
     ///   <identifier> '=' <expr> ';'
-    fn parse_assignment(&mut self) -> Option<StatementWithPosition> {
+    fn parse_assignment(&mut self) -> Result<StatementWithPosition> {
         let start = self.current_token_start();
 
         // <identifier>
@@ -851,19 +823,15 @@ impl Parser {
         };
 
         // '='
-        if !self.expect(Token::Equals) {
-            todo!("expected equal");
-        }
+        self.expect(Token::Equals)?;
 
         // <expr>
         let expr = self.parse_expr()?;
 
         // ';'
-        if !self.expect(Token::Semicolon) {
-            todo!("expected semicolon");
-        }
+        self.expect(Token::Semicolon)?;
 
-        Some(StatementWithPosition::new(
+        Ok(StatementWithPosition::new(
             Statement::Assignment { identifier, expr },
             start,
             self.current_token_start(),
@@ -894,29 +862,20 @@ impl Parser {
     }
 
     /// <identifier> '(' <arguments_decl> <optional_commas> ')' '=' <expr> ';'
-    fn parse_function_decl(&mut self) -> Option<StatementWithPosition> {
+    fn parse_function_decl(&mut self) -> Result<StatementWithPosition> {
         let start = self.current_token_start();
 
-        let function_name = if let Some(identifier) = self.current_matches_identifier() {
-            self.advance(); // identifier
-            identifier
-        } else {
-            return None;
-        };
+        let function_name = self.expect_identifier()?;
 
         let arguments = self.parse_decl_arguments()?;
 
-        if !self.expect(Token::Equals) {
-            return None;
-        }
+        self.expect(Token::Equals)?;
 
         let expr = self.parse_expr()?;
 
-        if !self.expect(Token::Semicolon) {
-            return None;
-        }
+        self.expect(Token::Semicolon)?;
 
-        Some(StatementWithPosition::new(
+        Ok(StatementWithPosition::new(
             Statement::FunctionDecl {
                 function_name,
                 arguments,
@@ -930,10 +889,8 @@ impl Parser {
     /// <empty>
     /// <argument_decl>
     /// <arguments_decl> ',' <optional_commas> <argument_decl>
-    fn parse_decl_arguments(&mut self) -> Option<Vec<DeclArgumentWithPosition>> {
-        if !self.expect(Token::LeftParen) {
-            return None;
-        }
+    fn parse_decl_arguments(&mut self) -> Result<Vec<DeclArgumentWithPosition>> {
+        self.expect(Token::LeftParen)?;
 
         let mut arguments: Vec<DeclArgumentWithPosition> = vec![];
 
@@ -950,11 +907,9 @@ impl Parser {
             }
         }
 
-        if !self.expect(Token::RightParen) {
-            return None;
-        }
+        self.expect(Token::RightParen)?;
 
-        Some(arguments)
+        Ok(arguments)
     }
 
     /// <identifier>
@@ -985,28 +940,35 @@ impl Parser {
     ///   <if_statement> "else" <child_statement>
     /// <if_statement> ::=
     ///   "if" '(' <expr> ')' <child_statement>
-    fn parse_ifelse_statement(&mut self) -> Option<StatementWithPosition> {
-        if !self.expect(Token::If) {
-            return None;
-        }
+    fn parse_ifelse_statement(&mut self) -> Result<StatementWithPosition> {
+        let start = self.current_token_start();
 
-        if !self.expect(Token::LeftParen) {
-            return None;
-        }
+        self.expect(Token::If)?;
+        self.expect(Token::LeftParen)?;
 
         let expr = self.parse_expr()?;
 
-        if !self.expect(Token::RightParen) {
-            return None;
-        }
+        self.expect(Token::RightParen)?;
 
-        let child_statement = self.parse_child_statements()?;
+        let true_statements = self.parse_child_statements()?;
 
-        if self.current_matches(Token::Else) {
-            todo!("else");
-        }
+        let false_statements = if self.current_matches(Token::Else) {
+            self.expect(Token::Else)?;
+            self.parse_child_statements()?
+        } else {
+            vec![]
+        };
 
-        todo!("if {expr:?} {child_statement:?}");
+        let stmt = Statement::If {
+            expr,
+            true_statements,
+            false_statements,
+        };
+        Ok(StatementWithPosition::new(
+            stmt,
+            start,
+            self.current_token_start(),
+        ))
     }
 }
 
@@ -1028,7 +990,7 @@ mod tests {
     #[test]
     fn test_empty_statement() {
         let result = parse(";");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(
             result.statements,
             vec![StatementWithPosition::new(Statement::Empty, 0, 1)]
@@ -1038,7 +1000,7 @@ mod tests {
     #[test]
     fn test_cube() {
         let result = parse("cube(10);");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(
             result.statements,
             vec![StatementWithPosition::new(
@@ -1062,7 +1024,7 @@ mod tests {
     #[test]
     fn test_cube_vector() {
         let result = parse("cube([20,30,50]);");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
 
         // Statement::ModuleInstantiation
@@ -1106,49 +1068,49 @@ mod tests {
     #[test]
     fn test_cube_vector_and_named_parameter() {
         let result = parse("cube([20,30,50],center=true);");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_translate_cube_vector_and_named_parameter() {
         let result = parse("translate([0,0,5]) cube([20,30,50],center=true);");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_binary_expression() {
         let result = parse("cube(20 - 0.1);");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_binary_expression_divide() {
         let result = parse("color([0,125,255]/255);");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_unary_expression() {
         let result = parse("cube(-20);");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_set_fa() {
         let result = parse("$fa = 1;");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_include() {
         let result = parse("include <ray_trace.scad>");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
@@ -1161,42 +1123,42 @@ mod tests {
                     sphere(r=100);
     ",
         );
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_for_loop() {
         let result = parse("for(a=[0:10]) sphere(r=a);");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_for_loop_increment() {
         let result = parse("for(a=[0:2:10]) sphere(r=a);");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_variable_assignment() {
         let result = parse("a = 1;");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_rands() {
         let result = parse("choose_mat = rands(0,1,1)[0];");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
     #[test]
     fn test_subtract_indexed() {
         let result = parse("v = pt2[0][1] - pt1[0];");
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
@@ -1204,7 +1166,7 @@ mod tests {
     fn test_function_decl() {
         let s = "function distance(pt1, pt2) = sqrt(pow(pt2[0]-pt1[0], 2) + pow(pt2[1]-pt1[1], 2) + pow(pt2[2]-pt1[2], 2));";
         let result = parse(s);
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 
@@ -1221,7 +1183,7 @@ mod tests {
             }
         "#,
         );
-        assert_eq!(Vec::<ParseError>::new(), result.errors);
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }
 }

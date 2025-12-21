@@ -73,6 +73,14 @@ mod tests {
     }
 
     #[test]
+    fn test_echo_string() {
+        let s = r#"echo("ok\ntest");"#;
+
+        let result = interpret(s);
+        assert_eq!(result.output, "\"ok\\ntest\"\n");
+    }
+
+    #[test]
     fn test_if_else() {
         let s = r#"
             if (1 > 2) {
@@ -85,6 +93,6 @@ mod tests {
         "#;
 
         let result = interpret(s);
-        assert_eq!(result.output, "ok");
+        assert_eq!(result.output, "\"ok\"\n");
     }
 }
