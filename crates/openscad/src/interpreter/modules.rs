@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rust_raytracer_core::{
     CameraBuilder, Node, Vector3,
-    object::{BoxPrimitive, ConeFrustum, Rotate, Scale, Sphere, Translate},
+    object::{BoxPrimitive, ConeFrustum, Group, Rotate, Scale, Sphere, Translate},
 };
 
 use crate::{
@@ -20,7 +20,7 @@ impl Interpreter {
         module_id: &ModuleIdWithPosition,
         arguments: &[CallArgumentWithPosition],
         child_statements: &[StatementWithPosition],
-    ) -> Result<Option<Arc<dyn Node>>> {
+    ) -> Result<Vec<Arc<dyn Node>>> {
         if module_id.item == ModuleId::Color {
             let color = self.create_color(arguments)?;
             self.material_stack.push(color);
@@ -37,22 +37,26 @@ impl Interpreter {
             return self.process_for_loop(arguments, child_statements);
         }
 
-        let child = self.process_child_statements(child_statements)?;
+        let child_nodes = self.process_child_statements(child_statements)?;
 
         match &module_id.item {
-            ModuleId::Cube => self.create_cube(arguments, child).map(Some),
-            ModuleId::Sphere => self.create_sphere(arguments, child).map(Some),
-            ModuleId::Cylinder => self.create_cylinder(arguments, child).map(Some),
-            ModuleId::Translate => self.create_translate(arguments, child).map(Some),
-            ModuleId::Rotate => self.create_rotate(arguments, child).map(Some),
-            ModuleId::Scale => self.create_scale(arguments, child).map(Some),
-            ModuleId::Camera => self.create_camera(arguments, child).map(|_| None),
+            ModuleId::Cube => self.create_cube(arguments, child_nodes).map(|n| vec![n]),
+            ModuleId::Sphere => self.create_sphere(arguments, child_nodes).map(|n| vec![n]),
+            ModuleId::Cylinder => self
+                .create_cylinder(arguments, child_nodes)
+                .map(|n| vec![n]),
+            ModuleId::Translate => self
+                .create_translate(arguments, child_nodes)
+                .map(|n| vec![n]),
+            ModuleId::Rotate => self.create_rotate(arguments, child_nodes).map(|n| vec![n]),
+            ModuleId::Scale => self.create_scale(arguments, child_nodes).map(|n| vec![n]),
+            ModuleId::Camera => self.create_camera(arguments, child_nodes).map(|_| vec![]),
             ModuleId::Color | ModuleId::Lambertian | ModuleId::Dielectric | ModuleId::Metal => {
                 self.material_stack.pop();
-                Ok(child)
+                Ok(child_nodes)
             }
             ModuleId::For => panic!("already handled"),
-            ModuleId::Echo => self.evaluate_echo(arguments, child).map(|_| None),
+            ModuleId::Echo => self.evaluate_echo(arguments, child_nodes).map(|_| vec![]),
             ModuleId::Identifier(identifier) => {
                 todo!("ModuleId::Identifier {identifier}")
             }
@@ -62,9 +66,9 @@ impl Interpreter {
     fn create_cube(
         &mut self,
         arguments: &[CallArgumentWithPosition],
-        child: Option<Arc<dyn Node>>,
+        child_nodes: Vec<Arc<dyn Node>>,
     ) -> Result<Arc<dyn Node>> {
-        if child.is_some() {
+        if !child_nodes.is_empty() {
             todo!("should not have children");
         }
 
@@ -94,9 +98,9 @@ impl Interpreter {
     fn create_sphere(
         &mut self,
         arguments: &[CallArgumentWithPosition],
-        child: Option<Arc<dyn Node>>,
+        child_nodes: Vec<Arc<dyn Node>>,
     ) -> Result<Arc<dyn Node>> {
-        if child.is_some() {
+        if !child_nodes.is_empty() {
             todo!("should not have children");
         }
 
@@ -120,9 +124,9 @@ impl Interpreter {
     fn create_cylinder(
         &mut self,
         arguments: &[CallArgumentWithPosition],
-        child: Option<Arc<dyn Node>>,
+        child_nodes: Vec<Arc<dyn Node>>,
     ) -> Result<Arc<dyn Node>> {
-        if child.is_some() {
+        if !child_nodes.is_empty() {
             todo!("should not have children");
         }
 
@@ -189,9 +193,12 @@ impl Interpreter {
     fn create_translate(
         &mut self,
         arguments: &[CallArgumentWithPosition],
-        child: Option<Arc<dyn Node>>,
+        child_nodes: Vec<Arc<dyn Node>>,
     ) -> Result<Arc<dyn Node>> {
-        let child = child.unwrap_or_else(|| todo!("should have children"));
+        if child_nodes.is_empty() {
+            todo!("should have children");
+        }
+        let child = Arc::new(Group::from_list(&child_nodes));
 
         let mut offset = Vector3::new(0.0, 0.0, 0.0);
 
@@ -208,9 +215,12 @@ impl Interpreter {
     fn create_rotate(
         &mut self,
         arguments: &[CallArgumentWithPosition],
-        child: Option<Arc<dyn Node>>,
+        child_nodes: Vec<Arc<dyn Node>>,
     ) -> Result<Arc<dyn Node>> {
-        let child = child.unwrap_or_else(|| todo!("should have children"));
+        if child_nodes.is_empty() {
+            todo!("should have children");
+        }
+        let child = Arc::new(Group::from_list(&child_nodes));
 
         let arguments = self.convert_args(&["a", "v"], arguments)?;
 
@@ -245,9 +255,12 @@ impl Interpreter {
     fn create_scale(
         &mut self,
         arguments: &[CallArgumentWithPosition],
-        child: Option<Arc<dyn Node>>,
+        child_nodes: Vec<Arc<dyn Node>>,
     ) -> Result<Arc<dyn Node>> {
-        let child = child.unwrap_or_else(|| todo!("should have children"));
+        if child_nodes.is_empty() {
+            todo!("should have children");
+        }
+        let child = Arc::new(Group::from_list(&child_nodes));
 
         let arguments = self.convert_args(&["v"], arguments)?;
 
@@ -262,9 +275,9 @@ impl Interpreter {
     fn create_camera(
         &mut self,
         arguments: &[CallArgumentWithPosition],
-        child: Option<Arc<dyn Node>>,
+        child_nodes: Vec<Arc<dyn Node>>,
     ) -> Result<()> {
-        if child.is_some() {
+        if !child_nodes.is_empty() {
             todo!("should not have children");
         }
 
@@ -357,9 +370,9 @@ impl Interpreter {
     fn evaluate_echo(
         &mut self,
         arguments: &[CallArgumentWithPosition],
-        child: Option<Arc<dyn Node>>,
+        child_nodes: Vec<Arc<dyn Node>>,
     ) -> Result<()> {
-        if child.is_some() {
+        if !child_nodes.is_empty() {
             todo!("should not have children");
         }
 

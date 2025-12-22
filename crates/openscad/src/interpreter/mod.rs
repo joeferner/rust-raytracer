@@ -10,7 +10,7 @@ use rand_mt::Mt64;
 use rust_raytracer_core::{
     Camera, CameraBuilder, Color, Node, SceneData, Vector3,
     material::{Dielectric, Lambertian, Material, Metal},
-    object::{BoundingVolumeHierarchy, Group},
+    object::BoundingVolumeHierarchy,
 };
 
 use crate::{
@@ -153,10 +153,8 @@ impl Interpreter {
     fn interpret(mut self, statements: Vec<StatementWithPosition>) -> InterpreterResults {
         for statement in statements {
             match self.process_statement(&statement) {
-                Ok(node) => {
-                    if let Some(node) = node {
-                        self.world.push(node);
-                    }
+                Ok(mut nodes) => {
+                    self.world.append(&mut nodes);
                 }
                 Err(err) => todo!("error {err:?}"),
             }
@@ -198,16 +196,16 @@ impl Interpreter {
     fn process_statement(
         &mut self,
         statement: &StatementWithPosition,
-    ) -> Result<Option<Arc<dyn Node>>> {
+    ) -> Result<Vec<Arc<dyn Node>>> {
         match &statement.item {
-            Statement::Empty => Ok(None),
+            Statement::Empty => Ok(vec![]),
             Statement::ModuleInstantiation {
                 module_id,
                 call_arguments,
                 child_statements,
             } => self.process_module_instantiation(module_id, call_arguments, child_statements),
             Statement::Assignment { identifier, expr } => {
-                self.process_assignment(identifier, expr).map(|_| None)
+                self.process_assignment(identifier, expr).map(|_| vec![])
             }
             Statement::Include { filename } => self.process_include(filename),
             Statement::FunctionDecl {
@@ -216,7 +214,7 @@ impl Interpreter {
                 expr,
             } => self
                 .process_function_decl(function_name, arguments, expr)
-                .map(|_| None),
+                .map(|_| vec![]),
             Statement::If {
                 expr,
                 true_statements,
@@ -313,7 +311,7 @@ impl Interpreter {
         &mut self,
         arguments: &[CallArgumentWithPosition],
         child_statements: &[StatementWithPosition],
-    ) -> Result<Option<Arc<dyn Node>>> {
+    ) -> Result<Vec<Arc<dyn Node>>> {
         if arguments.len() != 1 {
             todo!("for loop should only have one argument");
         }
@@ -359,31 +357,30 @@ impl Interpreter {
             }
 
             self.set_variable(name, Value::Number(i));
-            if let Some(child) = self.process_child_statements(child_statements)? {
-                children.push(child);
-            }
+
+            let mut child_statement_nodes = self.process_child_statements(child_statements)?;
+            children.append(&mut child_statement_nodes);
 
             i += increment;
         }
 
-        Ok(Some(Arc::new(Group::from_list(&children))))
+        Ok(children)
     }
 
     fn process_child_statements(
         &mut self,
         child_statements: &[StatementWithPosition],
-    ) -> Result<Option<Arc<dyn Node>>> {
+    ) -> Result<Vec<Arc<dyn Node>>> {
         if child_statements.is_empty() {
-            return Ok(None);
+            return Ok(vec![]);
         }
 
         let mut nodes = vec![];
         for statement in child_statements {
-            if let Some(node) = self.process_statement(statement)? {
-                nodes.push(node);
-            }
+            let mut child_nodes = self.process_statement(statement)?;
+            nodes.append(&mut child_nodes);
         }
-        Ok(Some(Arc::new(Group::from_list(&nodes))))
+        Ok(nodes)
     }
 
     fn process_assignment(&mut self, identifier: &str, expr: &ExprWithPosition) -> Result<()> {
@@ -400,9 +397,9 @@ impl Interpreter {
         Ok(())
     }
 
-    fn process_include(&self, filename: &str) -> Result<Option<Arc<dyn Node>>> {
+    fn process_include(&self, filename: &str) -> Result<Vec<Arc<dyn Node>>> {
         if filename.ends_with("ray_trace.scad") {
-            return Ok(None);
+            return Ok(vec![]);
         }
 
         todo!("include {filename}")
@@ -534,7 +531,7 @@ impl Interpreter {
         expr: &ExprWithPosition,
         true_statements: &[StatementWithPosition],
         false_statements: &[StatementWithPosition],
-    ) -> Result<Option<Arc<dyn Node>>> {
+    ) -> Result<Vec<Arc<dyn Node>>> {
         let v = self.expr_to_value(expr)?;
         if v.is_truthy() {
             self.process_child_statements(true_statements)
