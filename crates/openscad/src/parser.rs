@@ -761,6 +761,14 @@ impl Parser {
                 )
             }
 
+            Token::LeftParen => {
+                // '(' <expr> ')'
+                self.expect(Token::LeftParen)?;
+                let expr = self.parse_expr()?;
+                self.expect(Token::RightParen)?;
+                expr
+            }
+
             other => {
                 // TODO "let" <call_arguments> <expr>
                 // TODO "undef"
@@ -1096,6 +1104,13 @@ mod tests {
     #[test]
     fn test_unary_expression() {
         let result = parse("cube(-20);");
+        assert_eq!(Vec::<ParserError>::new(), result.errors);
+        assert_eq!(1, result.statements.len());
+    }
+
+    #[test]
+    fn test_negate_parens() {
+        let result = parse("echo(-(20 + 3));");
         assert_eq!(Vec::<ParserError>::new(), result.errors);
         assert_eq!(1, result.statements.len());
     }

@@ -34,9 +34,7 @@ impl Interpreter {
             let color = self.create_metal(arguments)?;
             self.material_stack.push(color);
         } else if module_id.item == ModuleId::For {
-            return self
-                .process_for_loop(arguments, child_statements)
-                .map(|_| None);
+            return self.process_for_loop(arguments, child_statements);
         }
 
         let child = self.process_child_statements(child_statements)?;
@@ -51,7 +49,7 @@ impl Interpreter {
             ModuleId::Camera => self.create_camera(arguments, child).map(|_| None),
             ModuleId::Color | ModuleId::Lambertian | ModuleId::Dielectric | ModuleId::Metal => {
                 self.material_stack.pop();
-                Ok(None)
+                Ok(child)
             }
             ModuleId::For => panic!("already handled"),
             ModuleId::Echo => self.evaluate_echo(arguments, child).map(|_| None),

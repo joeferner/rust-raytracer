@@ -152,8 +152,13 @@ impl Interpreter {
 
     fn interpret(mut self, statements: Vec<StatementWithPosition>) -> InterpreterResults {
         for statement in statements {
-            if let Err(err) = self.process_statement(&statement) {
-                todo!("error {err:?}");
+            match self.process_statement(&statement) {
+                Ok(node) => {
+                    if let Some(node) = node {
+                        self.world.push(node);
+                    }
+                }
+                Err(err) => todo!("error {err:?}"),
             }
         }
 
@@ -308,7 +313,7 @@ impl Interpreter {
         &mut self,
         arguments: &[CallArgumentWithPosition],
         child_statements: &[StatementWithPosition],
-    ) -> Result<()> {
+    ) -> Result<Option<Arc<dyn Node>>> {
         if arguments.len() != 1 {
             todo!("for loop should only have one argument");
         }
@@ -347,18 +352,21 @@ impl Interpreter {
         }
 
         let mut i = start;
+        let mut children = vec![];
         loop {
             if (end >= start && i >= end) || (end < start && i <= end) {
                 break;
             }
 
             self.set_variable(name, Value::Number(i));
-            self.process_child_statements(child_statements)?;
+            if let Some(child) = self.process_child_statements(child_statements)? {
+                children.push(child);
+            }
 
             i += increment;
         }
 
-        Ok(())
+        Ok(Some(Arc::new(Group::from_list(&children))))
     }
 
     fn process_child_statements(
