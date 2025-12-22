@@ -35,7 +35,7 @@ for(a = [-11 : 11]) {
               b + 0.9 * rands(0,1,1)[0],
         ];
 
-        if (distance(center - [4.0, 0.2, 0.0]) > 0.9) {
+        if (distance(center, [4.0, 0.2, 0.0]) > 0.9) {
           // if choose_mat < 0.8 {
           //     // diffuse
           //     let albedo = Color::random(&*ctx.random) * Color::random(&*ctx.random);

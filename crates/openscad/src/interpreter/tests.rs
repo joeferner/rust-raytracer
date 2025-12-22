@@ -14,15 +14,51 @@ mod tests {
     }
 
     #[test]
-    fn test_binary_expression() {
-        let result = interpret("cube(20 - 0.1);");
-        assert_eq!(Vec::<InterpreterError>::new(), result.errors);
+    fn test_binary_expression_scalar_subtraction() {
+        let result = interpret("echo(20 - 0.1);");
+        assert_eq!(result.output, "19.9\n");
     }
 
     #[test]
-    fn test_unary_expression() {
-        let result = interpret("cube(-20);");
-        assert_eq!(Vec::<InterpreterError>::new(), result.errors);
+    fn test_binary_expression_vector_subtraction() {
+        let result = interpret("echo([5, 8, -12] - [3, -4, 18]);");
+        assert_eq!(result.output, "[2, 12, -30]\n");
+    }
+
+    #[test]
+    fn test_binary_expression_vector_subtraction_left_smaller() {
+        let result = interpret("echo([5, 8] - [3, -4, 18]);");
+        assert_eq!(result.output, "[2, 12]\n");
+    }
+
+    #[test]
+    fn test_binary_expression_vector_subtraction_right_smaller() {
+        let result = interpret("echo([5, 8, -12] - [3, -4]);");
+        assert_eq!(result.output, "[2, 12]\n");
+    }
+
+    #[test]
+    fn test_unary_expression_negation() {
+        let result = interpret("echo(-20);");
+        assert_eq!(result.output, "-20\n");
+    }
+
+    #[test]
+    fn test_order_of_operations_multiplication_first() {
+        let result = interpret("echo(2 + 3 * -5);");
+        assert_eq!(result.output, "-13\n");
+    }
+
+    #[test]
+    fn test_order_of_operations_left_to_right() {
+        let result = interpret("echo(2 * 3 + 5);");
+        assert_eq!(result.output, "11\n");
+    }
+
+    #[test]
+    fn test_order_of_operations_with_comparison() {
+        let result = interpret("echo(2 + 3 * 5 < 15);");
+        assert_eq!(result.output, "false\n");
     }
 
     #[test]
@@ -47,18 +83,6 @@ mod tests {
     fn test_rands() {
         let result = interpret("choose_mat = rands(0,1,1)[0];");
         assert_eq!(Vec::<InterpreterError>::new(), result.errors);
-    }
-
-    #[test]
-    fn test_order_of_operations() {
-        let result = interpret("echo(2 + 3 * 5);");
-        assert_eq!(result.output, "17\n");
-
-        let result = interpret("echo(2 * 3 + 5);");
-        assert_eq!(result.output, "11\n");
-
-        let result = interpret("echo(2 + 3 * 5 < 15);");
-        assert_eq!(result.output, "false\n");
     }
 
     #[test]

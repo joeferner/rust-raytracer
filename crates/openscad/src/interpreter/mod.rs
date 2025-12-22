@@ -1,3 +1,4 @@
+pub mod expr;
 pub mod functions;
 pub mod modules;
 #[cfg(test)]
@@ -14,9 +15,8 @@ use rust_raytracer_core::{
 
 use crate::{
     parser::{
-        BinaryOperator, CallArgument, CallArgumentWithPosition, DeclArgument,
-        DeclArgumentWithPosition, Expr, ExprWithPosition, Statement, StatementWithPosition,
-        UnaryOperator,
+        CallArgument, CallArgumentWithPosition, DeclArgument, DeclArgumentWithPosition,
+        ExprWithPosition, Statement, StatementWithPosition,
     },
     value::{Value, ValueConversionError},
 };
@@ -361,137 +361,6 @@ impl Interpreter {
         Ok(())
     }
 
-    fn expr_to_value(&mut self, expr: &ExprWithPosition) -> Result<Value> {
-        Ok(match &expr.item {
-            Expr::Number(number) => Value::Number(*number),
-            Expr::String(str) => Value::String(str.clone()),
-            Expr::Vector { items } => {
-                let items: Result<Vec<Value>> =
-                    items.iter().map(|v| self.expr_to_value(v)).collect();
-                Value::Vector { items: items? }
-            }
-            Expr::True => Value::Boolean(true),
-            Expr::False => Value::Boolean(false),
-            Expr::Binary { operator, lhs, rhs } => {
-                self.evaluate_binary_expression(operator, lhs, rhs)?
-            }
-            Expr::Unary { operator, rhs } => self.evaluate_unary_expression(operator, rhs)?,
-            Expr::FunctionCall { name, arguments } => {
-                self.evaluate_function_call(name, arguments)?
-            }
-            Expr::Range {
-                start,
-                end,
-                increment,
-            } => self.evaluate_range_expression(start, end, increment)?,
-            Expr::Identifier { name } => self.evaluate_identifier(name)?,
-            Expr::Index { lhs, index } => self.evaluate_index(lhs, index)?,
-        })
-    }
-
-    fn evaluate_binary_expression(
-        &mut self,
-        operator: &BinaryOperator,
-        lhs: &ExprWithPosition,
-        rhs: &ExprWithPosition,
-    ) -> Result<Value> {
-        let left = self.expr_to_value(lhs)?;
-        let right = self.expr_to_value(rhs)?;
-
-        fn eval_number_number(operator: &BinaryOperator, left: f64, right: f64) -> Value {
-            match operator {
-                BinaryOperator::Add => Value::Number(left + right),
-                BinaryOperator::Subtract => Value::Number(left - right),
-                BinaryOperator::Multiply => Value::Number(left * right),
-                BinaryOperator::Divide => Value::Number(left / right),
-                BinaryOperator::LessThan => Value::Boolean(left < right),
-                BinaryOperator::LessThanEqual => Value::Boolean(left <= right),
-                BinaryOperator::GreaterThan => Value::Boolean(left > right),
-                BinaryOperator::GreaterThanEqual => Value::Boolean(left >= right),
-            }
-        }
-
-        fn eval_vector_number(operator: &BinaryOperator, left: Vec<Value>, right: f64) -> Value {
-            Value::Vector {
-                items: left
-                    .iter()
-                    .map(|item| match item {
-                        Value::Number(v) => match operator {
-                            BinaryOperator::Subtract => Value::Number(v - right),
-                            BinaryOperator::Divide => Value::Number(v / right),
-                            BinaryOperator::Add => todo!(),
-                            BinaryOperator::Multiply => todo!(),
-                            BinaryOperator::LessThan => todo!(),
-                            BinaryOperator::LessThanEqual => todo!(),
-                            BinaryOperator::GreaterThan => todo!(),
-                            BinaryOperator::GreaterThanEqual => todo!(),
-                        },
-                        Value::Vector { items } => todo!("items {items:?}"),
-                        Value::Boolean(b) => todo!("{b}"),
-                        Value::String(str) => todo!("{str}"),
-                        Value::Texture(texture) => todo!("texture {texture:?}"),
-                        Value::Range {
-                            start,
-                            end,
-                            increment,
-                        } => todo!("range: {start:?}, {end:?}, {increment:?}"),
-                    })
-                    .collect(),
-            }
-        }
-
-        Ok(match left {
-            Value::Number(left) => match right {
-                Value::Number(right) => eval_number_number(operator, left, right),
-                Value::Vector { items } => todo!("{left:?} {operator:?} {items:?}"),
-                Value::String(str) => todo!("{left:?} {operator:?} {str}"),
-                Value::Boolean(b) => todo!("{left:?} {operator:?} {b}"),
-                Value::Texture(texture) => todo!("{left:?} {operator:?} {texture:?}"),
-                Value::Range {
-                    start,
-                    end,
-                    increment,
-                } => todo!("{left:?} {operator:?} range({start:?}, {end:?}, {increment:?})"),
-            },
-            Value::Vector { items } => match right {
-                Value::Number(right) => eval_vector_number(operator, items, right),
-                Value::Vector { items } => todo!("{items:?} {operator:?} {items:?}"),
-                Value::Boolean(b) => todo!("{items:?} {operator:?} {b}"),
-                Value::String(str) => todo!("{items:?} {operator:?} {str}"),
-                Value::Texture(texture) => todo!("{items:?} {operator:?} {texture:?}"),
-                Value::Range {
-                    start,
-                    end,
-                    increment,
-                } => todo!("{items:?} {operator:?} range({start:?}, {end:?}, {increment:?})"),
-            },
-            Value::Boolean(b) => todo!("{b}"),
-            Value::String(str) => todo!("{str}"),
-            Value::Texture(texture) => todo!("texture {texture:?}"),
-            Value::Range {
-                start,
-                end,
-                increment,
-            } => todo!("range: {start:?}, {end:?}, {increment:?}"),
-        })
-    }
-
-    fn evaluate_unary_expression(
-        &mut self,
-        operator: &UnaryOperator,
-        rhs: &ExprWithPosition,
-    ) -> Result<Value> {
-        let right = self.expr_to_value(rhs)?;
-
-        if let Value::Number(right) = right {
-            match operator {
-                UnaryOperator::Minus => Ok(Value::Number(-right)),
-            }
-        } else {
-            todo!("{operator:?} {right:?}");
-        }
-    }
-
     fn process_child_statements(
         &mut self,
         child_statements: &[StatementWithPosition],
@@ -568,27 +437,6 @@ impl Interpreter {
         }
 
         Ok(results)
-    }
-
-    fn evaluate_range_expression(
-        &mut self,
-        start: &ExprWithPosition,
-        end: &ExprWithPosition,
-        increment: &Option<Box<ExprWithPosition>>,
-    ) -> Result<Value> {
-        let start = Box::new(self.expr_to_value(start)?);
-        let end = Box::new(self.expr_to_value(end)?);
-        let increment = if let Some(increment) = increment {
-            Some(Box::new(self.expr_to_value(increment)?))
-        } else {
-            None
-        };
-
-        Ok(Value::Range {
-            start,
-            end,
-            increment,
-        })
     }
 
     fn evaluate_identifier(&self, name: &str) -> Result<Value> {
