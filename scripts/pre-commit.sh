@@ -36,9 +36,9 @@ cargo test --workspace --exclude rust-raytracer-wasm
 
 banner "wasm-pack"
 cd "${SCRIPT_DIR}/../crates/wasm"
-wasm-pack build --target web --release
+./scripts/build.sh
 
-cd "${SCRIPT_DIR}/../web-app"
+cd "${SCRIPT_DIR}/../web-app/frontend"
 
 banner "nvm install"
 nvm install
