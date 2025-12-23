@@ -1,37 +1,53 @@
-use axum::Json;
-use serde::Serialize;
-use tower_http::cors::CorsLayer;
-use utoipa::{OpenApi, ToSchema};
+pub mod routes;
+pub mod jwt;
+
+use std::sync::Arc;
+
+use routes::auth::{__path_google_auth_handler, google_auth_handler};
+use routes::user::{__path_get_user_me, get_user_me};
+use tower_http::{cors, cors::CorsLayer};
+use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use utoipa_swagger_ui::SwaggerUi;
 
-const USER_TAG: &str = "user";
+pub const AUTH_TAG: &str = "auth";
+pub const USER_TAG: &str = "user";
 
 #[derive(OpenApi)]
 #[openapi(
     tags(
+        (name = AUTH_TAG, description = "Auth endpoints"),
         (name = USER_TAG, description = "User management endpoints")
     )
 )]
 struct ApiDoc;
 
-#[derive(ToSchema, Debug, Serialize)]
-struct UserMe {
-    pub name: String,
-}
-
-#[utoipa::path(get, path = "/api/v1/user/me", responses((status = OK, body = UserMe)), tag = USER_TAG)]
-async fn get_user_me() -> Json<UserMe> {
-    Json(UserMe {
-        name: "test".to_string(),
-    })
+#[derive(Clone)]
+pub struct AppState {
+    pub google_client_id: String,
+    pub google_client_secret: String,
+    pub redirect_url: String,
+    pub jwt_secret: String,
 }
 
 #[tokio::main]
 async fn main() {
+    let state = Arc::new(AppState {
+        google_client_id: "YOUR_CLIENT_ID".to_string(),
+        google_client_secret: "YOUR_CLIENT_SECRET".to_string(),
+        redirect_url: "http://localhost:5173".to_string(),
+        jwt_secret: "my-secret".to_string(),
+    });
+
+    let cors = CorsLayer::new()
+        .allow_origin(cors::Any)
+        .allow_methods(cors::Any)
+        .allow_headers(cors::Any);
+
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
-        .routes(routes!(get_user_me))
-        .layer(CorsLayer::permissive())
+        .routes(routes!(get_user_me, google_auth_handler))
+        .with_state(state)
+        .layer(cors)
         .split_for_parts();
 
     let router = router.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api));
