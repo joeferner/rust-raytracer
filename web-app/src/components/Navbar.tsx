@@ -1,5 +1,5 @@
 import { Menu, Tooltip, UnstyledButton } from '@mantine/core';
-import { useStore } from '../store';
+import { useStore } from '../state';
 import { useCallback, useEffect, type JSX, type ReactNode } from 'react';
 import { Play as RenderIcon, ListTask as ProjectsIcon } from 'react-bootstrap-icons';
 import styles from './Navbar.module.scss';
@@ -25,12 +25,9 @@ export const Navbar = observer(() => {
         };
     }, [store]);
 
-    const loadExample = useCallback(
-        (example: Example): void => {
-            void store.loadExampleProject(example);
-        },
-        [store]
-    );
+    const loadExample = useCallback((example: Example): void => {
+        void store.loadExampleProject(example);
+    }, [store]);
 
     return (
         <div className={styles.wrapper}>

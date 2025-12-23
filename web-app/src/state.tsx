@@ -1,9 +1,9 @@
 import { makeAutoObservable, runInAction } from 'mobx';
+import { createContext, useContext, type JSX } from 'react';
 import { getCameraInfo, initWasm, loadOpenscad, type CameraInfo } from './wasm';
 import { RenderWorkerPool, type RenderCallbackFn } from './RenderWorkerPool';
 import { Example, getExampleProject } from './utils/examples';
 import type { WorkingFile } from './types';
-import { createContext, use } from 'react';
 
 export type UnsubscribeFn = () => void;
 
@@ -14,7 +14,7 @@ export interface RenderOptions {
 
 export const DEFAULT_RENDER_BLOCK_SIZE = 50;
 
-export class AppStore {
+class AppStore {
     public files: WorkingFile[] = [];
     public cameraInfo: CameraInfo | undefined = undefined;
     public renderOptions: Required<RenderOptions> = {
@@ -28,6 +28,7 @@ export class AppStore {
     public constructor() {
         makeAutoObservable(this);
 
+        // Load initial project
         console.log('load initial project');
         setTimeout(() => {
             void this.loadExampleProject(Example.ThreeSpheres);
@@ -101,10 +102,15 @@ export class AppStore {
     };
 }
 
-export const StoreContext = createContext<AppStore | undefined>(undefined);
+const StoreContext = createContext<AppStore | undefined>(undefined);
+
+export function StoreProvider({ children }: { children: React.ReactNode }): JSX.Element {
+    const store = new AppStore();
+    return <StoreContext value={store}>{children}</StoreContext>;
+}
 
 export function useStore(): AppStore {
-    const context = use(StoreContext);
+    const context = useContext(StoreContext);
     if (!context) {
         throw new Error('useStore must be used within StoreProvider');
     }

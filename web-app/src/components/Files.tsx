@@ -1,7 +1,7 @@
 import { Tabs } from '@mantine/core';
 import { Editor } from '@monaco-editor/react';
 import styles from './Files.module.scss';
-import { useStore } from '../store';
+import { useStore } from '../state';
 import { observer } from 'mobx-react-lite';
 import { registerOpenscadLanguage } from '../monaco-openscad';
 
