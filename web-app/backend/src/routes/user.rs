@@ -104,36 +104,47 @@ impl FromRequestParts<Arc<AppState>> for MaybeAuthUser {
 
 #[derive(ToSchema, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct UserMe {
-    pub user_id: Option<String>,
-    pub email: Option<String>,
-    pub name: Option<String>,
+pub struct UserMeResponse {
+    pub user: Option<User>,
+    pub settings: Settings,
+}
+
+#[derive(ToSchema, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct User {
+    pub user_id: String,
+    pub email: String,
+    pub name: String,
     pub picture: Option<String>,
+}
+
+#[derive(ToSchema, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Settings {
     pub google_client_id: String,
 }
 
-#[utoipa::path(get, path = "/api/v1/user/me", responses((status = OK, body = UserMe)), tag = USER_TAG)]
+#[utoipa::path(get, path = "/api/v1/user/me", responses((status = OK, body = UserMeResponse)), tag = USER_TAG)]
 pub async fn get_user_me(
     State(state): State<Arc<AppState>>,
     auth_user: MaybeAuthUser,
-) -> Json<UserMe> {
-    let (user_id, name, email, picture) = if let Some(user) = auth_user.user {
-        (
-            Some(user.user_id),
-            Some(user.name),
-            Some(user.email),
-            user.picture,
-        )
+) -> Json<UserMeResponse> {
+    let user = if let Some(user) = auth_user.user {
+        Some(User {
+            user_id: user.user_id,
+            email: user.email,
+            name: user.name,
+            picture: user.picture,
+        })
     } else {
-        (None, None, None, None)
+        None
     };
 
-    Json(UserMe {
-        user_id,
-        name,
-        email,
-        picture,
-        google_client_id: state.google_client_id.clone(),
+    Json(UserMeResponse {
+        user,
+        settings: Settings {
+            google_client_id: state.google_client_id.clone(),
+        },
     })
 }
 

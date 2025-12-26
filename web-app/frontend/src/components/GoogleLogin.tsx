@@ -73,5 +73,5 @@ export function GoogleLogin({
         }
     }, [onCredentialResponse, clientId, buttonConfig, autoSelect]);
 
-    return <div id="googleSignInButton"></div>;
+    return <div id="googleSignInButton" style={{ colorScheme: 'light' }}></div>;
 }

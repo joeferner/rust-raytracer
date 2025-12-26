@@ -1,7 +1,7 @@
 import { Menu, Tooltip, UnstyledButton } from '@mantine/core';
 import { loadExampleProjectAtom, renderAtom } from '../store';
 import { useCallback, useEffect, type JSX, type ReactNode } from 'react';
-import { Play as RenderIcon, ListTask as ProjectsIcon } from 'react-bootstrap-icons';
+import { Play as RenderIcon, Folder as OpenIcon } from 'react-bootstrap-icons';
 import classes from './Navbar.module.scss';
 import { Example } from '../utils/examples';
 import { useSetAtom } from 'jotai';
@@ -44,7 +44,7 @@ export function Navbar(): JSX.Element {
             >
                 <Menu.Target>
                     <UnstyledButton className={classes.link}>
-                        <ProjectsIcon width={ICON_SIZE} height={ICON_SIZE} />
+                        <OpenIcon width={ICON_SIZE} height={ICON_SIZE} />
                     </UnstyledButton>
                 </Menu.Target>
                 <Menu.Dropdown>
