@@ -2,6 +2,7 @@
     "id": "b43378fe-afa5-4706-aa09-0951ff1564f2",
     "owner": "example",
     "name": "Example: Three Spheres",
+    "lastModified": "2025-12-27T10:30:00Z",
     "files": [
         {
             "filename": "main.scad"

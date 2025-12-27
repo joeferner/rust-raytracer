@@ -2,6 +2,7 @@
     "id": "cb50f13d-c3ea-41da-9369-ca73728f0808",
     "owner": "example",
     "name": "Example: Random Spheres",
+    "lastModified": "2025-12-27T10:30:00Z",
     "files": [
         {
             "filename": "main.scad"

@@ -16,6 +16,8 @@ use crate::{
 pub struct UserData {
     pub email: String,
     pub projects: Vec<UserDataProject>,
+    #[schema(value_type = String)]
+    pub created: DateTime<Utc>,
 }
 
 #[derive(ToSchema, Debug, Serialize, Deserialize, Clone)]
@@ -33,6 +35,7 @@ impl UserData {
         Self {
             email: user.email.to_owned(),
             projects: vec![],
+            created: Utc::now(),
         }
     }
 }

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result, anyhow};
 use aws_sdk_s3::{Client as S3Client, primitives::ByteStream};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -15,6 +16,8 @@ pub struct Project {
     pub id: String,
     pub owner: String,
     pub name: String,
+    #[schema(value_type = String)]
+    pub last_modified: DateTime<Utc>,
     pub files: Vec<ProjectFile>,
 }
 

@@ -2,6 +2,7 @@
     "id": "cad84577-c808-41a9-8d77-25a4626fe65f",
     "owner": "example",
     "name": "Example: Car",
+    "lastModified": "2025-12-27T10:30:00Z",
     "files": [
         {
             "filename": "main.scad"

@@ -215,6 +215,7 @@ pub async fn create_project(
         id: project_id.clone(),
         owner: user.email,
         name: payload.name.clone(),
+        last_modified: Utc::now(),
         files: vec![file],
     };
 
