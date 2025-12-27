@@ -7,9 +7,11 @@ use crate::{
     },
     utils::mime_type_from_path,
 };
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use aws_sdk_s3::primitives::ByteStream;
 use log::info;
+
+pub const PROJECT_OWNER_EXAMPLE: &str = "example";
 
 pub struct ExampleService {
     pub examples: Vec<UserDataProject>,
@@ -39,6 +41,12 @@ impl ExampleService {
         let json_str = fs::read_to_string(&path)?;
         let project = serde_json::from_str::<Project>(&json_str)
             .with_context(|| format!("could not convert {path:?} to json"))?;
+
+        if project.owner != PROJECT_OWNER_EXAMPLE {
+            return Err(anyhow!(
+                "example project owner must be {PROJECT_OWNER_EXAMPLE} for {path:?}"
+            ));
+        }
 
         project_repository.save(&project).await?;
 

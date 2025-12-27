@@ -29,7 +29,6 @@ pub struct ProjectRepository {
     bucket: String,
 }
 
-pub const PROJECT_OWNER_EXAMPLE: &str = "example";
 pub const CONTENT_TYPE_OPENSCAD: &str = "application/x-openscad";
 
 impl ProjectRepository {
@@ -43,7 +42,9 @@ impl ProjectRepository {
     pub async fn load(&self, project_id: &str) -> Result<Option<Project>> {
         let bucket = &self.bucket;
         let key = self.get_project_json_key(project_id);
-        read_json_from_s3::<Project>(&self.client, bucket, &key).await
+        read_json_from_s3::<Project>(&self.client, bucket, &key)
+            .await
+            .with_context(|| format!("loading project {project_id}"))
     }
 
     pub async fn load_file(

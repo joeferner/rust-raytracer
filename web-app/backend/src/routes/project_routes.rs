@@ -18,10 +18,11 @@ use uuid::Uuid;
 use crate::{
     PROJECT_TAG,
     repository::{
-        project_repository::{CONTENT_TYPE_OPENSCAD, PROJECT_OWNER_EXAMPLE, Project, ProjectFile},
+        project_repository::{CONTENT_TYPE_OPENSCAD, Project, ProjectFile},
         user_repository::{UserData, UserDataProject},
     },
     routes::user_routes::AuthUser,
+    services::project_service::{LoadProjectResult, ProjectService},
     state::AppState,
 };
 
@@ -35,6 +36,24 @@ pub struct CreateProjectRequest {
 #[serde(rename_all = "camelCase")]
 pub struct GetProjectsResponse {
     pub projects: Vec<UserDataProject>,
+}
+
+async fn assert_can_read_project(
+    project_service: &ProjectService,
+    project_id: &str,
+    user: &AuthUser,
+) -> Result<(), StatusCode> {
+    match project_service.load_project(project_id, user).await {
+        Ok(project) => match project {
+            LoadProjectResult::Project(_) => Ok(()),
+            LoadProjectResult::NotFound => Err(StatusCode::NOT_FOUND),
+            LoadProjectResult::AccessDenied => Err(StatusCode::UNAUTHORIZED),
+        },
+        Err(err) => {
+            error!("failed to load project (project id: {project_id}): {err}");
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }
 
 #[utoipa::path(
@@ -86,24 +105,16 @@ pub async fn get_project(
     user: AuthUser,
     Path(project_id): Path<String>,
 ) -> Result<Json<Project>, StatusCode> {
-    let project = state
-        .project_repository
-        .load(&project_id)
-        .await
-        .map_err(|err| {
-            error!("failed to load project: {err}");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    match project {
-        Some(project) => {
-            if project.owner != user.email && project.owner != PROJECT_OWNER_EXAMPLE {
-                Err(StatusCode::UNAUTHORIZED)
-            } else {
-                Ok(Json(project))
-            }
+    match state.project_service.load_project(&project_id, &user).await {
+        Ok(project) => match project {
+            LoadProjectResult::Project(project) => Ok(Json(project)),
+            LoadProjectResult::NotFound => Err(StatusCode::NOT_FOUND),
+            LoadProjectResult::AccessDenied => Err(StatusCode::UNAUTHORIZED),
+        },
+        Err(err) => {
+            error!("failed to load project (project id: {project_id}): {err}");
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
-        None => Err(StatusCode::NOT_FOUND),
     }
 }
 
@@ -122,8 +133,7 @@ pub async fn get_project_file(
     user: AuthUser,
     Path((project_id, filename)): Path<(String, String)>,
 ) -> Result<Response, StatusCode> {
-    // verify access
-    let _ = get_project(State(state.clone()), user, Path(project_id.clone())).await?;
+    assert_can_read_project(&state.project_service, &project_id, &user).await?;
 
     let file_data = state
         .project_repository

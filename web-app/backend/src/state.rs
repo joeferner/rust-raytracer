@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     repository::{project_repository::ProjectRepository, user_repository::UserRepository},
-    services::examples_service::ExampleService,
+    services::{examples_service::ExampleService, project_service::ProjectService},
 };
 use anyhow::Result;
 use aws_config::{BehaviorVersion, meta::region::RegionProviderChain};
@@ -28,6 +28,7 @@ pub struct AppState {
     pub settings: Arc<AppStateSettings>,
     pub project_repository: Arc<ProjectRepository>,
     pub user_repository: Arc<UserRepository>,
+    pub project_service: Arc<ProjectService>,
     pub example_service: Arc<ExampleService>,
 }
 
@@ -60,11 +61,14 @@ impl AppState {
 
         let example_service = Arc::new(ExampleService::new(project_repository.clone()).await?);
 
+        let project_service = Arc::new(ProjectService::new(project_repository.clone()));
+
         Ok(AppState {
             settings,
             project_repository,
             user_repository,
             example_service,
+            project_service,
         })
     }
 }
