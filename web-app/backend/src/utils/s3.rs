@@ -1,3 +1,4 @@
+use anyhow::{Context, Result, anyhow};
 use aws_sdk_s3::{Client as S3Client, primitives::ByteStream};
 use serde::{Deserialize, Serialize};
 
@@ -6,8 +7,9 @@ pub async fn write_json_to_s3<T: Serialize>(
     bucket: &str,
     key: &str,
     data: &T,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let json_string = serde_json::to_string(data)?;
+) -> Result<()> {
+    let json_string = serde_json::to_string(data)
+        .with_context(|| format!("writing json to s3://{bucket}/{key}"))?;
     write_to_s3(
         client,
         bucket,
@@ -22,8 +24,10 @@ pub async fn read_json_from_s3<T: for<'de> Deserialize<'de>>(
     client: &S3Client,
     bucket: &str,
     key: &str,
-) -> Result<Option<T>, Box<dyn std::error::Error>> {
-    let resp = read_from_s3(client, bucket, key).await?;
+) -> Result<Option<T>> {
+    let resp = read_from_s3(client, bucket, key)
+        .await
+        .with_context(|| format!("reading json from s3://{bucket}/{key}"))?;
     if let Some(resp) = resp {
         let data = resp.body.collect().await?;
         let bytes = data.into_bytes();
@@ -40,7 +44,7 @@ pub async fn write_to_s3(
     key: &str,
     content_type: &str,
     data: ByteStream,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     client
         .put_object()
         .bucket(bucket)
@@ -48,7 +52,8 @@ pub async fn write_to_s3(
         .body(data)
         .content_type(content_type)
         .send()
-        .await?;
+        .await
+        .with_context(|| format!("writing to s3://{bucket}/{key}"))?;
     Ok(())
 }
 
@@ -61,7 +66,7 @@ pub async fn read_from_s3(
     client: &S3Client,
     bucket: &str,
     key: &str,
-) -> Result<Option<ReadFromS3Data>, Box<dyn std::error::Error>> {
+) -> Result<Option<ReadFromS3Data>> {
     let resp = client.get_object().bucket(bucket).key(key).send().await;
     match resp {
         Ok(resp) => {
@@ -76,7 +81,7 @@ pub async fn read_from_s3(
             {
                 Ok(None)
             } else {
-                Err(Box::new(err))
+                Err(anyhow!("reading s3://{bucket}/{key}: {err}"))
             }
         }
     }

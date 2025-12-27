@@ -703,6 +703,7 @@ dependencies = [
 name = "backend"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "aws-config",
  "aws-sdk-s3",
  "axum",
@@ -712,10 +713,10 @@ dependencies = [
  "envy",
  "jsonwebtoken",
  "log",
+ "mime_guess",
  "reqwest",
  "serde",
  "serde_json",
- "thiserror",
  "tokio",
  "tower",
  "tower-http",

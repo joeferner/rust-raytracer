@@ -1,10 +1,11 @@
 pub mod repository;
 pub mod routes;
+pub mod services;
 pub mod state;
 pub mod utils;
 
+use anyhow::Result;
 use env_logger::Env;
-use thiserror::Error;
 
 use std::sync::Arc;
 
@@ -25,16 +26,6 @@ use crate::state::AppState;
 pub const PROJECT_TAG: &str = "project";
 pub const USER_TAG: &str = "user";
 
-#[derive(Error, Debug)]
-pub enum WebAppError {
-    #[error("DotEnv: {0}")]
-    DotEnv(#[from] dotenvy::Error),
-    #[error("Environment variable error: {0}")]
-    EnvVar(#[from] envy::Error),
-    #[error("std::io: {0}")]
-    StdIo(#[from] std::io::Error),
-}
-
 #[derive(OpenApi)]
 #[openapi(
     tags(
@@ -45,7 +36,7 @@ pub enum WebAppError {
 struct ApiDoc;
 
 #[tokio::main]
-async fn main() -> Result<(), WebAppError> {
+async fn main() -> Result<()> {
     let env = Env::default().default_filter_or("info");
     env_logger::init_from_env(env);
     let state = Arc::new(AppState::new().await?);

@@ -1,15 +1,16 @@
 use std::sync::Arc;
 
 use crate::{
-    WebAppError,
     repository::{project_repository::ProjectRepository, user_repository::UserRepository},
+    services::examples_service::ExampleService,
 };
+use anyhow::Result;
 use aws_config::{BehaviorVersion, meta::region::RegionProviderChain};
 use aws_sdk_s3::Client as S3Client;
 use dotenvy;
 use serde::Deserialize;
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize)]
 pub struct AppStateSettings {
     pub google_client_id: String,
     pub google_client_secret: String,
@@ -24,9 +25,10 @@ pub struct AppStateSettings {
 
 #[derive(Clone)]
 pub struct AppState {
-    pub settings: AppStateSettings,
-    pub project_repository: ProjectRepository,
-    pub user_repository: UserRepository,
+    pub settings: Arc<AppStateSettings>,
+    pub project_repository: Arc<ProjectRepository>,
+    pub user_repository: Arc<UserRepository>,
+    pub example_service: Arc<ExampleService>,
 }
 
 fn default_bind() -> String {
@@ -38,10 +40,10 @@ fn default_jwt_expire_duration_hours() -> u32 {
 }
 
 impl AppState {
-    pub async fn new() -> Result<AppState, WebAppError> {
+    pub async fn new() -> Result<AppState> {
         dotenvy::dotenv()?;
 
-        let settings = envy::prefixed("RAYTRACE_").from_env::<AppStateSettings>()?;
+        let settings = Arc::new(envy::prefixed("RAYTRACE_").from_env::<AppStateSettings>()?);
 
         let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
         let config = aws_config::defaults(BehaviorVersion::v2025_08_07())
@@ -50,13 +52,19 @@ impl AppState {
             .await;
         let s3_client = Arc::new(S3Client::new(&config));
 
-        let project_repository = ProjectRepository::new(s3_client.clone(), &settings.data_bucket);
-        let user_repository = UserRepository::new(s3_client, &settings.data_bucket);
+        let project_repository = Arc::new(ProjectRepository::new(
+            s3_client.clone(),
+            &settings.data_bucket,
+        ));
+        let user_repository = Arc::new(UserRepository::new(s3_client, &settings.data_bucket));
+
+        let example_service = Arc::new(ExampleService::new(project_repository.clone()).await?);
 
         Ok(AppState {
             settings,
             project_repository,
             user_repository,
+            example_service,
         })
     }
 }

@@ -61,24 +61,9 @@ pub async fn get_projects(
         None => vec![],
     };
 
-    projects.push(UserDataProject {
-        id: "cad84577-c808-41a9-8d77-25a4626fe65f".to_owned(),
-        readonly: true,
-        name: "Example: Car".to_owned(),
-        last_modified: "2024-12-26T15:30:00Z".parse().unwrap(),
-    });
-    projects.push(UserDataProject {
-        id: "b43378fe-afa5-4706-aa09-0951ff1564f2".to_owned(),
-        readonly: true,
-        name: "Example: Three Spheres".to_owned(),
-        last_modified: "2024-12-26T15:30:00Z".parse().unwrap(),
-    });
-    projects.push(UserDataProject {
-        id: "cb50f13d-c3ea-41da-9369-ca73728f0808".to_owned(),
-        readonly: true,
-        name: "Example: Random Spheres".to_owned(),
-        last_modified: "2024-12-26T15:30:00Z".parse().unwrap(),
-    });
+    for example in &state.example_service.examples {
+        projects.push(example.clone());
+    }
 
     let response = GetProjectsResponse { projects };
 

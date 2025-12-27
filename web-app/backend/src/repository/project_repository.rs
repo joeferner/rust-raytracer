@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
+use anyhow::{Context, Result, anyhow};
 use aws_sdk_s3::{Client as S3Client, primitives::ByteStream};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{
-    repository::{RepositoryError, Result},
-    utils::s3::{ReadFromS3Data, read_from_s3, read_json_from_s3, write_json_to_s3, write_to_s3},
+use crate::utils::s3::{
+    ReadFromS3Data, read_from_s3, read_json_from_s3, write_json_to_s3, write_to_s3,
 };
 
 #[derive(ToSchema, Debug, Serialize, Deserialize)]
@@ -24,7 +24,6 @@ pub struct ProjectFile {
     pub filename: String,
 }
 
-#[derive(Clone)]
 pub struct ProjectRepository {
     client: Arc<S3Client>,
     bucket: String,
@@ -44,13 +43,7 @@ impl ProjectRepository {
     pub async fn load(&self, project_id: &str) -> Result<Option<Project>> {
         let bucket = &self.bucket;
         let key = self.get_project_json_key(project_id);
-        read_json_from_s3::<Project>(&self.client, bucket, &key)
-            .await
-            .map_err(|err| RepositoryError::FailedToRead {
-                bucket: self.bucket.to_owned(),
-                key,
-                cause: err,
-            })
+        read_json_from_s3::<Project>(&self.client, bucket, &key).await
     }
 
     pub async fn load_file(
@@ -62,10 +55,8 @@ impl ProjectRepository {
         let key = self.get_project_file_key(project_id, filename)?;
         read_from_s3(&self.client, bucket, &key)
             .await
-            .map_err(|err| RepositoryError::FailedToRead {
-                bucket: self.bucket.to_owned(),
-                key,
-                cause: err,
+            .with_context(|| {
+                format!("loading project file (project id: {project_id}, filename: {filename})")
             })
     }
 
@@ -74,11 +65,7 @@ impl ProjectRepository {
         let key = self.get_project_json_key(&project.id);
         write_json_to_s3(&self.client, bucket, &key, project)
             .await
-            .map_err(|err| RepositoryError::FailedToWrite {
-                bucket: self.bucket.to_owned(),
-                key,
-                cause: err,
-            })
+            .with_context(|| format!("saving project (project id: {}", project.id))
     }
 
     pub async fn save_file(
@@ -92,10 +79,8 @@ impl ProjectRepository {
         let key = self.get_project_file_key(project_id, filename)?;
         write_to_s3(&self.client, bucket, &key, content_type, data)
             .await
-            .map_err(|err| RepositoryError::FailedToWrite {
-                bucket: self.bucket.to_owned(),
-                key,
-                cause: err,
+            .with_context(|| {
+                format!("saving project file (project id: {project_id}, filename: {filename})")
             })
     }
 
@@ -105,7 +90,7 @@ impl ProjectRepository {
 
     fn get_project_file_key(&self, project_id: &str, filename: &str) -> Result<String> {
         if filename == "project.json" {
-            Err(RepositoryError::InvalidFilename(filename.to_owned()))
+            Err(anyhow!("invalid filename, cannot be project.json"))
         } else {
             Ok(format!("store/project/{project_id}/{filename}"))
         }
