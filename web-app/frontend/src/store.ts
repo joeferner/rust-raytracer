@@ -21,6 +21,7 @@ export interface StoreProject extends Project {
 }
 
 export const DEFAULT_RENDER_BLOCK_SIZE = 50;
+export const EXAMPLE_CAR_ID = 'cad84577-c808-41a9-8d77-25a4626fe65f';
 
 // Singleton worker pool and draw event listeners
 const renderWorkerPool = new RenderWorkerPool();
@@ -28,6 +29,12 @@ const drawEventListeners = new Set<RenderCallbackFn>();
 
 // Base atoms
 export const jwtTokenAtom = atomWithStorage<string | undefined>('jwtToken', undefined, undefined, { getOnInit: true });
+export const lastLoadedProjectIdAtom = atomWithStorage<string | undefined>(
+    'lastLoadedProjectId',
+    undefined,
+    undefined,
+    { getOnInit: true }
+);
 export const userAtom = atom<User | undefined>(undefined);
 export const settingsAtom = atom<Settings | undefined>(undefined);
 export const projectsAtom = atom<UserDataProject[] | undefined>(undefined);
@@ -62,7 +69,15 @@ export const getFileAtom = atom((get) => {
     };
 });
 
-// Write-only atom for render
+export const initializeAtom = atom(null, async (get, set) => {
+    console.log('load initial project');
+    await set(loadUserMeAtom);
+    await set(loadProjectsAtom);
+    const lastLoadedProjectId = get(lastLoadedProjectIdAtom);
+    const userProject = get(projectsAtom)?.find((p) => p.id === lastLoadedProjectId);
+    await set(loadProjectAtom, { projectId: userProject?.id ?? EXAMPLE_CAR_ID });
+});
+
 export const renderAtom = atom(null, async (get, set) => {
     const files = get(filesAtom);
     const renderOptions = get(renderOptionsAtom);
@@ -139,10 +154,9 @@ export const loadProjectsAtom = atom(null, async (_get, set) => {
 });
 
 export const loadProjectAtom = atom(null, async (get, set, { projectId }: { projectId: string }) => {
-    let projects = get(projectsAtom);
+    const projects = get(projectsAtom);
     if (!projects) {
-        await set(loadProjectsAtom);
-        projects = get(projectsAtom);
+        throw new Error('cannot load project until user projects are loaded');
     }
     const userProject = projects?.find((project) => project.id === projectId);
     if (!userProject) {
@@ -152,6 +166,7 @@ export const loadProjectAtom = atom(null, async (get, set, { projectId }: { proj
     const files = await loadProjectFiles(project);
     set(projectAtom, { ...project, readOnly: userProject.readonly });
     set(filesAtom, files);
+    set(lastLoadedProjectIdAtom, project.id);
 });
 
 export const createProjectAtom = atom(null, async (_get, set, { name }: { name: string }) => {
