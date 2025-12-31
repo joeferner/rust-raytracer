@@ -8,6 +8,7 @@
         "defocus",
         "dotenv",
         "dotenvy",
+        "Ferner",
         "flamegraph",
         "indicatif",
         "jsonwebtoken",

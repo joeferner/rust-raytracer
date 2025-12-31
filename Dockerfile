@@ -13,18 +13,18 @@ RUN \
 WORKDIR /app
 
 # Copy Cargo files
-RUN mkdir -p src crates/cli/src crates/core/src crates/openscad/src crates/wasm/src web-app/backend/src
+RUN mkdir -p src crates/cli/src crates/core/src crates/openscad/src crates/wasm/src webapp/backend/src
 COPY Cargo.toml Cargo.lock ./
 COPY crates/cli/Cargo.toml crates/cli/
 COPY crates/core/Cargo.toml crates/core/
 COPY crates/openscad/Cargo.toml crates/openscad/
 COPY crates/wasm/Cargo.toml crates/wasm/
-COPY web-app/backend/Cargo.toml web-app/backend/
+COPY webapp/backend/Cargo.toml webapp/backend/
 
 # Create dummy source files to build dependencies
 RUN \
   echo "fn main() {}" > crates/cli/src/main.rs \
-  && echo "fn main() {}" > web-app/backend/src/main.rs \
+  && echo "fn main() {}" > webapp/backend/src/main.rs \
   && echo "pub fn dummy() {}" > src/lib.rs \
   && echo "pub fn dummy() {}" > crates/core/src/lib.rs \
   && echo "pub fn dummy() {}" > crates/openscad/src/lib.rs \
@@ -47,7 +47,7 @@ COPY crates/cli/src/ ./crates/cli/src
 COPY crates/core/src/ ./crates/core/src
 COPY crates/openscad/src/ ./crates/openscad/src
 COPY crates/wasm/src/ ./crates/wasm/src
-COPY web-app/backend/src/ ./web-app/backend/src
+COPY webapp/backend/src/ ./webapp/backend/src
 
 # Build in release mode
 RUN \
@@ -57,7 +57,7 @@ RUN \
   && cd /app \
   && cp /app/target/release/rust-raytracer-webapp /app/target/release/rust-raytracer-cli /app/ \
   && mv /app/crates/wasm/pkg /app/wasm \
-  && rm -rf target Cargo.lock Cargo.toml backend crates src web-app /usr/local/cargo/registry
+  && rm -rf target Cargo.lock Cargo.toml backend crates src webapp /usr/local/cargo/registry
 RUN /app/rust-raytracer-webapp --write-swagger /app/openapi.json
 
 # Stage 2: Build React frontend ----------------------------------------------------------------------------------
@@ -72,7 +72,7 @@ RUN \
   && rm -rf /var/lib/apt/lists/*
 
 # Install node
-COPY web-app/frontend/.nvmrc ./
+COPY webapp/frontend/.nvmrc ./
 RUN \
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash \
   && . /root/.nvm/nvm.sh || echo "ok" \
@@ -84,11 +84,11 @@ RUN \
   && ln -s "$NVM_DIR/versions/node/$(nvm current)/bin/npx" /usr/local/bin/npx
 
 # Install dependencies
-COPY web-app/frontend/package*.json ./
+COPY webapp/frontend/package*.json ./
 RUN npm ci
 
 # Copy frontend source
-COPY web-app/frontend/ ./
+COPY webapp/frontend/ ./
 COPY --from=rust-builder /app/openapi.json /app/
 COPY --from=rust-builder /app/wasm/* /frontend/src/wasm/
 

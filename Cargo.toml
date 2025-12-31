@@ -8,4 +8,4 @@ assert-eq-float = "0.1.4"
 thiserror = "2.0.17"
 
 [workspace]
-members = ["crates/core", "crates/cli", "crates/wasm", "crates/openscad", "web-app/backend"]
+members = ["crates/core", "crates/cli", "crates/wasm", "crates/openscad", "webapp/backend"]

@@ -5,8 +5,8 @@
 
 ### Running
 
-1. [Run backend](web-app/backend/README.md)
-1. [Run frontend](web-app/frontend/README.md)
+1. [Run backend](webapp/backend/README.md)
+1. [Run frontend](webapp/frontend/README.md)
 
 # References
 
