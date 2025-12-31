@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rust_raytracer_core::{
+use caustic_core::{
     CameraBuilder, Color, RenderContext, Vector3,
     image::ImageImage,
     material::{Dielectric, DiffuseLight, EmptyMaterial, Lambertian, Metal},

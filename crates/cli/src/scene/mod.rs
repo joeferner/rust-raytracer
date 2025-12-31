@@ -11,8 +11,8 @@ pub mod quads;
 pub mod random_spheres;
 pub mod three_spheres;
 
-use rust_raytracer_core::{RenderContext, SceneData};
-use rust_raytracer_openscad::openscad_file_to_scene_data;
+use caustic_core::{RenderContext, SceneData};
+use caustic_openscad::openscad_file_to_scene_data;
 
 use crate::scene::{
     checkered_spheres::create_checkered_spheres_scene, cornell_box::create_cornell_box_scene,

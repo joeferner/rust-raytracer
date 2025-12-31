@@ -1,5 +1,5 @@
 [package]
-name = "rust-raytracer-cli"
+name = "caustic-cli"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,6 +7,6 @@ edition = "2024"
 image = "0.25.9"
 indicatif = "0.18.3"
 num_cpus = "1.17.0"
-rust-raytracer-core = { path = "../core" }
-rust-raytracer-openscad = { path = "../openscad" }
+caustic-core = { path = "../core" }
+caustic-openscad = { path = "../openscad" }
 thread-priority = "3.0.0"

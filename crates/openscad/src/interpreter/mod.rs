@@ -6,12 +6,12 @@ pub mod tests;
 
 use std::{cell::RefCell, collections::HashMap, sync::Arc};
 
-use rand_mt::Mt64;
-use rust_raytracer_core::{
+use caustic_core::{
     Camera, CameraBuilder, Color, Node, SceneData, Vector3,
     material::{Dielectric, Lambertian, Material, Metal},
     object::BoundingVolumeHierarchy,
 };
+use rand_mt::Mt64;
 
 use crate::{
     parser::{

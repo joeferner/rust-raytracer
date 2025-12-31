@@ -1,6 +1,6 @@
 use std::{mem::swap, sync::Arc};
 
-use rust_raytracer_core::{
+use caustic_core::{
     Color,
     texture::{CheckerTexture, SolidColor, Texture},
 };

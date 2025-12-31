@@ -1,8 +1,8 @@
 #![allow(clippy::vec_init_then_push)]
 use std::{cell::RefCell, sync::Arc};
 
-use rust_raytracer_core::{Color as CoreColor, RenderContext, SceneData, random_new};
-use rust_raytracer_openscad::openscad_string_to_scene_data;
+use caustic_core::{Color as CoreColor, RenderContext, SceneData, random_new};
+use caustic_openscad::openscad_string_to_scene_data;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;

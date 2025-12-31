@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rust_raytracer_core::{
+use caustic_core::{
     CameraBuilder, Node, Vector3,
     object::{BoxPrimitive, ConeFrustum, Group, Rotate, Scale, Sphere, Translate},
 };

@@ -10,7 +10,7 @@ use std::ops::{Index, Mul};
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::Matrix3x3;
+/// use caustic_core::Matrix3x3;
 ///
 /// let identity = Matrix3x3::new([
 ///     [1.0, 0.0, 0.0],
@@ -35,7 +35,7 @@ impl Matrix3x3 {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Matrix3x3;
+    /// use caustic_core::Matrix3x3;
     ///
     /// let rotation_z = Matrix3x3::new([
     ///     [0.0, -1.0, 0.0],
@@ -53,7 +53,7 @@ impl Matrix3x3 {
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::Matrix3x3;
+/// use caustic_core::Matrix3x3;
 ///
 /// let m = Matrix3x3::new([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]);
 /// let first_row = m[0]; // Returns [1.0, 2.0, 3.0]
@@ -75,7 +75,7 @@ impl Index<usize> for Matrix3x3 {
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::{Matrix3x3,Vector3};
+/// use caustic_core::{Matrix3x3,Vector3};
 ///
 /// let matrix = Matrix3x3::new([
 ///     [2.0, 0.0, 0.0],

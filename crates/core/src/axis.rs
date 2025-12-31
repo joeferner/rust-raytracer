@@ -5,7 +5,7 @@
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::Axis;
+/// use caustic_core::Axis;
 ///
 /// let axis = Axis::X;
 /// println!("Selected axis: {:?}", axis);
@@ -34,7 +34,7 @@ impl Axis {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Axis;
+    /// use caustic_core::Axis;
     ///
     /// let axes: Vec<Axis> = Axis::iter().collect();
     /// assert_eq!(axes, vec![Axis::X, Axis::Y, Axis::Z]);

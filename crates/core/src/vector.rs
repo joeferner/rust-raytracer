@@ -10,7 +10,7 @@ use crate::{Axis, Random};
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::Vector3;
+/// use caustic_core::Vector3;
 ///
 /// let v = Vector3::new(1.0, 2.0, 3.0);
 /// let length = v.length();
@@ -32,7 +32,7 @@ impl Vector3 {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Vector3;
+    /// use caustic_core::Vector3;
     /// use assert_eq_float::assert_eq_float;
     ///
     /// let v = Vector3::new(1.0, 2.0, 3.0);
@@ -161,7 +161,7 @@ impl Vector3 {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Vector3;
+    /// use caustic_core::Vector3;
     /// use assert_eq_float::assert_eq_float;
     ///
     /// let v = Vector3::new(3.0, 4.0, 0.0);
@@ -179,7 +179,7 @@ impl Vector3 {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Vector3;
+    /// use caustic_core::Vector3;
     /// use assert_eq_float::assert_eq_float;
     ///
     /// let v = Vector3::new(3.0, 4.0, 0.0);
@@ -201,7 +201,7 @@ impl Vector3 {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Vector3;
+    /// use caustic_core::Vector3;
     /// use assert_eq_float::assert_eq_float;
     ///
     /// let v1 = Vector3::new(1.0, 2.0, 3.0);
@@ -223,7 +223,7 @@ impl Vector3 {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Vector3;
+    /// use caustic_core::Vector3;
     /// use assert_eq_float::assert_eq_float;
     ///
     /// let v1 = Vector3::new(1.0, 0.0, 0.0);
@@ -244,7 +244,7 @@ impl Vector3 {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Vector3;
+    /// use caustic_core::Vector3;
     ///
     /// let v = Vector3::new(3.0, 4.0, 0.0);
     /// let unit = v.unit();
@@ -261,7 +261,7 @@ impl Vector3 {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Vector3;
+    /// use caustic_core::Vector3;
     ///
     /// let v1 = Vector3::new(1e-9, 1e-9, 1e-9);
     /// assert!(v1.is_near_zero());
@@ -283,7 +283,7 @@ impl Vector3 {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Vector3;
+    /// use caustic_core::Vector3;
     /// use assert_eq_float::assert_eq_float;
     ///
     /// let v = Vector3::new(1.0, -1.0, 0.0);

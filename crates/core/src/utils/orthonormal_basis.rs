@@ -14,7 +14,7 @@ use crate::Vector3;
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::{utils::OrthonormalBasis, Vector3};
+/// use caustic_core::{utils::OrthonormalBasis, Vector3};
 ///
 /// let normal = Vector3::new(0.0, 1.0, 0.0);
 /// let basis = OrthonormalBasis::new(normal);
@@ -49,7 +49,7 @@ impl OrthonormalBasis {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{utils::OrthonormalBasis, Vector3};
+    /// use caustic_core::{utils::OrthonormalBasis, Vector3};
     ///
     /// // Create basis from upward-pointing normal
     /// let basis = OrthonormalBasis::new(Vector3::new(0.0, 1.0, 0.0));
@@ -85,7 +85,7 @@ impl OrthonormalBasis {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{utils::OrthonormalBasis, Vector3};
+    /// use caustic_core::{utils::OrthonormalBasis, Vector3};
     ///
     /// let basis = OrthonormalBasis::new(Vector3::new(0.0, 1.0, 0.0));
     /// let basis_vec = Vector3::new(1.0, 0.0, 0.0); // Unit vector along basis u-axis

@@ -31,15 +31,15 @@ RUN \
   && echo "pub fn dummy() {}" > crates/wasm/src/lib.rs
 
 # Build dependencies (this layer will be cached)
-RUN cargo build --release --workspace --exclude rust-raytracer-wasm
-RUN cargo build --release --package rust-raytracer-wasm --target wasm32-unknown-unknown
+RUN cargo build --release --workspace --exclude caustic-wasm
+RUN cargo build --release --package caustic-wasm --target wasm32-unknown-unknown
 
 # Remove the dummy build artifacts
 RUN rm -rf \
-  target/release/.fingerprint/rust-raytracer-* \
-  target/release/deps/rust-raytracer-* \
-  target/wasm32-unknown-unknown/release/.fingerprint/rust-raytracer-* \
-  target/wasm32-unknown-unknown/release/deps/rust-raytracer-*
+  target/release/.fingerprint/caustic-* \
+  target/release/deps/caustic-* \
+  target/wasm32-unknown-unknown/release/.fingerprint/caustic-* \
+  target/wasm32-unknown-unknown/release/deps/caustic-*
 
 # Copy all workspace members
 COPY src/ ./src
@@ -51,14 +51,14 @@ COPY webapp/backend/src/ ./webapp/backend/src
 
 # Build in release mode
 RUN \
-  cargo build --release --workspace --exclude rust-raytracer-wasm \
+  cargo build --release --workspace --exclude caustic-wasm \
   && cd /app/crates/wasm \
   && wasm-pack build --target web --release \
   && cd /app \
-  && cp /app/target/release/rust-raytracer-webapp /app/target/release/rust-raytracer-cli /app/ \
+  && cp /app/target/release/caustic-webapp /app/target/release/caustic-cli /app/ \
   && mv /app/crates/wasm/pkg /app/wasm \
   && rm -rf target Cargo.lock Cargo.toml backend crates src webapp /usr/local/cargo/registry
-RUN /app/rust-raytracer-webapp --write-swagger /app/openapi.json
+RUN /app/caustic-webapp --write-swagger /app/openapi.json
 
 # Stage 2: Build React frontend ----------------------------------------------------------------------------------
 FROM ubuntu:noble AS frontend-builder
@@ -106,9 +106,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY --from=rust-builder /app/rust-raytracer-webapp /app/rust-raytracer-webapp
+COPY --from=rust-builder /app/caustic-webapp /app/caustic-webapp
 COPY --from=frontend-builder /frontend/dist/assets/ /app/static
 EXPOSE 8080
 
 # Run the webserver
-CMD ["/app/rust-raytracer-webapp"]
+CMD ["/app/caustic-webapp"]

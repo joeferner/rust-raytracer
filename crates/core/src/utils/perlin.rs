@@ -9,7 +9,7 @@ use crate::{Random, Vector3};
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::{utils::Perlin, Vector3, Random, random_new};
+/// use caustic_core::{utils::Perlin, Vector3, Random, random_new};
 ///
 /// let random = random_new();
 /// let perlin = Perlin::new(&*random);
@@ -52,7 +52,7 @@ impl Perlin {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{utils::Perlin, Random, random_new};
+    /// use caustic_core::{utils::Perlin, Random, random_new};
     ///
     /// let random = random_new();
     /// let perlin = Perlin::new(&*random);
@@ -92,7 +92,7 @@ impl Perlin {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{utils::Perlin, Vector3, Random, random_new};
+    /// use caustic_core::{utils::Perlin, Vector3, Random, random_new};
     ///
     /// let random = random_new();
     /// let perlin = Perlin::new(&*random);
@@ -141,7 +141,7 @@ impl Perlin {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{utils::Perlin, Vector3, Random, random_new};
+    /// use caustic_core::{utils::Perlin, Vector3, Random, random_new};
     ///
     /// let random = random_new();
     /// let perlin = Perlin::new(&*random);

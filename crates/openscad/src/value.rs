@@ -1,6 +1,6 @@
 use std::{fmt::Display, sync::Arc};
 
-use rust_raytracer_core::{Color, Vector3, texture::Texture};
+use caustic_core::{Color, Vector3, texture::Texture};
 
 #[derive(Debug)]
 pub struct ValueConversionError {}

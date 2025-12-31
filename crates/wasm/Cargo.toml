@@ -1,5 +1,5 @@
 [package]
-name = "rust-raytracer-wasm"
+name = "caustic-wasm"
 version = "0.1.0"
 edition = "2024"
 
@@ -8,8 +8,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 wasm-bindgen = "0.2.105"
-rust-raytracer-core = { path = "../core" }
-rust-raytracer-openscad = { path = "../openscad" }
+caustic-core = { path = "../core" }
+caustic-openscad = { path = "../openscad" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
 tsify = "0.5.6"

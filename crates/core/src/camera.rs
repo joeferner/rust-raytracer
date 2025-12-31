@@ -14,7 +14,7 @@ use crate::{
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::{CameraBuilder, Vector3, Color};
+/// use caustic_core::{CameraBuilder, Vector3, Color};
 ///
 /// let mut camera_builder = CameraBuilder::new();
 /// camera_builder.aspect_ratio = 16.0 / 9.0;

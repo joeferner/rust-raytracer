@@ -9,7 +9,7 @@ if [ -f /app/openapi.json ]; then
     cp /app/openapi.json /tmp/openapi.json
 else
     echo "generating new openapi.json"
-    "${SCRIPT_DIR}/../../../target/debug/rust-raytracer-webapp" --write-swagger /tmp/openapi.json
+    "${SCRIPT_DIR}/../../../target/debug/caustic-webapp" --write-swagger /tmp/openapi.json
 fi
 
 npx openapi-typescript-codegen \

@@ -11,7 +11,7 @@ use std::ops::{Add, AddAssign, Div, Mul};
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::Color;
+/// use caustic_core::Color;
 ///
 /// // Create a custom color
 /// let purple = Color::new(0.5, 0.0, 0.5);
@@ -51,7 +51,7 @@ impl Color {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Color;
+    /// use caustic_core::Color;
     ///
     /// let red = Color::new(1.0, 0.0, 0.0);
     /// let cyan = Color::new(0.0, 1.0, 1.0);
@@ -69,7 +69,7 @@ impl Color {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{Color, random_new};
+    /// use caustic_core::{Color, random_new};
     ///
     /// let mut rng = random_new();
     /// let random_color = Color::random(&*rng);
@@ -93,7 +93,7 @@ impl Color {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{Color, random_new};
+    /// use caustic_core::{Color, random_new};
     ///
     /// let mut rng = random_new();
     /// // Generate a dark color (components between 0.0 and 0.3)
@@ -119,7 +119,7 @@ impl Color {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Color;
+    /// use caustic_core::Color;
     ///
     /// let linear = Color::new(0.25, 0.5, 1.0);
     /// let gamma = linear.linear_to_gamma();
@@ -142,7 +142,7 @@ impl Color {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Color;
+    /// use caustic_core::Color;
     /// use assert_eq_float::assert_eq_float;
     ///
     /// let invalid = Color::new(1.0, f64::NAN, 0.5);
@@ -183,7 +183,7 @@ fn linear_to_gamma(v: f64) -> f64 {
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::Color;
+/// use caustic_core::Color;
 /// use assert_eq_float::assert_eq_float;
 ///
 /// let color = Color::new(0.8, 0.4, 0.2);
@@ -209,7 +209,7 @@ impl Mul<f64> for Color {
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::Color;
+/// use caustic_core::Color;
 ///
 /// let surface = Color::new(0.8, 0.0, 0.0); // Red surface
 /// let light = Color::new(1.0, 1.0, 1.0);   // White light
@@ -246,7 +246,7 @@ impl Mul<Color> for f64 {
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::Color;
+/// use caustic_core::Color;
 /// use assert_eq_float::assert_eq_float;
 ///
 /// let color = Color::new(0.8, 0.4, 0.2);
@@ -269,7 +269,7 @@ impl Div<f64> for Color {
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::Color;
+/// use caustic_core::Color;
 /// use assert_eq_float::assert_eq_float;
 ///
 /// let red = Color::new(1.0, 0.0, 0.0);
@@ -295,7 +295,7 @@ impl Add for Color {
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::Color;
+/// use caustic_core::Color;
 /// use assert_eq_float::assert_eq_float;
 ///
 /// let mut color = Color::new(0.5, 0.2, 0.1);

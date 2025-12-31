@@ -12,7 +12,7 @@ use crate::{Axis, Interval, Ray, Vector3};
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::{AxisAlignedBoundingBox, Vector3};
+/// use caustic_core::{AxisAlignedBoundingBox, Vector3};
 ///
 /// // Create a bounding box from two corner points
 /// let min_point = Vector3::new(0.0, 0.0, 0.0);
@@ -34,7 +34,7 @@ impl AxisAlignedBoundingBox {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::AxisAlignedBoundingBox;
+    /// use caustic_core::AxisAlignedBoundingBox;
     ///
     /// let bbox = AxisAlignedBoundingBox::new();
     /// ```
@@ -53,7 +53,7 @@ impl AxisAlignedBoundingBox {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Interval};
+    /// use caustic_core::{AxisAlignedBoundingBox, Interval};
     ///
     /// let bbox = AxisAlignedBoundingBox::new_from_intervals(
     ///   Interval::new(2.0, 3.0),
@@ -79,7 +79,7 @@ impl AxisAlignedBoundingBox {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Vector3};
+    /// use caustic_core::{AxisAlignedBoundingBox, Vector3};
     ///
     /// let bbox = AxisAlignedBoundingBox::new_from_points(
     ///     Vector3::new(0.0, 0.0, 0.0),
@@ -119,7 +119,7 @@ impl AxisAlignedBoundingBox {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Vector3};
+    /// use caustic_core::{AxisAlignedBoundingBox, Vector3};
     ///
     /// let bbox1 = AxisAlignedBoundingBox::new_from_points(
     ///     Vector3::new(0.0, 0.0, 0.0),
@@ -148,7 +148,7 @@ impl AxisAlignedBoundingBox {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Axis, Vector3};
+    /// use caustic_core::{AxisAlignedBoundingBox, Axis, Vector3};
     ///
     /// let bbox = AxisAlignedBoundingBox::new_from_points(
     ///     Vector3::new(0.0, 0.0, 0.0),
@@ -182,7 +182,7 @@ impl AxisAlignedBoundingBox {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Ray, Vector3, Interval};
+    /// use caustic_core::{AxisAlignedBoundingBox, Ray, Vector3, Interval};
     ///
     /// let bbox = AxisAlignedBoundingBox::new_from_points(
     ///     Vector3::new(0.0, 0.0, 0.0),
@@ -235,7 +235,7 @@ impl AxisAlignedBoundingBox {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Axis, Vector3};
+    /// use caustic_core::{AxisAlignedBoundingBox, Axis, Vector3};
     ///
     /// let bbox = AxisAlignedBoundingBox::new_from_points(
     ///     Vector3::new(0.0, 0.0, 0.0),
@@ -295,7 +295,7 @@ impl Add<Vector3> for AxisAlignedBoundingBox {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{AxisAlignedBoundingBox, Vector3};
+    /// use caustic_core::{AxisAlignedBoundingBox, Vector3};
     ///
     /// let bbox = AxisAlignedBoundingBox::new_from_points(
     ///     Vector3::new(0.0, 0.0, 0.0),

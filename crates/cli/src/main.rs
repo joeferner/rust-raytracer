@@ -9,8 +9,8 @@ use std::{
     sync::{Arc, Mutex, mpsc},
 };
 
+use caustic_core::{Camera, Color, Node, RenderContext, random_new};
 use indicatif::{ProgressBar, ProgressStyle};
-use rust_raytracer_core::{Camera, Color, Node, RenderContext, random_new};
 use scene::Scene;
 
 use crate::scene::get_scene;

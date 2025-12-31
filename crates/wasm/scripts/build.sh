@@ -21,7 +21,7 @@ echo "Running wasm-pack build…"
     cd "$PROJECT_DIR"
     wasm-pack build --target web --release
     mkdir -p "${WEBAPP_DIR}/frontend/src/wasm"
-    cp pkg/rust_raytracer_wasm* "${WEBAPP_DIR}/frontend/src/wasm"
+    cp pkg/caustic_wasm* "${WEBAPP_DIR}/frontend/src/wasm"
 )
 
 echo "Build complete!"

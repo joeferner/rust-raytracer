@@ -8,7 +8,7 @@ use crate::vector::Vector3;
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::{Ray,Vector3};
+/// use caustic_core::{Ray,Vector3};
 ///
 /// // Create a ray starting at the origin, pointing along the x-axis
 /// let ray = Ray::new(
@@ -45,7 +45,7 @@ impl Ray {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{Ray,Vector3};
+    /// use caustic_core::{Ray,Vector3};
     ///
     /// let ray = Ray::new(
     ///     Vector3::new(1.0, 2.0, 3.0),
@@ -72,7 +72,7 @@ impl Ray {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{Ray,Vector3};
+    /// use caustic_core::{Ray,Vector3};
     ///
     /// let ray = Ray::new_with_time(
     ///     Vector3::new(0.0, 0.0, 0.0),
@@ -100,7 +100,7 @@ impl Ray {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::{Ray,Vector3};
+    /// use caustic_core::{Ray,Vector3};
     ///
     /// let ray = Ray::new(
     ///     Vector3::new(1.0, 0.0, 0.0),

@@ -10,7 +10,7 @@ use std::ops::Add;
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::Interval;
+/// use caustic_core::Interval;
 ///
 /// let interval = Interval::new(0.0, 10.0);
 /// assert!(interval.contains(5.0));
@@ -43,7 +43,7 @@ impl Interval {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Interval;
+    /// use caustic_core::Interval;
     ///
     /// let interval = Interval::new(1.0, 5.0);
     /// assert_eq!(interval.min, 1.0);
@@ -66,7 +66,7 @@ impl Interval {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Interval;
+    /// use caustic_core::Interval;
     ///
     /// let a = Interval::new(0.0, 5.0);
     /// let b = Interval::new(3.0, 8.0);
@@ -92,7 +92,7 @@ impl Interval {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Interval;
+    /// use caustic_core::Interval;
     ///
     /// let interval = Interval::new(0.0, 10.0);
     /// assert!(interval.contains(5.0));
@@ -115,7 +115,7 @@ impl Interval {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Interval;
+    /// use caustic_core::Interval;
     ///
     /// let interval = Interval::new(0.0, 10.0);
     /// assert!(interval.surrounds(5.0));
@@ -138,7 +138,7 @@ impl Interval {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Interval;
+    /// use caustic_core::Interval;
     ///
     /// let interval = Interval::new(5.0, 15.0);
     /// let expanded = interval.expand(4.0);
@@ -155,7 +155,7 @@ impl Interval {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Interval;
+    /// use caustic_core::Interval;
     ///
     /// let interval = Interval::new(5.0, 15.0);
     /// assert_eq!(interval.size(), 10.0);
@@ -172,7 +172,7 @@ impl Interval {
     /// # Examples
     ///
     /// ```
-    /// use rust_raytracer_core::Interval;
+    /// use caustic_core::Interval;
     ///
     /// // Empty interval where max < min
     /// let empty = Interval::new(5.0, 3.0);
@@ -201,7 +201,7 @@ impl Interval {
 /// # Examples
 ///
 /// ```
-/// use rust_raytracer_core::Interval;
+/// use caustic_core::Interval;
 ///
 /// let interval = Interval::new(0.0, 10.0);
 /// let shifted = interval + 5.0;

@@ -24,15 +24,15 @@ cd "${SCRIPT_DIR}/.."
 cargo fmt
 
 banner "cargo clippy"
-cargo clippy --workspace --exclude rust-raytracer-wasm -- -Dwarnings
-cargo clippy -p rust-raytracer-wasm --target wasm32-unknown-unknown -- -Dwarnings
+cargo clippy --workspace --exclude caustic-wasm -- -Dwarnings
+cargo clippy -p caustic-wasm --target wasm32-unknown-unknown -- -Dwarnings
 
 banner "cargo build"
-cargo build --workspace --exclude rust-raytracer-wasm
-cargo build -p rust-raytracer-wasm --target wasm32-unknown-unknown
+cargo build --workspace --exclude caustic-wasm
+cargo build -p caustic-wasm --target wasm32-unknown-unknown
 
 banner "cargo test"
-cargo test --workspace --exclude rust-raytracer-wasm
+cargo test --workspace --exclude caustic-wasm
 
 banner "wasm-pack"
 cd "${SCRIPT_DIR}/../crates/wasm"

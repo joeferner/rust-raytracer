@@ -1,5 +1,5 @@
-import type { CameraInfo, Color } from './wasm/rust_raytracer_wasm';
-import init, { load_openscad, get_camera_info, render } from './wasm/rust_raytracer_wasm.js';
+import type { CameraInfo, Color } from './wasm/caustic_wasm';
+import init, { load_openscad, get_camera_info, render } from './wasm/caustic_wasm.js';
 
 export type { CameraInfo, Color };
 
