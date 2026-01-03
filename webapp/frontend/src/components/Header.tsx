@@ -1,6 +1,5 @@
 import classes from './Header.module.scss';
-import { projectAtom, userAtom } from '../store';
-import { useAtomValue } from 'jotai';
+import { store } from '../store';
 import { useCallback, useState, type JSX } from 'react';
 import { UnstyledButton } from '@mantine/core';
 import type { User } from '../api';
@@ -10,8 +9,6 @@ const PICTURE_SIZE = 35;
 
 export function Header(): JSX.Element {
     const [loginDialogOpened, setLoginDialogOpened] = useState(false);
-    const user = useAtomValue(userAtom);
-    const project = useAtomValue(projectAtom);
 
     const onLoginClick = useCallback(() => {
         setLoginDialogOpened(true);
@@ -26,10 +23,10 @@ export function Header(): JSX.Element {
             <div className={classes.title}>
                 <img src="/navbar-logo.png" height={40} width={110} />
             </div>
-            <div className={classes.projectName}>{project && <div>{project.name}</div>}</div>
+            <div className={classes.projectName}>{store.project.value && <div>{store.project.value.name}</div>}</div>
             <div className={classes.userInfo}>
-                {user ? (
-                    <UserInfo onClick={onLoginClick} user={user} />
+                {store.user.value ? (
+                    <UserInfo onClick={onLoginClick} user={store.user.value} />
                 ) : (
                     <UnstyledButton onClick={onLoginClick}>Login</UnstyledButton>
                 )}

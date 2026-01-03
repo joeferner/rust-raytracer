@@ -1,22 +1,20 @@
 import { Tooltip, UnstyledButton } from '@mantine/core';
-import { renderAtom } from '../store';
 import { useEffect, useState, type JSX, type ReactNode } from 'react';
 import { Play as RenderIcon, Folder as OpenIcon } from 'react-bootstrap-icons';
 import classes from './Navbar.module.scss';
-import { useSetAtom } from 'jotai';
 import { OpenProjectDialog } from './OpenProjectDialog';
+import { store } from '../store';
 
 const ICON_SIZE = 25;
 
 export function Navbar(): JSX.Element {
-    const render = useSetAtom(renderAtom);
     const [openProjectDialogOpened, setOpenProjectDialogOpened] = useState(false);
 
     useEffect(() => {
         const handleKeyPress = (event: KeyboardEvent): void => {
             if (event.key === 'F5' && !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
                 event.preventDefault();
-                void render();
+                void store.render();
             }
         };
 
@@ -24,7 +22,11 @@ export function Navbar(): JSX.Element {
         return (): void => {
             document.removeEventListener('keydown', handleKeyPress);
         };
-    }, [render]);
+    }, []);
+
+    const handleRenderClick = (): void => {
+        void store.render();
+    };
 
     return (
         <div className={classes.wrapper}>
@@ -44,9 +46,7 @@ export function Navbar(): JSX.Element {
             <NavbarLink
                 label="Render (F5)"
                 icon={<RenderIcon width={ICON_SIZE} height={ICON_SIZE} />}
-                onClick={() => {
-                    void render();
-                }}
+                onClick={handleRenderClick}
             />
         </div>
     );

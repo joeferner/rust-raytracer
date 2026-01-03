@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState, type JSX } from 'react';
-import { cameraInfoAtom, renderOptionsAtom, subscribeToDrawEvents } from '../store';
+import React, { useCallback, useRef, useState, type JSX } from 'react';
+import { store } from '../store';
 import { MiniMap, TransformComponent, TransformWrapper, type ReactZoomPanPinchHandlers } from 'react-zoom-pan-pinch';
 import classes from './Render.module.scss';
 import { Button, Tooltip } from '@mantine/core';
@@ -7,43 +7,47 @@ import { ZoomIn as ZoomInIcon, ZoomOut as ZoomOutIcon, X as ResetZoomIcon } from
 import type { RenderResult } from '../types';
 import * as _ from 'radash';
 import { RenderProgress } from './RenderProgress';
-import { useAtomValue } from 'jotai';
+import { signal, useSignalEffect } from '@preact/signals-react';
 
 export function Render(): JSX.Element {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const canvasMiniRef = useRef<HTMLCanvasElement | null>(null);
     const [showMinimap, setShowMinimap] = useState(false);
-    const cameraInfo = useAtomValue(cameraInfoAtom);
-    const renderOptions = useAtomValue(renderOptionsAtom);
-    const [progress, setProgress] = useState(1.0);
+    const progress = signal(1.0);
     const [working, setWorking] = useState(false);
-    const [startTime, setStartTime] = useState<Date | undefined>(undefined);
+    const startTime = signal<Date | undefined>(undefined);
 
-    useEffect(() => {
-        renderEmpty(canvasRef, renderOptions.blockSize);
-        renderEmpty(canvasMiniRef, renderOptions.blockSize);
-    }, [renderOptions]);
+    // update empty background if block size changes
+    useSignalEffect(() => {
+        renderEmpty(canvasRef, store.renderOptions.value.blockSize);
+        renderEmpty(canvasMiniRef, store.renderOptions.value.blockSize);
+    });
 
-    useEffect(() => {
-        const unsubscribe = subscribeToDrawEvents((event) => {
+    // subscribe to draw events to render
+    useSignalEffect(() => {
+        const blockSize = store.renderOptions.value.blockSize;
+        const _canvasRef = canvasRef;
+        const _canvasMiniRef = canvasMiniRef;
+
+        const unsubscribe = store.subscribeToDrawEvents((event) => {
             if (event.type === 'init') {
-                setProgress(0.0);
-                setStartTime(event.startTime);
+                progress.value = 0.0;
+                startTime.value = event.startTime;
                 setWorking(true);
-                renderEmpty(canvasRef, renderOptions.blockSize);
-                renderEmpty(canvasMiniRef, renderOptions.blockSize);
+                renderEmpty(_canvasRef, blockSize);
+                renderEmpty(_canvasMiniRef, blockSize);
             } else if (event.type === 'renderResult') {
-                setProgress(event.progress);
+                progress.value = event.progress;
                 if (event.progress >= 1.0) {
                     setWorking(false);
                 }
-                renderDrawEvent(canvasRef, event);
-                renderDrawEvent(canvasMiniRef, event);
+                renderDrawEvent(_canvasRef, event);
+                renderDrawEvent(_canvasMiniRef, event);
             }
         });
 
         return unsubscribe;
-    }, [canvasRef, renderOptions, setProgress, setStartTime]);
+    });
 
     const handleOnZoom = useCallback(() => {
         const canvas = canvasRef.current;
@@ -77,8 +81,8 @@ export function Render(): JSX.Element {
                             <MiniMap width={150} height={150}>
                                 <canvas
                                     ref={canvasMiniRef}
-                                    width={cameraInfo?.width ?? 500}
-                                    height={cameraInfo?.height ?? 500}
+                                    width={store.cameraInfo.value?.width ?? 500}
+                                    height={store.cameraInfo.value?.height ?? 500}
                                 />
                             </MiniMap>
                         </div>
@@ -87,14 +91,14 @@ export function Render(): JSX.Element {
                             <canvas
                                 className={classes.canvas}
                                 ref={canvasRef}
-                                width={cameraInfo?.width ?? 500}
-                                height={cameraInfo?.height ?? 500}
+                                width={store.cameraInfo.value?.width ?? 500}
+                                height={store.cameraInfo.value?.height ?? 500}
                             />
                         </TransformComponent>
                     </React.Fragment>
                 )}
             </TransformWrapper>
-            <RenderProgress progress={progress} startTime={startTime} working={working} />
+            <RenderProgress progress={progress.value} startTime={startTime.value} working={working} />
         </div>
     );
 }

@@ -17,7 +17,7 @@
     "@mantine/hooks": "^8.3.10",
     "@mantine/modals": "^8.3.10",
     "@monaco-editor/react": "^4.7.0",
-    "jotai": "^2.16.0",
+    "@preact/signals-react": "^3.6.1",
     "prettier": "^3.7.4",
     "radash": "^12.1.1",
     "react": "^19.2.0",
@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@preact/signals-react-transform": "^0.6.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",

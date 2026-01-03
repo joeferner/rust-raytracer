@@ -15,28 +15,12 @@ import {
 } from '@mantine/core';
 import { useCallback, useEffect, useState, type JSX, type MouseEvent } from 'react';
 import classes from './OpenProjectDialog.module.scss';
-import { useAtomValue, useSetAtom } from 'jotai';
-import {
-    copyProjectAtom,
-    createProjectAtom,
-    deleteProjectAtom,
-    loadProjectAtom,
-    loadProjectsAtom,
-    projectsAtom,
-    userAtom,
-} from '../store';
+import { store } from '../store';
 import { ErrorMessage, type ErrorMessageProps } from './ErrorMessage';
 import { Copy as CopyIcon, Trash as DeleteIcon } from 'react-bootstrap-icons';
 import type { UserDataProject } from '../api';
 
 export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClose: () => void }): JSX.Element {
-    const user = useAtomValue(userAtom);
-    const projects = useAtomValue(projectsAtom);
-    const storeLoadProjects = useSetAtom(loadProjectsAtom);
-    const storeLoadProject = useSetAtom(loadProjectAtom);
-    const storeCopyProject = useSetAtom(copyProjectAtom);
-    const storeDeleteProject = useSetAtom(deleteProjectAtom);
-    const createProject = useSetAtom(createProjectAtom);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<ErrorMessageProps | undefined>(undefined);
     const [newProjectName, setNewProjectName] = useState('');
@@ -47,7 +31,7 @@ export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClos
             try {
                 setError(undefined);
                 setLoading(true);
-                await storeLoadProjects();
+                await store.loadProjects();
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown error';
                 setError({
@@ -63,7 +47,7 @@ export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClos
             setNewProjectName('');
             void loadProjects();
         }
-    }, [opened, setNewProjectName, setError, storeLoadProjects]);
+    }, [opened, setNewProjectName, setError]);
 
     useEffect(() => {
         setCanSubmit(newProjectName.trim().length > 0 && !loading);
@@ -75,7 +59,7 @@ export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClos
                 try {
                     setLoading(true);
                     setError(undefined);
-                    await storeLoadProject({ projectId });
+                    await store.loadProject({ projectId });
                     onClose();
                 } catch (err) {
                     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -88,7 +72,7 @@ export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClos
                 }
             })();
         },
-        [storeLoadProject, onClose, setError, setLoading]
+        [onClose, setError, setLoading]
     );
 
     const copyProject = useCallback(
@@ -97,7 +81,7 @@ export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClos
                 try {
                     setLoading(true);
                     setError(undefined);
-                    await storeCopyProject({ projectId });
+                    await store.copyProject({ projectId });
                     onClose();
                 } catch (err) {
                     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -110,7 +94,7 @@ export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClos
                 }
             })();
         },
-        [storeCopyProject, onClose, setError, setLoading]
+        [onClose, setError, setLoading]
     );
 
     const deleteProject = useCallback(
@@ -119,7 +103,7 @@ export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClos
                 try {
                     setLoading(true);
                     setError(undefined);
-                    await storeDeleteProject({ projectId });
+                    await store.deleteProject({ projectId });
                 } catch (err) {
                     const message = err instanceof Error ? err.message : 'Unknown error';
                     setError({
@@ -131,7 +115,7 @@ export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClos
                 }
             })();
         },
-        [storeDeleteProject, setError, setLoading]
+        [setError, setLoading]
     );
 
     const onCancelClick = useCallback((): void => {
@@ -143,7 +127,7 @@ export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClos
             try {
                 setLoading(true);
                 setError(undefined);
-                await createProject({ name: newProjectName });
+                await store.createProject({ name: newProjectName });
                 onClose();
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown error';
@@ -155,7 +139,7 @@ export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClos
                 setLoading(false);
             }
         })();
-    }, [createProject, newProjectName, onClose, setError, setLoading]);
+    }, [newProjectName, onClose, setError, setLoading]);
 
     return (
         <Modal opened={opened} onClose={onClose} title="Open Project" zIndex={2000}>
@@ -167,7 +151,7 @@ export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClos
                             placeholder="New Project Name"
                             inputSize="100"
                             label="New Project Name"
-                            description={user ? null : 'To create a new project you must be logged in'}
+                            description={store.user.value ? null : 'To create a new project you must be logged in'}
                             value={newProjectName}
                             onChange={(event) => {
                                 setNewProjectName(event.target.value);
@@ -183,7 +167,7 @@ export function OpenProjectDialog({ opened, onClose }: { opened: boolean; onClos
                 />
                 <div className={classes.item}>
                     <Stack className={classes.existingProjects}>
-                        {projects?.map((project) => (
+                        {store.projects.value?.map((project) => (
                             <ProjectButton
                                 key={project.id}
                                 project={project}
