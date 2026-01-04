@@ -27,7 +27,7 @@ export class ProjectsStore {
     public async createProject({ name }: { name: string }): Promise<void> {
         console.log('creating new project', name);
         const project = await rayTracerApi.project.createProject({ name });
-        await projectStore.updateProject({ ...project, readOnly: false });
+        await projectStore.setProject({ ...project, readOnly: false });
         this.projects.value = [...this.projects.value, { ...project, readonly: false }];
     }
 
@@ -45,7 +45,7 @@ export class ProjectsStore {
 
     public async copyProject({ projectId }: { projectId: string }): Promise<void> {
         const newProject = await rayTracerApi.project.copyProject({ projectId });
-        await projectStore.updateProject({ ...newProject, readOnly: false });
+        await projectStore.setProject({ ...newProject, readOnly: false });
         this.projects.value = [...this.projects.value, { ...newProject, readonly: false }];
     }
 }

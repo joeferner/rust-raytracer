@@ -58,3 +58,18 @@ INSERT INTO caustic_project_file
     (project_id, content_type, filename, created, last_modified)
 VALUES
     ('b43378fe-afa5-4706-aa09-0951ff1564f2', 'application/x-openscad', 'three-spheres.scad', '2025-12-30T22:31:50.922Z', '2025-12-30T22:31:50.922Z');
+
+-- Example: Earth
+INSERT INTO caustic_project
+    (project_id, name, owner_user_id, created, last_modified)
+VALUES
+    ('372e425c-d5d7-4a03-b082-0be18177f7ad', 'Example: Earth', 'examples', '2025-12-30T22:31:50.922Z', '2025-12-30T22:31:50.922Z');
+
+INSERT INTO caustic_project_file
+    (project_id, content_type, filename, created, last_modified)
+VALUES
+    ('372e425c-d5d7-4a03-b082-0be18177f7ad', 'application/x-openscad', 'earth.scad', '2025-12-30T22:31:50.922Z', '2025-12-30T22:31:50.922Z');
+INSERT INTO caustic_project_file
+    (project_id, content_type, filename, created, last_modified)
+VALUES
+    ('372e425c-d5d7-4a03-b082-0be18177f7ad', 'image/jpeg', 'earth-map.jpg', '2025-12-30T22:31:50.922Z', '2025-12-30T22:31:50.922Z');

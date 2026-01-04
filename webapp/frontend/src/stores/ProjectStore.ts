@@ -25,7 +25,10 @@ export class ProjectStore {
         blockSize: DEFAULT_RENDER_BLOCK_SIZE,
         threadCount: typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency ?? 4) : 4,
     });
+    public readonly selectedTab = signal<string | undefined>(undefined);
+
     private readonly _project = signal<StoreProject | undefined>(undefined);
+    // expose a read only copy of project, projects must be changed via setProject
     public readonly project = computed(() => this._project.value);
 
     public async loadLastProject(): Promise<void> {
@@ -46,12 +49,13 @@ export class ProjectStore {
         });
     }
 
-    public async updateProject(newProject: StoreProject): Promise<void> {
+    public async setProject(newProject: StoreProject): Promise<void> {
         if (this._project.value?.id !== newProject?.id && newProject?.id) {
             const files = await this.loadProjectFiles(newProject);
             document.title = `Caustic: ${newProject.name}`;
             this.files.value = files;
             projectsStore.lastLoadedProjectId = newProject.id;
+            this.selectedTab.value = files[0].filename;
         }
         this._project.value = newProject;
     }
@@ -63,7 +67,7 @@ export class ProjectStore {
         }
         console.log(`getting project (projectId: ${projectId})`);
         const project = await rayTracerApi.project.getProject(projectId);
-        await this.updateProject({ ...project, readOnly: userProject.readonly });
+        await this.setProject({ ...project, readOnly: userProject.readonly });
     }
 
     public async render(): Promise<void> {
@@ -99,6 +103,7 @@ export class ProjectStore {
 
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 const contents = await rayTracerApi.project.getProjectFile(project.id, f.filename);
+                console.log(contents);
                 if (R.isString(contents)) {
                     return {
                         ...f,
