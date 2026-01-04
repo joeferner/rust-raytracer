@@ -5,8 +5,16 @@
     border-bottom: 1px solid var(--border-color);
 
     .title {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
         justify-self: start;
         margin: 5px 5px 0 5px;
+
+        a {
+            color: var(--mantine-color-text);
+        }
     }
 
     .projectName {

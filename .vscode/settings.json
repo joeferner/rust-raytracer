@@ -13,6 +13,7 @@
         "indicatif",
         "jsonwebtoken",
         "lambertian",
+        "mantine",
         "openscad",
         "Perlin",
         "radash",
