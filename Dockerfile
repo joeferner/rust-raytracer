@@ -68,7 +68,7 @@ WORKDIR /frontend
 # Install required dependencies
 RUN \
   apt-get update \
-  && apt-get install -y pkg-config libssl-dev curl \
+  && apt-get install -y pkg-config libssl-dev curl openjdk-17-jre \
   && rm -rf /var/lib/apt/lists/*
 
 # Install node
