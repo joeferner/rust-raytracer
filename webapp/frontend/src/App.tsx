@@ -8,11 +8,14 @@ import { Header } from './components/Header';
 import { ModalsProvider } from '@mantine/modals';
 import { MantineProvider } from '@mantine/core';
 import { projectsStore, projectStore, userStore } from './stores/store';
+import '@mantine/notifications/styles.css';
+import { Notifications } from '@mantine/notifications';
 
 export function App(): JSX.Element {
     return (
         <MantineProvider>
             <ModalsProvider>
+                <Notifications position="top-right" />
                 <InnerApp />
             </ModalsProvider>
         </MantineProvider>

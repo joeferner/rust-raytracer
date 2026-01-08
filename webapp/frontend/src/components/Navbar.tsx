@@ -5,6 +5,7 @@ import classes from './Navbar.module.scss';
 import { OpenProjectDialog } from './OpenProjectDialog';
 import { projectStore } from '../stores/store';
 import { useSignal } from '@preact/signals-react';
+import { showNotification } from '@mantine/notifications';
 
 const ICON_SIZE = 25;
 
@@ -15,7 +16,7 @@ export function Navbar(): JSX.Element {
         const handleKeyPress = (event: KeyboardEvent): void => {
             if (event.key === 'F5' && !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
                 event.preventDefault();
-                void projectStore.render();
+                handleRenderClick();
             }
         };
 
@@ -26,7 +27,20 @@ export function Navbar(): JSX.Element {
     }, []);
 
     const handleRenderClick = (): void => {
-        void projectStore.render();
+        void (async (): Promise<void> => {
+            try {
+                await projectStore.render();
+            } catch (err) {
+                console.error('failed to render', err);
+                // TODO add errors to an error pain
+                showNotification({
+                    title: 'Failed to render!',
+                    message: `${err}`,
+                    color: 'red',
+                    autoClose: 5000,
+                });
+            }
+        })();
     };
 
     return (

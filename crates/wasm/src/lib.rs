@@ -26,11 +26,11 @@ export interface WasmSource {
 extern "C" {
     pub type WasmSource;
 
-    #[wasm_bindgen(method)]
-    pub fn get_code(this: &WasmSource) -> String;
+    #[wasm_bindgen(method, catch)]
+    pub fn get_code(this: &WasmSource) -> Result<String, JsValue>;
 
-    #[wasm_bindgen(method)]
-    pub fn get_image(this: &WasmSource, filename: &str) -> WasmImage;
+    #[wasm_bindgen(method, catch)]
+    pub fn get_image(this: &WasmSource, filename: &str) -> Result<WasmImage, JsValue>;
 }
 
 // Add this wrapper struct
@@ -55,12 +55,12 @@ struct WasmSourceAdapter {
 }
 
 impl WasmSourceAdapter {
-    pub fn new(wasm_source: WasmSource) -> Self {
-        let code = wasm_source.get_code();
-        Self {
+    pub fn new(wasm_source: WasmSource) -> Result<Self, JsValue> {
+        let code = wasm_source.get_code()?;
+        Ok(Self {
             wasm_source: SendSyncWasmSource(wasm_source),
             code,
-        }
+        })
     }
 }
 
@@ -74,8 +74,13 @@ impl Source for WasmSourceAdapter {
     }
 
     fn get_image(&self, filename: &str) -> Result<Arc<dyn Image>, ImageError> {
-        let image = self.wasm_source.get_image(filename);
-        Ok(Arc::new(WasmImageAdapter::new(image)))
+        let image = self.wasm_source.get_image(filename).map_err(|err| {
+            ImageError::Other(format!("getting image from JavaScript failed: {err:?}"))
+        })?;
+        let image_adapter = WasmImageAdapter::new(image).map_err(|err| {
+            ImageError::Other(format!("converting image from JavaScript failed: {err:?}"))
+        })?;
+        Ok(Arc::new(image_adapter))
     }
 }
 
@@ -98,14 +103,14 @@ export interface WasmImage {
 extern "C" {
     pub type WasmImage;
 
-    #[wasm_bindgen(method)]
-    pub fn get_width(this: &WasmImage) -> u32;
+    #[wasm_bindgen(method, catch)]
+    pub fn get_width(this: &WasmImage) -> Result<u32, JsValue>;
 
-    #[wasm_bindgen(method)]
-    pub fn get_height(this: &WasmImage) -> u32;
+    #[wasm_bindgen(method, catch)]
+    pub fn get_height(this: &WasmImage) -> Result<u32, JsValue>;
 
-    #[wasm_bindgen(method)]
-    pub fn get_data(this: &WasmImage) -> Uint8ClampedArray;
+    #[wasm_bindgen(method, catch)]
+    pub fn get_data(this: &WasmImage) -> Result<Uint8ClampedArray, JsValue>;
 }
 
 struct WasmImageAdapter {
@@ -115,12 +120,12 @@ struct WasmImageAdapter {
 }
 
 impl WasmImageAdapter {
-    pub fn new(wasm_image: WasmImage) -> Self {
-        Self {
-            width: wasm_image.get_width(),
-            height: wasm_image.get_height(),
+    pub fn new(wasm_image: WasmImage) -> Result<Self, JsValue> {
+        Ok(Self {
+            width: wasm_image.get_width()?,
+            height: wasm_image.get_height()?,
             data: wasm_image
-                .get_data()
+                .get_data()?
                 .to_vec()
                 .chunks_exact(4)
                 .map(|chunk| {
@@ -132,7 +137,7 @@ impl WasmImageAdapter {
                     }
                 })
                 .collect(),
-        }
+        })
     }
 }
 
@@ -159,7 +164,7 @@ impl Debug for WasmImageAdapter {
 
 #[wasm_bindgen]
 pub fn load_openscad(wasm_source: WasmSource) -> Result<LoadResults, JsValue> {
-    let source = Arc::new(WasmSourceAdapter::new(wasm_source));
+    let source = Arc::new(WasmSourceAdapter::new(wasm_source)?);
     let results = run_openscad(source).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
     LOADED_SCENE_DATA.with(|data| *data.borrow_mut() = Some(results.scene_data));
     Ok(LoadResults {
