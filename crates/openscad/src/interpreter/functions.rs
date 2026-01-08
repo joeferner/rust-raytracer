@@ -2,7 +2,7 @@ use std::{mem::swap, sync::Arc};
 
 use caustic_core::{
     Color,
-    texture::{CheckerTexture, ImageTexture, SolidColor, Texture},
+    texture::{CheckerTexture, ImageTexture, PerlinTurbulenceTexture, SolidColor, Texture},
 };
 
 use crate::{
@@ -19,6 +19,8 @@ impl Interpreter {
     ) -> Result<Value> {
         if name == "checker" {
             self.evaluate_checker(arguments)
+        } else if name == "perlin_turbulence" {
+            self.evaluate_perlin_turbulence(arguments)
         } else if name == "pow" {
             self.evaluate_pow(arguments)
         } else if name == "sqrt" {
@@ -109,6 +111,30 @@ impl Interpreter {
 
         Ok(Value::Texture(Arc::new(CheckerTexture::new(
             scale, even, odd,
+        ))))
+    }
+
+    fn evaluate_perlin_turbulence(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+    ) -> Result<Value> {
+        let arguments = self.convert_args(&["scale", "turbulence_depth"], arguments)?;
+
+        let mut scale: f64 = 1.0;
+        let mut turbulence_depth: u32 = 1;
+
+        if let Some(arg) = arguments.get("scale") {
+            scale = arg.item.to_number()?;
+        }
+
+        if let Some(arg) = arguments.get("turbulence_depth") {
+            turbulence_depth = arg.item.to_number()? as u32;
+        }
+
+        Ok(Value::Texture(Arc::new(PerlinTurbulenceTexture::new(
+            self.random.as_ref(),
+            scale,
+            turbulence_depth,
         ))))
     }
 

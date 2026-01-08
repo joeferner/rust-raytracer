@@ -17,7 +17,9 @@
 - :white_check_mark: `dielectric(n)`
 - :white_check_mark: `metal(c, fuzz)`
 - :white_check_mark: `checker(scale, even, odd)`
+- :white_check_mark: `perlin_turbulence(scale, turbulence_depth)`
 - :white_check_mark: `image(filename)`
+- :white_check_mark: `quad(q, u, v)`
 
 ## Syntax
 

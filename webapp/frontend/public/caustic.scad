@@ -25,6 +25,16 @@ module metal(c, fuzz) {
   children();
 }
 
+module diffuse_light(c) {
+  children();
+}
+
+module quad(q, u, v) {
+
+}
+
 function checker(scale = 1, even = [0, 0, 0], odd = [1, 1, 1]) = even;
 
 function image(filename) = 1;
+
+function perlin_turbulence(scale=1, turbulence_depth=1) = 1;

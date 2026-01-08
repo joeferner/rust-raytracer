@@ -6,6 +6,7 @@ pub mod value;
 
 use std::sync::Arc;
 
+use caustic_core::Random;
 use thiserror::Error;
 
 use crate::interpreter::InterpreterError;
@@ -56,7 +57,10 @@ pub enum OpenscadError {
     InterpreterErrors { errors: Vec<InterpreterError> },
 }
 
-pub fn run_openscad(source: Arc<dyn Source>) -> Result<InterpreterResults, OpenscadError> {
+pub fn run_openscad(
+    source: Arc<dyn Source>,
+    random: Arc<dyn Random>,
+) -> Result<InterpreterResults, OpenscadError> {
     let tokens = openscad_tokenize(source)?;
     let parse_results = openscad_parse(tokens);
 
@@ -64,7 +68,7 @@ pub fn run_openscad(source: Arc<dyn Source>) -> Result<InterpreterResults, Opens
         todo!("{:?}", parse_results.errors);
     }
 
-    let interpret_results = openscad_interpret(parse_results.statements);
+    let interpret_results = openscad_interpret(parse_results.statements, random);
     if !interpret_results.errors.is_empty() {
         return Err(OpenscadError::InterpreterErrors {
             errors: interpret_results.errors,

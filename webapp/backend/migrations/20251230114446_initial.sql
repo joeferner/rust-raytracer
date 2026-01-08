@@ -74,3 +74,14 @@ INSERT INTO caustic_project_file
     (project_id, content_type, filename, sort, created, last_modified)
 VALUES
     ('372e425c-d5d7-4a03-b082-0be18177f7ad', 'image/jpeg', 'earth-map.jpg', 2, '2025-12-30T22:31:50.922Z', '2025-12-30T22:31:50.922Z');
+
+-- Example: Lighted Sphere
+INSERT INTO caustic_project
+    (project_id, name, owner_user_id, created, last_modified)
+VALUES
+    ('55a3544e-cc0d-4b3e-a967-3a0cab61a3da', 'Example: Lighted Sphere', 'examples', '2025-12-30T22:31:50.922Z', '2025-12-30T22:31:50.922Z');
+
+INSERT INTO caustic_project_file
+    (project_id, content_type, filename, sort, created, last_modified)
+VALUES
+    ('55a3544e-cc0d-4b3e-a967-3a0cab61a3da', 'application/x-openscad', 'lighted-sphere.scad', 1, '2025-12-30T22:31:50.922Z', '2025-12-30T22:31:50.922Z');

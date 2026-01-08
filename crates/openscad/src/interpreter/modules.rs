@@ -60,6 +60,7 @@ impl Interpreter {
             ModuleId::Identifier(identifier) => {
                 todo!("ModuleId::Identifier {identifier}")
             }
+            ModuleId::Quad => todo!(),
         }
     }
 

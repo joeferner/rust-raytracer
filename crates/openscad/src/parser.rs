@@ -66,6 +66,7 @@ pub enum ModuleId {
     Cube,
     Sphere,
     Cylinder,
+    Quad,
     Translate,
     Rotate,
     Scale,
@@ -476,6 +477,8 @@ impl Parser {
                         ModuleId::Sphere
                     } else if identifier == "cylinder" {
                         ModuleId::Cylinder
+                    } else if identifier == "quad" {
+                        ModuleId::Quad
                     } else if identifier == "translate" {
                         ModuleId::Translate
                     } else if identifier == "rotate" {

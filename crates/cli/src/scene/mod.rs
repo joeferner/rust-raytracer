@@ -56,7 +56,7 @@ pub fn get_scene(ctx: &RenderContext, scene: Scene) -> Result<SceneData, String>
         Scene::OpenScad(filename) => {
             let source =
                 Arc::new(FileSource::new(Path::new(&filename)).map_err(|err| format!("{err:?}"))?);
-            let results = run_openscad(source).map_err(|err| format!("{err:?}"));
+            let results = run_openscad(source, ctx.random.clone()).map_err(|err| format!("{err:?}"));
             match results {
                 Ok(results) => {
                     if !results.output.is_empty() {

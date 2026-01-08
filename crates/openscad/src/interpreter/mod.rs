@@ -7,7 +7,7 @@ pub mod tests;
 use std::{cell::RefCell, collections::HashMap, sync::Arc};
 
 use caustic_core::{
-    Camera, CameraBuilder, Color, Node, SceneData, Vector3,
+    Camera, CameraBuilder, Color, Node, Random, SceneData, Vector3,
     material::{Dielectric, Lambertian, Material, Metal},
     object::BoundingVolumeHierarchy,
 };
@@ -121,11 +121,12 @@ struct Interpreter {
     variables: RefCell<Vec<HashMap<String, Value>>>,
     functions: HashMap<String, Function>,
     output: String,
+    random: Arc<dyn Random>,
     rng: Mt64,
 }
 
 impl Interpreter {
-    pub fn new() -> Self {
+    pub fn new(random: Arc<dyn Random>) -> Self {
         let variables = {
             let mut variables = HashMap::new();
 
@@ -146,6 +147,7 @@ impl Interpreter {
             lights: vec![],
             material_stack: vec![],
             output: String::new(),
+            random,
             rng: Mt64::new_unseeded(),
         }
     }
@@ -551,7 +553,10 @@ impl Interpreter {
     }
 }
 
-pub fn openscad_interpret(statements: Vec<StatementWithPosition>) -> InterpreterResults {
-    let it = Interpreter::new();
+pub fn openscad_interpret(
+    statements: Vec<StatementWithPosition>,
+    random: Arc<dyn Random>,
+) -> InterpreterResults {
+    let it = Interpreter::new(random);
     it.interpret(statements)
 }
