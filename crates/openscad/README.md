@@ -34,7 +34,7 @@
 ## Constants
 
 - :x: [`undef`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#The_Undefined_Value) - undefined value
-- :x: [`PI`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Numbers) - mathematical constant [π](https://en.wikipedia.org/wiki/Pi) (~3.14159)
+- :white_check_mark: [`PI`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Numbers) - mathematical constant [π](https://en.wikipedia.org/wiki/Pi) (~3.14159)
 
 ## Operators
 

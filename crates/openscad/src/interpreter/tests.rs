@@ -99,7 +99,7 @@ mod tests {
         ";
 
         let result = interpret(s);
-        assert_eq_float!(result.output.trim().parse().unwrap(), 10.246950765959598);
+        assert_eq_float!(result.output.trim().parse().unwrap(), 10.24695);
     }
 
     #[test]
@@ -131,5 +131,12 @@ mod tests {
         let s = r#"echo(1 > 2 ? "false" : "ok");"#;
         let result = interpret(s);
         assert_eq!(result.output, "\"ok\"\n");
+    }
+
+    #[test]
+    fn test_pi() {
+        let s = r#"echo(PI);"#;
+        let result = interpret(s);
+        assert_eq!(result.output, "3.14159\n");
     }
 }

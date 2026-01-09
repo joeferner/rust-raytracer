@@ -4,6 +4,7 @@ pub mod modules;
 #[cfg(test)]
 pub mod tests;
 
+use core::f64;
 use std::{cell::RefCell, collections::HashMap, sync::Arc};
 
 use caustic_core::{
@@ -472,7 +473,9 @@ impl Interpreter {
     }
 
     fn evaluate_identifier(&self, name: &str) -> Result<Value> {
-        if let Some(v) = self.get_variable(name) {
+        if name == "PI" {
+            Ok(Value::Number(f64::consts::PI))
+        } else if let Some(v) = self.get_variable(name) {
             Ok(v.clone())
         } else {
             todo!("missing variable {name}");

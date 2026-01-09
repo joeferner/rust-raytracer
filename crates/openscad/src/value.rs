@@ -141,7 +141,11 @@ impl Value {
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::Number(number) => write!(f, "{number}"),
+            Value::Number(number) => {
+                let formatted = format!("{number:.5}");
+                let formatted = formatted.trim_end_matches('0').trim_end_matches('.');
+                write!(f, "{formatted}")
+            }
             Value::String(str) => write!(f, "{str:?}"),
             Value::Vector { items } => {
                 let mut output = String::new();
