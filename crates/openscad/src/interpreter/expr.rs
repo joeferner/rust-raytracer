@@ -31,6 +31,11 @@ impl Interpreter {
             } => self.evaluate_range_expression(start, end, increment)?,
             Expr::Identifier { name } => self.evaluate_identifier(name)?,
             Expr::Index { lhs, index } => self.evaluate_index(lhs, index)?,
+            Expr::Ternary {
+                condition,
+                true_expr,
+                false_expr,
+            } => self.evaluate_ternary(condition, true_expr, false_expr)?,
         })
     }
 

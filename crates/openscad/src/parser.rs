@@ -146,7 +146,12 @@ pub enum Expr {
         rhs: Box<ExprWithPosition>,
     },
     // TODO '(' <expr> ')'
-    // TODO <expr> '?' <expr> ':' <expr>
+    // <expr> '?' <expr> ':' <expr>
+    Ternary {
+        condition: Box<ExprWithPosition>,
+        true_expr: Box<ExprWithPosition>,
+        false_expr: Box<ExprWithPosition>,
+    },
     // <expr> '[' <expr> ']'
     Index {
         lhs: Box<ExprWithPosition>,
@@ -527,7 +532,28 @@ impl Parser {
     /// <expr> '[' <expr> ']'
     /// <binary expression>
     fn parse_expr(&mut self) -> Result<ExprWithPosition> {
-        self.parse_binary_expr(0)
+        let (start, source) = self.get_current()?;
+        let lhs = self.parse_binary_expr(0)?;
+
+        // <expr> '?' <expr> ':' <expr>
+        if self.current_matches(Token::QuestionMark) {
+            self.expect(Token::QuestionMark)?;
+            let true_expr = self.parse_binary_expr(0)?;
+            self.expect(Token::Colon)?;
+            let false_expr = self.parse_binary_expr(0)?;
+            return Ok(ExprWithPosition::new(
+                Expr::Ternary {
+                    condition: Box::new(lhs),
+                    true_expr: Box::new(true_expr),
+                    false_expr: Box::new(false_expr),
+                },
+                start,
+                self.current_token_start(),
+                source,
+            ));
+        }
+
+        Ok(lhs)
     }
 
     /// <expr> '*' <expr>
@@ -570,7 +596,6 @@ impl Parser {
         }
 
         // TODO '(' <expr> ')'
-        // TODO <expr> '?' <expr> ':' <expr>
 
         Ok(lhs)
     }

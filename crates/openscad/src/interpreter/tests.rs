@@ -125,4 +125,11 @@ mod tests {
         let result = interpret(s);
         assert_eq!(result.output, "\"ok\"\n");
     }
+
+    #[test]
+    fn test_ternary() {
+        let s = r#"echo(1 > 2 ? "false" : "ok");"#;
+        let result = interpret(s);
+        assert_eq!(result.output, "\"ok\"\n");
+    }
 }

@@ -24,7 +24,7 @@
 ## Syntax
 
 - :white_check_mark: [`var`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Variables)` = `[`value`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Values_and_Data_Types)`;`
-- :x: [`var`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Variables)` = cond `[`?`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Conditional_and_Iterator_Functions#Conditional_?_:)` value_if_true `[`:`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Conditional_and_Iterator_Functions#Conditional_?_:)` value_if_false;`
+- :white_check_mark: [`var`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Variables)` = cond `[`?`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Conditional_and_Iterator_Functions#Conditional_?_:)` value_if_true `[`:`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Conditional_and_Iterator_Functions#Conditional_?_:)` value_if_false;`
 - :x: [`var`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Variables)` = `[`function`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/User-Defined_Functions_and_Modules#Function_Literals)` (x) x + x;`
 - :x: [`module`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/User-Defined_Functions_and_Modules#Modules)` name(…) { … }`
 - :white_check_mark: [`function`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/User-Defined_Functions_and_Modules#Functions)` name(…) = …`

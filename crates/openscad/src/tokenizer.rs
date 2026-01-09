@@ -47,6 +47,8 @@ pub enum Token {
     Asterisk,
     /// '/'
     ForwardSlash,
+    /// '?'
+    QuestionMark,
     /// '<'
     LessThan,
     /// '<='
@@ -347,6 +349,10 @@ impl Tokenizer {
             Some('/') => {
                 self.advance();
                 Token::ForwardSlash
+            }
+            Some('?') => {
+                self.advance();
+                Token::QuestionMark
             }
             Some('<') => {
                 self.advance();

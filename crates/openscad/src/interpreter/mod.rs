@@ -509,6 +509,20 @@ impl Interpreter {
         Ok(value)
     }
 
+    fn evaluate_ternary(
+        &mut self,
+        condition: &ExprWithPosition,
+        true_expr: &ExprWithPosition,
+        false_expr: &ExprWithPosition,
+    ) -> Result<Value> {
+        let condition = self.expr_to_value(condition)?;
+        if condition.is_truthy() {
+            self.expr_to_value(true_expr)
+        } else {
+            self.expr_to_value(false_expr)
+        }
+    }
+
     fn process_function_decl(
         &mut self,
         function_name: &str,
