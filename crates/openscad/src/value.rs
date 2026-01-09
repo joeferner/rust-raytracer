@@ -40,6 +40,10 @@ impl Value {
         self.to_number().map(|v| v as u64)
     }
 
+    pub fn to_i64(&self) -> Result<i64> {
+        self.to_number().map(|v| v as i64)
+    }
+
     pub fn to_vector3(&self) -> Result<Vector3> {
         match self {
             Value::Number(value) => Ok(Vector3::new(-*value, *value, *value)),

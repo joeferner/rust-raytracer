@@ -490,7 +490,12 @@ impl Interpreter {
         index: &ExprWithPosition,
     ) -> Result<Value> {
         let lhs = self.expr_to_value(lhs)?;
-        let index = self.expr_to_value(index)?.to_u64()? as usize;
+        let index = self.expr_to_value(index)?.to_i64()?;
+
+        if index < 0 {
+            return Ok(Value::Undef);
+        }
+        let index = index as usize;
 
         let value: Value = match &lhs {
             Value::Number(index) => todo!("evaluate_index {lhs:?} {index:?}"),
@@ -498,11 +503,17 @@ impl Interpreter {
                 if let Some(item) = items.get(index) {
                     item.clone()
                 } else {
-                    todo!("index out of range");
+                    Value::Undef
                 }
             }
             Value::Boolean(b) => todo!("evaluate_index {lhs:?} {b}"),
-            Value::String(str) => todo!("evaluate_index {lhs:?} {str}"),
+            Value::String(str) => {
+                if let Some(item) = str.chars().nth(index) {
+                    Value::String(format!("{item}"))
+                } else {
+                    Value::Undef
+                }
+            }
             Value::Texture(texture) => todo!("evaluate_index {lhs:?} {texture:?}"),
             Value::Range {
                 start,
@@ -513,6 +524,34 @@ impl Interpreter {
         };
 
         Ok(value)
+    }
+
+    fn evaluate_field_access(&mut self, lhs: &ExprWithPosition, field: &String) -> Result<Value> {
+        let lhs = self.expr_to_value(lhs)?;
+
+        match lhs {
+            Value::Number(_) => todo!(),
+            Value::String(_) => todo!(),
+            Value::Vector { items } => {
+                if field == "x" {
+                    Ok(items[0].clone())
+                } else if field == "y" {
+                    Ok(items[1].clone())
+                } else if field == "z" {
+                    Ok(items[2].clone())
+                } else {
+                    todo!();
+                }
+            }
+            Value::Boolean(_) => todo!(),
+            Value::Texture(_texture) => todo!(),
+            Value::Range {
+                start: _,
+                end: _,
+                increment: _,
+            } => todo!(),
+            Value::Undef => todo!(),
+        }
     }
 
     fn evaluate_ternary(

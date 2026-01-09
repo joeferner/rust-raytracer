@@ -36,6 +36,7 @@ impl Interpreter {
                 true_expr,
                 false_expr,
             } => self.evaluate_ternary(condition, true_expr, false_expr)?,
+            Expr::FieldAccess { lhs, field } => self.evaluate_field_access(lhs, field)?,
         })
     }
 

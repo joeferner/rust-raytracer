@@ -116,9 +116,9 @@
 
 ## Lists
 
-- :x: [`list = […, …, …];`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Vectors) - create a list
-- :x: [`var = list[2];`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Indexing_elements_within_vectors) - index a list (from 0)
-- :x: [`var = list.z;`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Dot_notation_indexing) - dot notation indexing (x/y/z)
+- :white_check_mark: [`list = […, …, …];`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Vectors) - create a list
+- :white_check_mark: [`var = list[2];`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Indexing_elements_within_vectors) - index a list (from 0)
+- :white_check_mark: [`var = list.z;`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/General#Dot_notation_indexing) - dot notation indexing (x/y/z)
 
 ## Boolean Operations
 
@@ -158,7 +158,7 @@
 
 ## Other
 
-- :x: [`echo`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Other_Language_Features#echo)(…)
+- :white_check_mark: [`echo`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Other_Language_Features#echo)(…)
 - :x: [`render`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Other_Language_Features#render)(convexity)
 - :x: [`children`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/User-Defined_Functions_and_Modules#Children)([idx])
 - :x: [`assert`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Other_Language_Features#assert)(condition, message)

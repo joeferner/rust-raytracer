@@ -37,6 +37,8 @@ pub enum Token {
     Colon,
     /// ';'
     Semicolon,
+    /// '.'
+    Period,
     /// '='
     Equals,
     /// '=='
@@ -343,6 +345,10 @@ impl Tokenizer {
             Some(';') => {
                 self.advance();
                 Token::Semicolon
+            }
+            Some('.') => {
+                self.advance();
+                Token::Period
             }
             Some('+') => {
                 self.advance();

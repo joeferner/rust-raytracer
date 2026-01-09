@@ -98,7 +98,11 @@ pub enum Expr {
     Identifier {
         name: String,
     },
-    // TODO <expr> '.' <identifier>
+    // <expr> '.' <identifier>
+    FieldAccess {
+        lhs: Box<ExprWithPosition>,
+        field: String,
+    },
     // <string>
     String(String),
     /// <number>
@@ -804,29 +808,50 @@ impl Parser {
 
             other => {
                 // TODO "let" <call_arguments> <expr>
-                // TODO "undef"
-                // TODO <expr> '.' <identifier>
                 todo!("{:?}", other);
             }
         };
 
         // <expr> '[' <expr> ']'
-        while self.current_matches(Token::LeftBracket) {
-            self.expect(Token::LeftBracket)?;
+        // <expr> '.' <identifier>
+        loop {
+            if self.current_matches(Token::LeftBracket) {
+                self.expect(Token::LeftBracket)?;
 
-            let index = self.parse_expr()?;
+                let index = self.parse_expr()?;
 
-            self.expect(Token::RightBracket)?;
+                self.expect(Token::RightBracket)?;
 
-            lhs = ExprWithPosition::new(
-                Expr::Index {
-                    lhs: Box::new(lhs),
-                    index: Box::new(index),
-                },
-                start,
-                self.current_token_start(),
-                source.clone(),
-            );
+                lhs = ExprWithPosition::new(
+                    Expr::Index {
+                        lhs: Box::new(lhs),
+                        index: Box::new(index),
+                    },
+                    start,
+                    self.current_token_start(),
+                    source.clone(),
+                );
+            } else if self.current_matches(Token::Period) {
+                self.expect(Token::Period)?;
+
+                if let Some(identifier) = self.current_matches_identifier() {
+                    self.advance();
+
+                    lhs = ExprWithPosition::new(
+                        Expr::FieldAccess {
+                            lhs: Box::new(lhs),
+                            field: identifier,
+                        },
+                        start,
+                        self.current_token_start(),
+                        source.clone(),
+                    );
+                } else {
+                    todo!("expected identifier");
+                }
+            } else {
+                break;
+            }
         }
 
         Ok(lhs)

@@ -353,5 +353,64 @@ mod tests {
         let s = r#"echo(undef);"#;
         let result = interpret(s);
         assert_eq!(result.output, "undef\n");
+
+        let s = r#"a = undef; echo(a);"#;
+        let result = interpret(s);
+        assert_eq!(result.output, "undef\n");
+    }
+
+    // -- strings ----------------------------
+
+    #[test]
+    fn test_index_string() {
+        let s = r#"a = "123"; echo(a[0]);"#;
+        let result = interpret(s);
+        assert_eq!(result.output, "\"1\"\n");
+    }
+
+    #[test]
+    fn test_index_out_of_range_string() {
+        let s = r#"a = "123"; echo(a[3]);"#;
+        let result = interpret(s);
+        assert_eq!(result.output, "undef\n");
+
+        let s = r#"a = "123"; echo(a[-1]);"#;
+        let result = interpret(s);
+        assert_eq!(result.output, "undef\n");
+    }
+
+    // -- lists ----------------------------
+
+    #[test]
+    fn test_index() {
+        let s = r#"a = [1,2,3]; echo(a[0]);"#;
+        let result = interpret(s);
+        assert_eq!(result.output, "1\n");
+    }
+
+    #[test]
+    fn test_index_xyz() {
+        let s = r#"a = [1,2,3]; echo(a.x);"#;
+        let result = interpret(s);
+        assert_eq!(result.output, "1\n");
+
+        let s = r#"a = [1,2,3]; echo(a.y);"#;
+        let result = interpret(s);
+        assert_eq!(result.output, "2\n");
+
+        let s = r#"a = [1,2,3]; echo(a.z);"#;
+        let result = interpret(s);
+        assert_eq!(result.output, "3\n");
+    }
+
+    #[test]
+    fn test_index_out_of_range() {
+        let s = r#"a = [1,2,3]; echo(a[3]);"#;
+        let result = interpret(s);
+        assert_eq!(result.output, "undef\n");
+
+        let s = r#"a = [1,2,3]; echo(a[-1]);"#;
+        let result = interpret(s);
+        assert_eq!(result.output, "undef\n");
     }
 }
