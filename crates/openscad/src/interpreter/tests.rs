@@ -110,6 +110,14 @@ mod tests {
         assert_eq!(result.output, "2\n");
     }
 
+    // -- exponentiation ----------------------
+
+    #[test]
+    fn test_binary_expression_scalar_exponentiation() {
+        let result = interpret("echo(20 ^ 3);");
+        assert_eq!(result.output, "8000\n");
+    }
+
     // -- negation ----------------------------
 
     #[test]

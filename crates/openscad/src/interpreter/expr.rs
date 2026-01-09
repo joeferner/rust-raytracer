@@ -129,6 +129,7 @@ impl Interpreter {
             BinaryOperator::GreaterThan => Value::Boolean(left > right),
             BinaryOperator::GreaterThanEqual => Value::Boolean(left >= right),
             BinaryOperator::Modulus => Value::Number(left % right),
+            BinaryOperator::Exponentiation => Value::Number(left.powf(right)),
         }
     }
 
@@ -147,6 +148,7 @@ impl Interpreter {
                         BinaryOperator::GreaterThan => todo!(),
                         BinaryOperator::GreaterThanEqual => todo!(),
                         BinaryOperator::Modulus => todo!(),
+                        BinaryOperator::Exponentiation => todo!(),
                     },
                     Value::Vector { items } => todo!("items {items:?}"),
                     Value::Boolean(b) => todo!("{b}"),

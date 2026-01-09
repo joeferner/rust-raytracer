@@ -51,6 +51,8 @@ pub enum Token {
     QuestionMark,
     /// '%'
     Percent,
+    /// '^'
+    Caret,
     /// '<'
     LessThan,
     /// '<='
@@ -359,6 +361,10 @@ impl Tokenizer {
             Some('%') => {
                 self.advance();
                 Token::Percent
+            }
+            Some('^') => {
+                self.advance();
+                Token::Caret
             }
             Some('<') => {
                 self.advance();

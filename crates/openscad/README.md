@@ -43,7 +43,7 @@
 - :white_check_mark: [`n * m`](https://en.wikibooks.org/w/index.php?title=OpenSCAD_User_Manual/Mathematical_Operators#Scalar_Arithmetical_Operators) - Multiplication
 - :white_check_mark: [`n / m`](https://en.wikibooks.org/w/index.php?title=OpenSCAD_User_Manual/Mathematical_Operators#Scalar_Arithmetical_Operators) - Division
 - :white_check_mark: [`n % m`](https://en.wikibooks.org/w/index.php?title=OpenSCAD_User_Manual/Mathematical_Operators#Scalar_Arithmetical_Operators) - Modulo
-- :x: [`n ^ m`](https://en.wikibooks.org/w/index.php?title=OpenSCAD_User_Manual/Mathematical_Operators#Scalar_Arithmetical_Operators) - Exponentiation
+- :white_check_mark: [`n ^ m`](https://en.wikibooks.org/w/index.php?title=OpenSCAD_User_Manual/Mathematical_Operators#Scalar_Arithmetical_Operators) - Exponentiation
 - :white_check_mark: [`n < m`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Relational_Operators) - Less Than
 - :x: [`n <= m`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Relational_Operators) - Less or Equal
 - :x: [`b == c`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Relational_Operators) - Equal

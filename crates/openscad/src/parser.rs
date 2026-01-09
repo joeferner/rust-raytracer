@@ -167,6 +167,7 @@ pub enum Expr {
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum BinaryOperator {
+    Exponentiation,
     Modulus,
     Add,
     Subtract,
@@ -187,6 +188,7 @@ impl BinaryOperator {
             | BinaryOperator::GreaterThanEqual => 1,
             BinaryOperator::Add | BinaryOperator::Subtract => 2,
             BinaryOperator::Multiply | BinaryOperator::Divide | BinaryOperator::Modulus => 3,
+            BinaryOperator::Exponentiation => 4,
         }
     }
 }
@@ -878,6 +880,7 @@ impl Parser {
                 // TODO <expr> "!=" <expr>
                 // TODO <expr> "&&" <expr>
                 // TODO <expr> "||" <expr>
+                Token::Caret => Some(BinaryOperator::Exponentiation),
                 Token::Percent => Some(BinaryOperator::Modulus),
                 Token::Plus => Some(BinaryOperator::Add),
                 Token::Minus => Some(BinaryOperator::Subtract),
