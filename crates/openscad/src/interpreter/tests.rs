@@ -19,6 +19,34 @@ mod tests {
         openscad_interpret(result.statements, random)
     }
 
+    // -- addition ----------------------------
+
+    #[test]
+    fn test_binary_expression_scalar_addition() {
+        let result = interpret("echo(20 + 0.1);");
+        assert_eq!(result.output, "20.1\n");
+    }
+
+    #[test]
+    fn test_binary_expression_vector_addition() {
+        let result = interpret("echo([5, 8, -12] + [3, -4, 18]);");
+        assert_eq!(result.output, "[8, 4, 6]\n");
+    }
+
+    #[test]
+    fn test_binary_expression_vector_addition_left_smaller() {
+        let result = interpret("echo([5, 8] + [3, -4, 18]);");
+        assert_eq!(result.output, "[8, 4]\n");
+    }
+
+    #[test]
+    fn test_binary_expression_vector_addition_right_smaller() {
+        let result = interpret("echo([5, 8, -12] + [3, -4]);");
+        assert_eq!(result.output, "[8, 4]\n");
+    }
+
+    // -- subtraction ----------------------------
+
     #[test]
     fn test_binary_expression_scalar_subtraction() {
         let result = interpret("echo(20 - 0.1);");
@@ -43,11 +71,29 @@ mod tests {
         assert_eq!(result.output, "[2, 12]\n");
     }
 
+    // -- division ----------------------------
+
+    #[test]
+    fn test_binary_expression_scalar_division() {
+        let result = interpret("echo(20 / 4);");
+        assert_eq!(result.output, "5\n");
+    }
+
+    #[test]
+    fn test_binary_expression_divide_vector_by_scaler() {
+        let result = interpret("echo([5, 8, -12] / 4);");
+        assert_eq!(result.output, "[1.25, 2, -3]\n");
+    }
+
+    // -- negation ----------------------------
+
     #[test]
     fn test_unary_expression_negation() {
         let result = interpret("echo(-20);");
         assert_eq!(result.output, "-20\n");
     }
+
+    // -- order of operations ----------------------------
 
     #[test]
     fn test_order_of_operations_multiplication_first() {
@@ -67,11 +113,15 @@ mod tests {
         assert_eq!(result.output, "false\n");
     }
 
+    // -- set variables ----------------------------
+
     #[test]
     fn test_set_fa() {
         let result = interpret("$fa = 1;");
         assert_eq!(Vec::<InterpreterError>::new(), result.errors);
     }
+
+    // -- for loop ----------------------------
 
     #[test]
     fn test_for_loop() {
@@ -85,11 +135,15 @@ mod tests {
         assert_eq!(result.output, "-1, 0\n-1, 1\n0, 0\n0, 1\n");
     }
 
+    // -- rands ----------------------------
+
     #[test]
     fn test_rands() {
         let result = interpret("choose_mat = rands(0,1,1)[0];");
         assert_eq!(Vec::<InterpreterError>::new(), result.errors);
     }
+
+    // -- function ----------------------------
 
     #[test]
     fn test_function() {
@@ -102,6 +156,8 @@ mod tests {
         assert_eq_float!(result.output.trim().parse().unwrap(), 10.24695);
     }
 
+    // -- echo ----------------------------
+
     #[test]
     fn test_echo_string() {
         let s = r#"echo("ok\ntest");"#;
@@ -109,6 +165,8 @@ mod tests {
         let result = interpret(s);
         assert_eq!(result.output, "\"ok\\ntest\"\n");
     }
+
+    // -- if/else ----------------------------
 
     #[test]
     fn test_if_else() {
@@ -126,12 +184,16 @@ mod tests {
         assert_eq!(result.output, "\"ok\"\n");
     }
 
+    // -- ternary ----------------------------
+
     #[test]
     fn test_ternary() {
         let s = r#"echo(1 > 2 ? "false" : "ok");"#;
         let result = interpret(s);
         assert_eq!(result.output, "\"ok\"\n");
     }
+
+    // -- constants ----------------------------
 
     #[test]
     fn test_pi() {
