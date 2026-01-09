@@ -45,11 +45,11 @@
 - :white_check_mark: [`n % m`](https://en.wikibooks.org/w/index.php?title=OpenSCAD_User_Manual/Mathematical_Operators#Scalar_Arithmetical_Operators) - Modulo
 - :white_check_mark: [`n ^ m`](https://en.wikibooks.org/w/index.php?title=OpenSCAD_User_Manual/Mathematical_Operators#Scalar_Arithmetical_Operators) - Exponentiation
 - :white_check_mark: [`n < m`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Relational_Operators) - Less Than
-- :x: [`n <= m`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Relational_Operators) - Less or Equal
+- :white_check_mark: [`n <= m`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Relational_Operators) - Less or Equal
 - :x: [`b == c`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Relational_Operators) - Equal
 - :x: [`b != c`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Relational_Operators) - Not Equal
-- :x: [`n >= m`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Relational_Operators) - Greater or Equal
-- :x: [`n > m`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Relational_Operators) - Greater Than
+- :white_check_mark: [`n >= m`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Relational_Operators) - Greater or Equal
+- :white_check_mark: [`n > m`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Relational_Operators) - Greater Than
 - :x: [`b && c`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Logical_Operators) - Logical And
 - :x: [`b || c`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Logical_Operators) - Logical Or
 - :x: [`!b`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Operators#Logical_Operators) - Negation

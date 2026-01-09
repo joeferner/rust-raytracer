@@ -177,6 +177,8 @@ pub enum BinaryOperator {
     LessThanEqual,
     GreaterThan,
     GreaterThanEqual,
+    EqualEqual,
+    NotEqual,
 }
 
 impl BinaryOperator {
@@ -185,7 +187,9 @@ impl BinaryOperator {
             BinaryOperator::LessThan
             | BinaryOperator::LessThanEqual
             | BinaryOperator::GreaterThan
-            | BinaryOperator::GreaterThanEqual => 1,
+            | BinaryOperator::GreaterThanEqual
+            | BinaryOperator::EqualEqual
+            | BinaryOperator::NotEqual => 1,
             BinaryOperator::Add | BinaryOperator::Subtract => 2,
             BinaryOperator::Multiply | BinaryOperator::Divide | BinaryOperator::Modulus => 3,
             BinaryOperator::Exponentiation => 4,
@@ -890,6 +894,8 @@ impl Parser {
                 Token::LessThanEqual => Some(BinaryOperator::LessThanEqual),
                 Token::GreaterThan => Some(BinaryOperator::GreaterThan),
                 Token::GreaterThanEqual => Some(BinaryOperator::GreaterThanEqual),
+                Token::EqualEqual => Some(BinaryOperator::EqualEqual),
+                Token::NotEqual => Some(BinaryOperator::NotEqual),
                 _ => None,
             }
         } else {

@@ -118,6 +118,86 @@ mod tests {
         assert_eq!(result.output, "8000\n");
     }
 
+    // -- comparison ----------------------
+
+    #[test]
+    fn test_binary_expression_less_equal() {
+        let result = interpret("echo(1 <= 2);");
+        assert_eq!(result.output, "true\n");
+
+        let result = interpret("echo(2 <= 2);");
+        assert_eq!(result.output, "true\n");
+
+        let result = interpret("echo(3 <= 2);");
+        assert_eq!(result.output, "false\n");
+    }
+
+    #[test]
+    fn test_binary_expression_less() {
+        let result = interpret("echo(1 < 2);");
+        assert_eq!(result.output, "true\n");
+
+        let result = interpret("echo(2 < 2);");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("echo(3 < 2);");
+        assert_eq!(result.output, "false\n");
+    }
+
+    #[test]
+    fn test_binary_expression_greater_equal() {
+        let result = interpret("echo(1 >= 2);");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("echo(2 >= 2);");
+        assert_eq!(result.output, "true\n");
+
+        let result = interpret("echo(3 >= 2);");
+        assert_eq!(result.output, "true\n");
+    }
+
+    #[test]
+    fn test_binary_expression_greater() {
+        let result = interpret("echo(1 > 2);");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("echo(2 > 2);");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("echo(3 > 2);");
+        assert_eq!(result.output, "true\n");
+    }
+
+    #[test]
+    fn test_binary_expression_equals() {
+        let result = interpret("echo(1 == 2);");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("echo(2 == 2);");
+        assert_eq!(result.output, "true\n");
+
+        let result = interpret("echo([1,2] == [2,2]);");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("echo([1,2] == [1,2]);");
+        assert_eq!(result.output, "true\n");
+    }
+
+    #[test]
+    fn test_binary_expression_not_equals() {
+        let result = interpret("echo(1 != 2);");
+        assert_eq!(result.output, "true\n");
+
+        let result = interpret("echo(2 != 2);");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("echo([1,2] != [2,2]);");
+        assert_eq!(result.output, "true\n");
+
+        let result = interpret("echo([1,2] != [1,2]);");
+        assert_eq!(result.output, "false\n");
+    }
+
     // -- negation ----------------------------
 
     #[test]

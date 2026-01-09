@@ -130,6 +130,8 @@ impl Interpreter {
             BinaryOperator::GreaterThanEqual => Value::Boolean(left >= right),
             BinaryOperator::Modulus => Value::Number(left % right),
             BinaryOperator::Exponentiation => Value::Number(left.powf(right)),
+            BinaryOperator::EqualEqual => Value::Boolean(left == right),
+            BinaryOperator::NotEqual => Value::Boolean(left != right),
         }
     }
 
@@ -149,6 +151,8 @@ impl Interpreter {
                         BinaryOperator::GreaterThanEqual => todo!(),
                         BinaryOperator::Modulus => todo!(),
                         BinaryOperator::Exponentiation => todo!(),
+                        BinaryOperator::EqualEqual => todo!(),
+                        BinaryOperator::NotEqual => todo!(),
                     },
                     Value::Vector { items } => todo!("items {items:?}"),
                     Value::Boolean(b) => todo!("{b}"),
@@ -197,6 +201,10 @@ impl Interpreter {
             results.push(result);
         }
 
-        Ok(Value::Vector { items: results })
+        match operator {
+            BinaryOperator::EqualEqual => Ok(Value::Boolean(results.iter().all(|t| t.is_truthy()))),
+            BinaryOperator::NotEqual => Ok(Value::Boolean(!results.iter().all(|t| !t.is_truthy()))),
+            _ => Ok(Value::Vector { items: results }),
+        }
     }
 }

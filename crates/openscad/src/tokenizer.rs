@@ -39,6 +39,12 @@ pub enum Token {
     Semicolon,
     /// '='
     Equals,
+    /// '=='
+    EqualEqual,
+    /// '!='
+    NotEqual,
+    /// '!'
+    ExclamationMark,
     /// '+'
     Plus,
     /// '-'
@@ -334,10 +340,6 @@ impl Tokenizer {
                 self.advance();
                 Token::Semicolon
             }
-            Some('=') => {
-                self.advance();
-                Token::Equals
-            }
             Some('+') => {
                 self.advance();
                 Token::Plus
@@ -366,11 +368,34 @@ impl Tokenizer {
                 self.advance();
                 Token::Caret
             }
+            Some('!') => {
+                self.advance();
+                if let Some(ch) = self.current()
+                    && ch == '='
+                {
+                    self.advance();
+                    Token::NotEqual
+                } else {
+                    Token::ExclamationMark
+                }
+            }
+            Some('=') => {
+                self.advance();
+                if let Some(ch) = self.current()
+                    && ch == '='
+                {
+                    self.advance();
+                    Token::EqualEqual
+                } else {
+                    Token::Equals
+                }
+            }
             Some('<') => {
                 self.advance();
                 if let Some(ch) = self.current()
                     && ch == '='
                 {
+                    self.advance();
                     Token::LessThanEqual
                 } else {
                     Token::LessThan
@@ -381,6 +406,7 @@ impl Tokenizer {
                 if let Some(ch) = self.current()
                     && ch == '='
                 {
+                    self.advance();
                     Token::GreaterThanEqual
                 } else {
                     Token::GreaterThan
