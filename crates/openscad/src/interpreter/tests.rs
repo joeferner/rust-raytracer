@@ -369,14 +369,19 @@ mod tests {
 
     #[test]
     fn test_sign() {
-        assert_output(r#"echo(sign(-5));"#, "-1\n");
+        assert_output(r#"echo(sign(x=-5));"#, "-1\n");
         assert_output(r#"echo(sign(0));"#, "0\n");
         assert_output(r#"echo(sign(8));"#, "1\n");
     }
 
     #[test]
+    fn test_sin() {
+        assert_output(r#"echo(sin(degrees=35));"#, "0.573576\n");
+    }
+
+    #[test]
     fn test_pow() {
-        assert_output(r#"echo(pow(2,3));"#, "8\n");
+        assert_output(r#"echo(pow(base=2,exponent=3));"#, "8\n");
     }
 
     #[test]

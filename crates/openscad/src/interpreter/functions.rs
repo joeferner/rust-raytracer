@@ -22,6 +22,7 @@ impl Interpreter {
             "perlin_turbulence" => self.evaluate_perlin_turbulence(arguments),
             "abs" => self.evaluate_abs(arguments),
             "sign" => self.evaluate_sign(arguments),
+            "sin" => self.evaluate_sin(arguments),
             "pow" => self.evaluate_pow(arguments),
             "sqrt" => self.evaluate_sqrt(arguments),
             "rands" => self.evaluate_rands(arguments),
@@ -37,51 +38,59 @@ impl Interpreter {
     }
 
     fn evaluate_abs(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
-        self.evaluate_math_func1(arguments, |v| v.abs())
+        self.evaluate_math_func1(arguments, "x", |v| v.abs())
     }
 
     fn evaluate_sign(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
-        self.evaluate_math_func1(arguments, |v| if v == 0.0 { 0.0 } else { v.signum() })
+        self.evaluate_math_func1(arguments, "x", |v| if v == 0.0 { 0.0 } else { v.signum() })
+    }
+
+    fn evaluate_sin(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_math_func1(arguments, "degrees", |v| v.to_radians().sin())
     }
 
     fn evaluate_pow(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
-        self.evaluate_math_func2(arguments, |base, exponent| base.powf(exponent))
+        self.evaluate_math_func2(arguments, "base", "exponent", |base, exponent| {
+            base.powf(exponent)
+        })
     }
 
     fn evaluate_sqrt(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
-        self.evaluate_math_func1(arguments, |v| v.sqrt())
+        self.evaluate_math_func1(arguments, "x", |v| v.sqrt())
     }
 
     fn evaluate_is_undef(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
-        self.evaluate_func1(arguments, |v| Ok(Value::Boolean(matches!(v, Value::Undef))))
+        self.evaluate_func1(arguments, "x", |v| {
+            Ok(Value::Boolean(matches!(v, Value::Undef)))
+        })
     }
 
     fn evaluate_is_bool(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
-        self.evaluate_func1(arguments, |v| {
+        self.evaluate_func1(arguments, "x", |v| {
             Ok(Value::Boolean(matches!(v, Value::Boolean(_))))
         })
     }
 
     fn evaluate_is_num(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
-        self.evaluate_func1(arguments, |v| {
+        self.evaluate_func1(arguments, "x", |v| {
             Ok(Value::Boolean(matches!(v, Value::Number(_))))
         })
     }
 
     fn evaluate_is_string(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
-        self.evaluate_func1(arguments, |v| {
+        self.evaluate_func1(arguments, "x", |v| {
             Ok(Value::Boolean(matches!(v, Value::String(_))))
         })
     }
 
     fn evaluate_is_list(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
-        self.evaluate_func1(arguments, |v| {
+        self.evaluate_func1(arguments, "x", |v| {
             Ok(Value::Boolean(matches!(v, Value::Vector { items: _ })))
         })
     }
 
     fn evaluate_is_function(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
-        self.evaluate_func1(arguments, |v| {
+        self.evaluate_func1(arguments, "x", |v| {
             Ok(Value::Boolean(matches!(
                 v,
                 Value::FunctionRef { function_name: _ }
@@ -92,14 +101,15 @@ impl Interpreter {
     fn evaluate_func1<F>(
         &mut self,
         arguments: &[CallArgumentWithPosition],
+        arg_name: &str,
         func: F,
     ) -> Result<Value>
     where
         F: Fn(&Value) -> Result<Value>,
     {
-        let arguments = self.convert_args(&["arg"], arguments)?;
+        let arguments = self.convert_args(&[arg_name], arguments)?;
 
-        let arg = if let Some(arg) = arguments.get("arg") {
+        let arg = if let Some(arg) = arguments.get(arg_name) {
             &arg.item
         } else {
             todo!("missing arg");
@@ -111,12 +121,13 @@ impl Interpreter {
     fn evaluate_math_func1<F>(
         &mut self,
         arguments: &[CallArgumentWithPosition],
+        arg_name: &str,
         func: F,
     ) -> Result<Value>
     where
         F: Fn(f64) -> f64,
     {
-        self.evaluate_func1(arguments, |arg| {
+        self.evaluate_func1(arguments, arg_name, |arg| {
             let num = arg.to_number()?;
             Ok(Value::Number(func(num)))
         })
@@ -125,23 +136,25 @@ impl Interpreter {
     fn evaluate_math_func2<F>(
         &mut self,
         arguments: &[CallArgumentWithPosition],
+        arg1_name: &str,
+        arg2_name: &str,
         func: F,
     ) -> Result<Value>
     where
         F: Fn(f64, f64) -> f64,
     {
-        let arguments = self.convert_args(&["arg1", "arg2"], arguments)?;
+        let arguments = self.convert_args(&[arg1_name, arg2_name], arguments)?;
 
-        let arg1 = if let Some(arg1) = arguments.get("arg1") {
+        let arg1 = if let Some(arg1) = arguments.get(arg1_name) {
             arg1.item.to_number()?
         } else {
-            todo!("missing arg1");
+            todo!("missing {arg1_name}");
         };
 
-        let arg2 = if let Some(arg2) = arguments.get("arg2") {
+        let arg2 = if let Some(arg2) = arguments.get(arg2_name) {
             arg2.item.to_number()?
         } else {
-            todo!("missing arg2");
+            todo!("missing {arg2_name}");
         };
 
         let result = func(arg1, arg2);
