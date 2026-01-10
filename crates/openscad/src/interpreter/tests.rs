@@ -471,4 +471,14 @@ mod tests {
         assert_output(r#"echo(norm([1,2,3,4,5,6]));"#, "9.539392\n");
         assert_output(r#"echo(norm([]));"#, "0\n");
     }
+
+    #[test]
+    fn test_cross() {
+        assert_output(r#"echo(cross([2, 3, 4], [5, 6, 7]));"#, "[-3, 6, -3]\n");
+        assert_output(r#"echo(cross([2, 1, -3], [0, 4, 5]));"#, "[17, -10, 8]\n");
+        assert_output(r#"echo(cross([2, 1], [0, 4]));"#, "8\n");
+        assert_output(r#"echo(cross([1, -3], [4, 5]));"#, "17\n");
+        assert_output(r#"echo(cross([2, 1, -3], [4, 5]));"#, "undef\n");
+        assert_output(r#"echo(cross([2, 3, 4], "5"));"#, "undef\n");
+    }
 }

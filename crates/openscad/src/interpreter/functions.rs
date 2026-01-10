@@ -8,7 +8,7 @@ use caustic_core::{
 use crate::{
     interpreter::{Interpreter, InterpreterError, Result},
     parser::CallArgumentWithPosition,
-    value::Value,
+    value::{Value, values_to_numbers},
 };
 
 impl Interpreter {
@@ -16,6 +16,8 @@ impl Interpreter {
         &mut self,
         name: &str,
         arguments: &[CallArgumentWithPosition],
+        start: usize,
+        end: usize,
     ) -> Result<Value> {
         match name {
             "checker" => self.evaluate_checker(arguments),
@@ -40,6 +42,7 @@ impl Interpreter {
             "min" => self.evaluate_min(arguments),
             "max" => self.evaluate_max(arguments),
             "norm" => self.evaluate_norm(arguments),
+            "cross" => self.evaluate_cross(arguments, start, end),
             "rands" => self.evaluate_rands(arguments),
             "image" => self.evaluate_image(arguments),
             "is_undef" => self.evaluate_is_undef(arguments),
@@ -180,18 +183,12 @@ impl Interpreter {
                 if items.is_empty() {
                     return Ok(Value::Number(0.0));
                 }
-                let numbers: Result<Vec<f64>> = items
-                    .iter()
-                    .map(|i| {
-                        let n = i.to_number().map_err(|err| InterpreterError {
-                            start: arguments[0].start,
-                            end: arguments[0].end,
-                            message: format!("failed to convert vector element to number: {err:?}"),
-                        })?;
-                        Ok(n.powf(2.0))
-                    })
-                    .collect();
-                let sum_squared: f64 = numbers?.iter().sum();
+                let numbers = values_to_numbers(items).map_err(|err| InterpreterError {
+                    start: arguments[0].start,
+                    end: arguments[0].end,
+                    message: format!("failed to convert vector element to number: {err:?}"),
+                })?;
+                let sum_squared: f64 = numbers.iter().map(|n| n.powf(2.0)).sum();
                 Ok(Value::Number(sum_squared.sqrt()))
             }
             _ => {
@@ -199,6 +196,75 @@ impl Interpreter {
                 Ok(Value::Undef)
             }
         })
+    }
+
+    fn evaluate_cross(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+        start: usize,
+        end: usize,
+    ) -> Result<Value> {
+        let arguments = self.convert_args(&["v1", "v2"], arguments)?;
+
+        let v1 = arguments.get("v1").ok_or_else(|| InterpreterError {
+            start,
+            end,
+            message: "missing 1st argument".to_string(),
+        })?;
+
+        let v1 = if let Value::Vector { items } = &v1.item {
+            values_to_numbers(items)?
+        } else {
+            // TODO add warning
+            return Ok(Value::Undef);
+        };
+
+        let v2 = arguments.get("v2").ok_or_else(|| InterpreterError {
+            start,
+            end,
+            message: "missing 2nd argument".to_string(),
+        })?;
+
+        let v2 = if let Value::Vector { items } = &v2.item {
+            values_to_numbers(items)?
+        } else {
+            // TODO add warning
+            return Ok(Value::Undef);
+        };
+
+        if v1.len() != v2.len() {
+            // TODO add warning
+            return Ok(Value::Undef);
+        }
+
+        if v1.len() == 2 {
+            let x1 = v1[0];
+            let y1 = v1[1];
+
+            let x2 = v2[0];
+            let y2 = v2[1];
+
+            let cross = x1 * y2 - y1 * x2;
+            Ok(Value::Number(cross))
+        } else if v1.len() == 3 {
+            let x1 = v1[0];
+            let y1 = v1[1];
+            let z1 = v1[2];
+
+            let x2 = v2[0];
+            let y2 = v2[1];
+            let z2 = v2[2];
+
+            let x = y1 * z2 - z1 * y2;
+            let y = z1 * x2 - x1 * z2;
+            let z = x1 * y2 - y1 * x2;
+            Ok(Value::Vector {
+                items: vec![Value::Number(x), Value::Number(y), Value::Number(z)],
+            })
+        } else {
+            // TODO add warning
+            Ok(Value::Undef)
+        }
     }
 
     fn evaluate_is_undef(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {

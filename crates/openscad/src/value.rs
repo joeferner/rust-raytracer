@@ -184,6 +184,10 @@ impl Display for Value {
     }
 }
 
+pub fn values_to_numbers(items: &[Value]) -> Result<Vec<f64>> {
+    items.iter().map(|i| i.to_number()).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
