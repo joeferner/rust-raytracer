@@ -23,6 +23,7 @@ impl Interpreter {
             "checker" => self.evaluate_checker(arguments),
             "perlin_turbulence" => self.evaluate_perlin_turbulence(arguments),
             "concat" => self.evaluate_concat(arguments),
+            "lookup" => self.evaluate_lookup(arguments),
             "abs" => self.evaluate_abs(arguments),
             "sign" => self.evaluate_sign(arguments),
             "sin" => self.evaluate_sin(arguments),
@@ -69,6 +70,82 @@ impl Interpreter {
             })
             .collect();
         Ok(Value::Vector { items })
+    }
+
+    fn evaluate_lookup(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        let args = self.convert_args(&["key", "table"], arguments)?;
+
+        let key = if let Some(key) = args.get("key") {
+            &key.item
+        } else {
+            todo!("missing key");
+        };
+
+        let key = key.to_number()?;
+
+        let (table, table_start, table_end) = if let Some(table) = args.get("table") {
+            (&table.item, table.start, table.end)
+        } else {
+            todo!("missing table");
+        };
+
+        let table = if let Value::Vector { items } = table {
+            items
+        } else {
+            todo!("table must be a vector");
+        };
+
+        let table: Result<Vec<(f64, f64)>> = table
+            .iter()
+            .map(|row| {
+                if let Value::Vector { items } = row {
+                    if items.len() != 2 {
+                        Err(InterpreterError {
+                            start: table_start,
+                            end: table_end,
+                            message: "table row must be list of 2 elements".to_string(),
+                        })
+                    } else {
+                        let key = items[0].to_number()?;
+                        let value = items[1].to_number()?;
+                        Ok((key, value))
+                    }
+                } else {
+                    Err(InterpreterError {
+                        start: table_start,
+                        end: table_end,
+                        message: "table must be a list of lists".to_string(),
+                    })
+                }
+            })
+            .collect();
+
+        let table = table?;
+
+        if table.is_empty() {
+            Err(InterpreterError {
+                start: table_start,
+                end: table_end,
+                message: "table must have at least 1 row".to_string(),
+            })
+        } else if key <= table[0].0 {
+            Ok(Value::Number(table[0].1))
+        } else if key >= table.last().unwrap().0 {
+            Ok(Value::Number(table.last().unwrap().1))
+        } else {
+            let mut last = table[0];
+            for row in table {
+                if key == row.0 {
+                    return Ok(Value::Number(row.1));
+                } else if key <= row.0 {
+                    let p = (key - last.0) / (row.0 - last.0);
+                    let value_delta = row.1 - last.1;
+                    return Ok(Value::Number(last.1 + (p * value_delta)));
+                }
+                last = row;
+            }
+            todo!("this should not happen")
+        }
     }
 
     fn evaluate_abs(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {

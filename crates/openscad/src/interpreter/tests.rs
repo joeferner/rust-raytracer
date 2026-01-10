@@ -386,6 +386,15 @@ mod tests {
         assert_output_trim(r#"echo(concat("abc","def"));"#, r#"["abc", "def"]"#);
     }
 
+    #[test]
+    fn test_lookup() {
+        assert_output_trim(r#"echo(lookup(5, [[1,2],[5,10],[6,11]]));"#, "10");
+        assert_output_trim(r#"echo(lookup(5.2, [[1,2],[5,10],[6,11]]));"#, "10.2");
+        assert_output_trim(r#"echo(lookup(5.2, [[5,10],[8,11]]));"#, "10.066667");
+        assert_output_trim(r#"echo(lookup(0, [[1,2],[5,10],[6,11]]));"#, "2");
+        assert_output_trim(r#"echo(lookup(7, [[1,2],[5,10],[6,11]]));"#, "11");
+    }
+
     // -- math ----------------------------
 
     #[test]
