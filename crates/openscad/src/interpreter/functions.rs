@@ -37,6 +37,8 @@ impl Interpreter {
             "pow" => self.evaluate_pow(arguments),
             "sqrt" => self.evaluate_sqrt(arguments),
             "exp" => self.evaluate_exp(arguments),
+            "min" => self.evaluate_min(arguments),
+            "max" => self.evaluate_max(arguments),
             "rands" => self.evaluate_rands(arguments),
             "image" => self.evaluate_image(arguments),
             "is_undef" => self.evaluate_is_undef(arguments),
@@ -117,6 +119,58 @@ impl Interpreter {
 
     fn evaluate_exp(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
         self.evaluate_math_func1(arguments, "x", |v| v.exp())
+    }
+
+    fn evaluate_min(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_min_max(arguments, |a, b| a < b)
+    }
+
+    fn evaluate_max(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_min_max(arguments, |a, b| a > b)
+    }
+
+    fn evaluate_min_max<F>(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+        func: F,
+    ) -> Result<Value>
+    where
+        F: Fn(f64, f64) -> bool,
+    {
+        let values = self.convert_arguments_to_values(arguments)?;
+        if values.is_empty() {
+            // TODO add warning
+            Ok(Value::Undef)
+        } else {
+            match &values[0].item {
+                Value::Number(num) => {
+                    let mut min_max = *num;
+                    for value in values {
+                        let v = value.item.to_number()?;
+                        if func(v, min_max) {
+                            min_max = v;
+                        }
+                    }
+                    Ok(Value::Number(min_max))
+                }
+                Value::Vector { items } => {
+                    if items.is_empty() {
+                        // TODO add warning
+                        Ok(Value::Undef)
+                    } else {
+                        let mut min_max = items[0].to_number()?;
+                        for item in items {
+                            let v = item.to_number()?;
+                            if func(v, min_max) {
+                                min_max = v;
+                            }
+                        }
+                        Ok(Value::Number(min_max))
+                    }
+                }
+                _ => todo!("unsupported"),
+            }
+        }
     }
 
     fn evaluate_is_undef(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {

@@ -14,3 +14,4 @@ dist-ssr
 
 src/wasm
 src/api
+openapi.json

@@ -35,7 +35,7 @@ impl Value {
     pub fn to_number(&self) -> Result<f64> {
         match self {
             Value::Number(value) => Ok(*value),
-            _ => todo!(),
+            _ => todo!("to_number {self}"),
         }
     }
 

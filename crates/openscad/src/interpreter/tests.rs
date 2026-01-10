@@ -442,12 +442,26 @@ mod tests {
     }
 
     #[test]
+    fn test_sqrt() {
+        assert_output(r#"echo(sqrt(9));"#, "3\n");
+    }
+
+    #[test]
     fn test_exp() {
         assert_output(r#"echo(exp(4.2));"#, "66.686331\n");
     }
 
     #[test]
-    fn test_sqrt() {
-        assert_output(r#"echo(sqrt(9));"#, "3\n");
+    fn test_min() {
+        assert_output(r#"echo(min(1));"#, "1\n");
+        assert_output(r#"echo(min(3,2));"#, "2\n");
+        assert_output(r#"echo(min([5,4,2]));"#, "2\n");
+    }
+
+    #[test]
+    fn test_max() {
+        assert_output(r#"echo(max(1));"#, "1\n");
+        assert_output(r#"echo(max(3,2));"#, "3\n");
+        assert_output(r#"echo(max([5,4,2]));"#, "5\n");
     }
 }

@@ -472,6 +472,43 @@ impl Interpreter {
         Ok(results)
     }
 
+    fn convert_arguments_to_values(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+    ) -> Result<Vec<ValueWithPosition>> {
+        let mut results: Vec<ValueWithPosition> = vec![];
+
+        for arg in arguments.iter() {
+            let start = arg.start;
+            let end = arg.end;
+            match &arg.item {
+                CallArgument::Expr { expr } => {
+                    let value = self.expr_to_value(expr)?;
+                    results.push(ValueWithPosition::new(
+                        value,
+                        start,
+                        end,
+                        arg.source.clone(),
+                    ));
+                }
+                CallArgument::NamedArgument {
+                    identifier: _,
+                    expr,
+                } => {
+                    let value = self.expr_to_value(expr)?;
+                    results.push(ValueWithPosition::new(
+                        value,
+                        start,
+                        end,
+                        arg.source.clone(),
+                    ));
+                }
+            }
+        }
+
+        Ok(results)
+    }
+
     fn evaluate_identifier(&self, name: &str) -> Result<Value> {
         if name == "PI" {
             Ok(Value::Number(f64::consts::PI))
