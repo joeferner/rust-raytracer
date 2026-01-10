@@ -17,34 +17,21 @@ impl Interpreter {
         name: &str,
         arguments: &[CallArgumentWithPosition],
     ) -> Result<Value> {
-        if name == "checker" {
-            self.evaluate_checker(arguments)
-        } else if name == "perlin_turbulence" {
-            self.evaluate_perlin_turbulence(arguments)
-        } else if name == "abs" {
-            self.evaluate_abs(arguments)
-        } else if name == "pow" {
-            self.evaluate_pow(arguments)
-        } else if name == "sqrt" {
-            self.evaluate_sqrt(arguments)
-        } else if name == "rands" {
-            self.evaluate_rands(arguments)
-        } else if name == "image" {
-            self.evaluate_image(arguments)
-        } else if name == "is_undef" {
-            self.evaluate_is_undef(arguments)
-        } else if name == "is_bool" {
-            self.evaluate_is_bool(arguments)
-        } else if name == "is_num" {
-            self.evaluate_is_num(arguments)
-        } else if name == "is_string" {
-            self.evaluate_is_string(arguments)
-        } else if name == "is_list" {
-            self.evaluate_is_list(arguments)
-        } else if name == "is_function" {
-            self.evaluate_is_function(arguments)
-        } else {
-            self.evaluate_non_built_in(name, arguments)
+        match name {
+            "checker" => self.evaluate_checker(arguments),
+            "perlin_turbulence" => self.evaluate_perlin_turbulence(arguments),
+            "abs" => self.evaluate_abs(arguments),
+            "pow" => self.evaluate_pow(arguments),
+            "sqrt" => self.evaluate_sqrt(arguments),
+            "rands" => self.evaluate_rands(arguments),
+            "image" => self.evaluate_image(arguments),
+            "is_undef" => self.evaluate_is_undef(arguments),
+            "is_bool" => self.evaluate_is_bool(arguments),
+            "is_num" => self.evaluate_is_num(arguments),
+            "is_string" => self.evaluate_is_string(arguments),
+            "is_list" => self.evaluate_is_list(arguments),
+            "is_function" => self.evaluate_is_function(arguments),
+            other => self.evaluate_non_built_in(other, arguments),
         }
     }
 
