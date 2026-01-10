@@ -23,6 +23,8 @@ impl Interpreter {
             "abs" => self.evaluate_abs(arguments),
             "sign" => self.evaluate_sign(arguments),
             "sin" => self.evaluate_sin(arguments),
+            "cos" => self.evaluate_cos(arguments),
+            "tan" => self.evaluate_tan(arguments),
             "pow" => self.evaluate_pow(arguments),
             "sqrt" => self.evaluate_sqrt(arguments),
             "rands" => self.evaluate_rands(arguments),
@@ -47,6 +49,14 @@ impl Interpreter {
 
     fn evaluate_sin(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
         self.evaluate_math_func1(arguments, "degrees", |v| v.to_radians().sin())
+    }
+
+    fn evaluate_cos(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_math_func1(arguments, "degrees", |v| v.to_radians().cos())
+    }
+
+    fn evaluate_tan(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_math_func1(arguments, "degrees", |v| v.to_radians().tan())
     }
 
     fn evaluate_pow(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {

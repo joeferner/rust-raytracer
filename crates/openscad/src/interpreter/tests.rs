@@ -380,6 +380,16 @@ mod tests {
     }
 
     #[test]
+    fn test_cos() {
+        assert_output(r#"echo(cos(degrees=35));"#, "0.819152\n");
+    }
+
+    #[test]
+    fn test_tan() {
+        assert_output(r#"echo(tan(degrees=35));"#, "0.700208\n");
+    }
+
+    #[test]
     fn test_pow() {
         assert_output(r#"echo(pow(base=2,exponent=3));"#, "8\n");
     }
