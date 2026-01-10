@@ -171,7 +171,7 @@
 
 ## Functions
 
-- :x: [`concat`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Functions#concat)
+- :white_check_mark: [`concat`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Functions#concat)
 - :x: [`lookup`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Mathematical_Functions#lookup)
 - :x: [`str`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/String_Functions#str)
 - :x: [`chr`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/String_Functions#chr)

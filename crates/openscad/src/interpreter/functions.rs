@@ -22,6 +22,7 @@ impl Interpreter {
         match name {
             "checker" => self.evaluate_checker(arguments),
             "perlin_turbulence" => self.evaluate_perlin_turbulence(arguments),
+            "concat" => self.evaluate_concat(arguments),
             "abs" => self.evaluate_abs(arguments),
             "sign" => self.evaluate_sign(arguments),
             "sin" => self.evaluate_sin(arguments),
@@ -53,6 +54,21 @@ impl Interpreter {
             "is_function" => self.evaluate_is_function(arguments),
             other => self.evaluate_non_built_in(other, arguments),
         }
+    }
+
+    fn evaluate_concat(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        let values = self.convert_arguments_to_values(arguments)?;
+        let items: Vec<Value> = values
+            .iter()
+            .flat_map(|v| {
+                if let Value::Vector { items } = &v.item {
+                    items.clone()
+                } else {
+                    vec![v.item.clone()]
+                }
+            })
+            .collect();
+        Ok(Value::Vector { items })
     }
 
     fn evaluate_abs(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
