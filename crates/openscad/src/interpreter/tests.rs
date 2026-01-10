@@ -464,4 +464,11 @@ mod tests {
         assert_output(r#"echo(max(3,2));"#, "3\n");
         assert_output(r#"echo(max([5,4,2]));"#, "5\n");
     }
+
+    #[test]
+    fn test_norm() {
+        assert_output(r#"echo(norm([1,2,3]));"#, "3.741657\n");
+        assert_output(r#"echo(norm([1,2,3,4,5,6]));"#, "9.539392\n");
+        assert_output(r#"echo(norm([]));"#, "0\n");
+    }
 }

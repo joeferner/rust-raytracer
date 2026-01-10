@@ -39,6 +39,7 @@ impl Interpreter {
             "exp" => self.evaluate_exp(arguments),
             "min" => self.evaluate_min(arguments),
             "max" => self.evaluate_max(arguments),
+            "norm" => self.evaluate_norm(arguments),
             "rands" => self.evaluate_rands(arguments),
             "image" => self.evaluate_image(arguments),
             "is_undef" => self.evaluate_is_undef(arguments),
@@ -171,6 +172,33 @@ impl Interpreter {
                 _ => todo!("unsupported"),
             }
         }
+    }
+
+    fn evaluate_norm(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_func1(arguments, "v", |v| match v {
+            Value::Vector { items } => {
+                if items.is_empty() {
+                    return Ok(Value::Number(0.0));
+                }
+                let numbers: Result<Vec<f64>> = items
+                    .iter()
+                    .map(|i| {
+                        let n = i.to_number().map_err(|err| InterpreterError {
+                            start: arguments[0].start,
+                            end: arguments[0].end,
+                            message: format!("failed to convert vector element to number: {err:?}"),
+                        })?;
+                        Ok(n.powf(2.0))
+                    })
+                    .collect();
+                let sum_squared: f64 = numbers?.iter().sum();
+                Ok(Value::Number(sum_squared.sqrt()))
+            }
+            _ => {
+                // TODO add warning
+                Ok(Value::Undef)
+            }
+        })
     }
 
     fn evaluate_is_undef(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
