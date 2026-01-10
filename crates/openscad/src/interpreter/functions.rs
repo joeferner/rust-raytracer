@@ -32,6 +32,8 @@ impl Interpreter {
             "floor" => self.evaluate_floor(arguments),
             "round" => self.evaluate_round(arguments),
             "ceil" => self.evaluate_ceil(arguments),
+            "ln" => self.evaluate_ln(arguments),
+            "log" => self.evaluate_log(arguments),
             "pow" => self.evaluate_pow(arguments),
             "sqrt" => self.evaluate_sqrt(arguments),
             "rands" => self.evaluate_rands(arguments),
@@ -92,6 +94,14 @@ impl Interpreter {
 
     fn evaluate_ceil(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
         self.evaluate_math_func1(arguments, "x", |v| v.ceil())
+    }
+
+    fn evaluate_ln(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_math_func1(arguments, "x", |v| v.ln())
+    }
+
+    fn evaluate_log(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_math_func1(arguments, "x", |v| v.log10())
     }
 
     fn evaluate_pow(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {

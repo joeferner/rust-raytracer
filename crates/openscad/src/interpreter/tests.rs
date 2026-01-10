@@ -427,6 +427,16 @@ mod tests {
     }
 
     #[test]
+    fn test_ln() {
+        assert_output(r#"echo(ln(105.3));"#, "4.656813\n");
+    }
+
+    #[test]
+    fn test_log() {
+        assert_output(r#"echo(log(105.3));"#, "2.022428\n");
+    }
+
+    #[test]
     fn test_pow() {
         assert_output(r#"echo(pow(base=2,exponent=3));"#, "8\n");
     }
