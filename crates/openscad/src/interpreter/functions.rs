@@ -21,6 +21,7 @@ impl Interpreter {
             "checker" => self.evaluate_checker(arguments),
             "perlin_turbulence" => self.evaluate_perlin_turbulence(arguments),
             "abs" => self.evaluate_abs(arguments),
+            "sign" => self.evaluate_sign(arguments),
             "pow" => self.evaluate_pow(arguments),
             "sqrt" => self.evaluate_sqrt(arguments),
             "rands" => self.evaluate_rands(arguments),
@@ -37,6 +38,10 @@ impl Interpreter {
 
     fn evaluate_abs(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
         self.evaluate_math_func1(arguments, |v| v.abs())
+    }
+
+    fn evaluate_sign(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_math_func1(arguments, |v| if v == 0.0 { 0.0 } else { v.signum() })
     }
 
     fn evaluate_pow(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
