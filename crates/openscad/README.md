@@ -154,20 +154,20 @@
 
 ## Type Test Functions
 
-- :x: [`is_undef`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Type_Test_Functions#is_undef)
-- :x: [`is_bool`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Type_Test_Functions#is_bool)
-- :x: [`is_num`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Type_Test_Functions#is_num)
-- :x: [`is_string`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Type_Test_Functions#is_string)
-- :x: [`is_list`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Type_Test_Functions#is_list)
-- :x: [`is_function`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Type_Test_Functions#is_function)
+- :white_check_mark: [`is_undef`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Type_Test_Functions#is_undef)
+- :white_check_mark: [`is_bool`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Type_Test_Functions#is_bool)
+- :white_check_mark: [`is_num`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Type_Test_Functions#is_num)
+- :white_check_mark: [`is_string`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Type_Test_Functions#is_string)
+- :white_check_mark: [`is_list`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Type_Test_Functions#is_list)
+- :white_check_mark: [`is_function`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Type_Test_Functions#is_function)
 
 ## Other
 
-- :white_check_mark: [`echo`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Other_Language_Features#echo)(…)
-- :x: [`render`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Other_Language_Features#render)(convexity)
-- :x: [`children`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/User-Defined_Functions_and_Modules#Children)([idx])
-- :x: [`assert`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Other_Language_Features#assert)(condition, message)
-- :x: [`assign`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Conditional_and_Iterator_Functions#Assign_Statement) (…) { … } (deprecated)
+- :white_check_mark: [`echo`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Other_Language_Features#echo)`(…)`
+- :x: [`render`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Other_Language_Features#render)`(convexity)`
+- :x: [`children`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/User-Defined_Functions_and_Modules#Children)`([idx])`
+- :x: [`assert`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Other_Language_Features#assert)`(condition, message)`
+- :x: [`assign`](https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Conditional_and_Iterator_Functions#Assign_Statement) `(…) { … }` (deprecated)
 
 ## Functions
 

@@ -29,6 +29,18 @@ impl Interpreter {
             self.evaluate_rands(arguments)
         } else if name == "image" {
             self.evaluate_image(arguments)
+        } else if name == "is_undef" {
+            self.evaluate_is_undef(arguments)
+        } else if name == "is_bool" {
+            self.evaluate_is_bool(arguments)
+        } else if name == "is_num" {
+            self.evaluate_is_num(arguments)
+        } else if name == "is_string" {
+            self.evaluate_is_string(arguments)
+        } else if name == "is_list" {
+            self.evaluate_is_list(arguments)
+        } else if name == "is_function" {
+            self.evaluate_is_function(arguments)
         } else {
             self.evaluate_non_built_in(name, arguments)
         }
@@ -42,6 +54,62 @@ impl Interpreter {
         self.evaluate_math_func1(arguments, |v| v.sqrt())
     }
 
+    fn evaluate_is_undef(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_func1(arguments, |v| Ok(Value::Boolean(matches!(v, Value::Undef))))
+    }
+
+    fn evaluate_is_bool(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_func1(arguments, |v| {
+            Ok(Value::Boolean(matches!(v, Value::Boolean(_))))
+        })
+    }
+
+    fn evaluate_is_num(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_func1(arguments, |v| {
+            Ok(Value::Boolean(matches!(v, Value::Number(_))))
+        })
+    }
+
+    fn evaluate_is_string(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_func1(arguments, |v| {
+            Ok(Value::Boolean(matches!(v, Value::String(_))))
+        })
+    }
+
+    fn evaluate_is_list(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_func1(arguments, |v| {
+            Ok(Value::Boolean(matches!(v, Value::Vector { items: _ })))
+        })
+    }
+
+    fn evaluate_is_function(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
+        self.evaluate_func1(arguments, |v| {
+            Ok(Value::Boolean(matches!(
+                v,
+                Value::FunctionRef { function_name: _ }
+            )))
+        })
+    }
+
+    fn evaluate_func1<F>(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+        func: F,
+    ) -> Result<Value>
+    where
+        F: Fn(&Value) -> Result<Value>,
+    {
+        let arguments = self.convert_args(&["arg"], arguments)?;
+
+        let arg = if let Some(arg) = arguments.get("arg") {
+            &arg.item
+        } else {
+            todo!("missing arg");
+        };
+
+        func(arg)
+    }
+
     fn evaluate_math_func1<F>(
         &mut self,
         arguments: &[CallArgumentWithPosition],
@@ -50,17 +118,10 @@ impl Interpreter {
     where
         F: Fn(f64) -> f64,
     {
-        let arguments = self.convert_args(&["arg"], arguments)?;
-
-        let arg = if let Some(arg) = arguments.get("arg") {
-            arg.item.to_number()?
-        } else {
-            todo!("missing arg");
-        };
-
-        let result = func(arg);
-
-        Ok(Value::Number(result))
+        self.evaluate_func1(arguments, |arg| {
+            let num = arg.to_number()?;
+            Ok(Value::Number(func(num)))
+        })
     }
 
     fn evaluate_math_func2<F>(

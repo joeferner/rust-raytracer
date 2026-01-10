@@ -300,6 +300,7 @@ impl Interpreter {
                 increment: lhs_increment,
             } => todo!("{lhs_start} {lhs_end} {lhs_increment:?} < {rhs}"),
             Value::Undef => todo!("{lhs} < {rhs}"),
+            Value::FunctionRef { function_name } => todo!("{lhs} < {function_name}"),
         }
     }
 
@@ -332,6 +333,7 @@ impl Interpreter {
                 increment: lhs_increment,
             } => todo!("{lhs_start} {lhs_end} {lhs_increment:?} <= {rhs}"),
             Value::Undef => todo!("{lhs} <= {rhs}"),
+            Value::FunctionRef { function_name } => todo!("{lhs} <= {function_name}"),
         }
     }
 
@@ -360,6 +362,7 @@ impl Interpreter {
                 increment: lhs_increment,
             } => todo!("{lhs_start} {lhs_end} {lhs_increment:?} > {rhs}"),
             Value::Undef => todo!("{lhs} > {rhs}"),
+            Value::FunctionRef { function_name } => todo!("{lhs} > {function_name}"),
         }
     }
 
@@ -392,6 +395,7 @@ impl Interpreter {
                 increment: lhs_increment,
             } => todo!("{lhs_start} {lhs_end} {lhs_increment:?} >= {rhs}"),
             Value::Undef => todo!("{lhs} >= {rhs}"),
+            Value::FunctionRef { function_name } => todo!("{lhs} >= {function_name}"),
         }
     }
 
@@ -420,6 +424,7 @@ impl Interpreter {
                 increment: lhs_increment,
             } => todo!("{lhs_start} {lhs_end} {lhs_increment:?} == {rhs}"),
             Value::Undef => todo!("{lhs} == {rhs}"),
+            Value::FunctionRef { function_name } => todo!("{lhs} == {function_name}"),
         }
     }
 
@@ -448,6 +453,7 @@ impl Interpreter {
                 increment: lhs_increment,
             } => todo!("{lhs_start} {lhs_end} {lhs_increment:?} != {rhs}"),
             Value::Undef => todo!("{lhs} != {rhs}"),
+            Value::FunctionRef { function_name } => todo!("{lhs} != {function_name}"),
         }
     }
 
@@ -471,6 +477,9 @@ impl Interpreter {
                     increment: _increment,
                 } => todo!(),
                 Value::Undef => todo!(),
+                Value::FunctionRef {
+                    function_name: _function_name,
+                } => todo!(),
             },
             UnaryOperator::Negation => Ok(Value::Boolean(!right.is_truthy())),
         }

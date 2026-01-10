@@ -26,6 +26,9 @@ pub enum Value {
         increment: Option<Box<Value>>,
     },
     Undef,
+    FunctionRef {
+        function_name: String,
+    },
 }
 
 impl Value {
@@ -140,6 +143,9 @@ impl Value {
                 increment,
             } => todo!("is_truthy {start:?} {end:?} {increment:?}"),
             Value::Undef => false,
+            Value::FunctionRef {
+                function_name: _function_name,
+            } => true,
         }
     }
 }
@@ -173,6 +179,7 @@ impl Display for Value {
                 increment,
             } => todo!("range: {start:?} {end:?} {increment:?}"),
             Value::Undef => write!(f, "undef"),
+            Value::FunctionRef { function_name } => write!(f, "fn({function_name})"),
         }
     }
 }

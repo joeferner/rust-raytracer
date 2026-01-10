@@ -479,6 +479,10 @@ impl Interpreter {
             Ok(Value::Undef)
         } else if let Some(v) = self.get_variable(name) {
             Ok(v.clone())
+        } else if self.functions.contains_key(name) {
+            Ok(Value::FunctionRef {
+                function_name: name.to_owned(),
+            })
         } else {
             todo!("missing variable {name}");
         }
@@ -521,6 +525,9 @@ impl Interpreter {
                 increment,
             } => todo!("evaluate_index {lhs:?} {start:?} {end:?} {increment:?}"),
             Value::Undef => todo!("undef"),
+            Value::FunctionRef { function_name } => {
+                todo!("evaluate_index {lhs:?} {function_name:?}")
+            }
         };
 
         Ok(value)
@@ -551,6 +558,9 @@ impl Interpreter {
                 increment: _,
             } => todo!(),
             Value::Undef => todo!(),
+            Value::FunctionRef {
+                function_name: _function_name,
+            } => todo!(),
         }
     }
 

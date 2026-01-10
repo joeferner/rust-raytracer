@@ -232,7 +232,7 @@ mod tests {
     }
 
     #[test]
-    fn test_negation() {
+    fn test_boolean_negation() {
         let result = interpret("echo(!true);");
         assert_eq!(result.output, "false\n");
 
@@ -243,6 +243,62 @@ mod tests {
         assert_eq!(result.output, "false\n");
 
         let result = interpret("echo(!0);");
+        assert_eq!(result.output, "true\n");
+    }
+
+    // -- type test --------------------------
+
+    #[test]
+    fn test_type_test_is_undef() {
+        let result = interpret("echo(is_undef(1));");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("echo(is_undef(undef));");
+        assert_eq!(result.output, "true\n");
+    }
+
+    #[test]
+    fn test_type_test_is_bool() {
+        let result = interpret("echo(is_bool(1));");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("echo(is_bool(false));");
+        assert_eq!(result.output, "true\n");
+    }
+
+    #[test]
+    fn test_type_test_is_num() {
+        let result = interpret("echo(is_num(true));");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("echo(is_num(4));");
+        assert_eq!(result.output, "true\n");
+    }
+
+    #[test]
+    fn test_type_test_is_string() {
+        let result = interpret("echo(is_string(1));");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("echo(is_string(\"a\"));");
+        assert_eq!(result.output, "true\n");
+    }
+
+    #[test]
+    fn test_type_test_is_list() {
+        let result = interpret("echo(is_list(1));");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("echo(is_list([1,2]));");
+        assert_eq!(result.output, "true\n");
+    }
+
+    #[test]
+    fn test_type_test_is_function() {
+        let result = interpret("echo(is_function(1));");
+        assert_eq!(result.output, "false\n");
+
+        let result = interpret("function a() = 1; echo(is_function(a));");
         assert_eq!(result.output, "true\n");
     }
 
