@@ -84,7 +84,16 @@ export class ProjectStore {
         }
 
         await initWasm();
-        loadOpenscad(new Source(main, this.files.value));
+        try {
+            const results = loadOpenscad(new Source(main, this.files.value));
+            console.log('loadOpenscad results', results);
+            if (!results.loaded) {
+                throw new Error('failed to load');
+            }
+        } catch (err) {
+            console.error('loadOpenscad', err);
+            throw err;
+        }
 
         const cameraInfo = getCameraInfo();
         const { threadCount } = this.renderOptions.value;

@@ -15,17 +15,20 @@ use std::{path::Path, sync::Arc};
 
 use caustic_core::{RenderContext, SceneData};
 use caustic_openscad::{
-    OpenscadError, run_openscad,
+    MessageLevel, run_openscad,
     source::{FileSource, Source},
 };
 
-use crate::scene::{
-    checkered_spheres::create_checkered_spheres_scene, cornell_box::create_cornell_box_scene,
-    cornell_box_smoke::create_cornell_box_smoke_scene, earth::create_earth_scene,
-    final_scene::create_final_scene, lighted_cone_frustum::create_lighted_cone_frustum_scene,
-    lighted_sphere::create_lighted_sphere_scene, perlin_spheres::create_perlin_spheres_scene,
-    quads::create_quads_scene, random_spheres::create_random_spheres_scene,
-    three_spheres::create_three_spheres_scene,
+use crate::{
+    CliError, Result,
+    scene::{
+        checkered_spheres::create_checkered_spheres_scene, cornell_box::create_cornell_box_scene,
+        cornell_box_smoke::create_cornell_box_smoke_scene, earth::create_earth_scene,
+        final_scene::create_final_scene, lighted_cone_frustum::create_lighted_cone_frustum_scene,
+        lighted_sphere::create_lighted_sphere_scene, perlin_spheres::create_perlin_spheres_scene,
+        quads::create_quads_scene, random_spheres::create_random_spheres_scene,
+        three_spheres::create_three_spheres_scene,
+    },
 };
 
 pub enum Scene {
@@ -43,7 +46,7 @@ pub enum Scene {
     OpenScad(String),
 }
 
-pub fn get_scene(ctx: &RenderContext, scene: Scene) -> Result<SceneData, OpenscadError> {
+pub fn get_scene(ctx: &RenderContext, scene: Scene) -> Result<SceneData> {
     match scene {
         Scene::ThreeSpheres => Ok(create_three_spheres_scene(ctx)),
         Scene::RandomSpheres => Ok(create_random_spheres_scene(ctx)),
@@ -57,16 +60,28 @@ pub fn get_scene(ctx: &RenderContext, scene: Scene) -> Result<SceneData, Opensca
         Scene::CornellBoxSmoke => Ok(create_cornell_box_smoke_scene(ctx)),
         Scene::Final => Ok(create_final_scene(ctx)),
         Scene::OpenScad(filename) => {
-            let source: Arc<Box<dyn Source>> = Arc::new(Box::new(
-                FileSource::new(Path::new(&filename)).map_err(|err| {
-                    OpenscadError::SourceError(format!("failed to read \"{filename}\": {err}"))
-                })?,
-            ));
-            let results = run_openscad(source, ctx.random.clone())?;
-            if !results.output.is_empty() {
-                println!("{}", results.output);
+            let source = FileSource::new(Path::new(&filename)).map_err(|err| {
+                eprintln!("failed to read \"{filename}\": {err}");
+                CliError::OpenscadError
+            })?;
+
+            let source: Arc<Box<dyn Source>> = Arc::new(Box::new(source));
+            let results = run_openscad(source, ctx.random.clone());
+            for message in results.messages {
+                match message.level {
+                    MessageLevel::Echo => println!("ECHO {}", message.message),
+                    MessageLevel::Warning => {
+                        println!("WARNING {} ({})", message.message, message.position)
+                    }
+                    MessageLevel::Error => {
+                        eprintln!("ERROR {} ({})", message.message, message.position)
+                    }
+                }
             }
-            Ok(results.scene_data)
+            match results.scene_data {
+                Some(scene_data) => Ok(scene_data),
+                None => Err(CliError::OpenscadError),
+            }
         }
     }
 }

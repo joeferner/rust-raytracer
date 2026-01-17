@@ -6,8 +6,8 @@ use caustic_core::{
 };
 
 use crate::{
-    Position,
-    interpreter::{Interpreter, InterpreterError, Result},
+    Message, MessageLevel, Position, Result,
+    interpreter::Interpreter,
     parser::CallArgumentWithPosition,
     value::{Value, values_to_numbers},
 };
@@ -100,7 +100,8 @@ impl Interpreter {
             .map(|row| {
                 if let Value::Vector { items } = row {
                     if items.len() != 2 {
-                        Err(InterpreterError {
+                        Err(Message {
+                            level: MessageLevel::Error,
                             message: "table row must be list of 2 elements".to_string(),
                             position: table_position.clone(),
                         })
@@ -110,7 +111,8 @@ impl Interpreter {
                         Ok((key, value))
                     }
                 } else {
-                    Err(InterpreterError {
+                    Err(Message {
+                        level: MessageLevel::Error,
                         message: "table must be a list of lists".to_string(),
                         position: table_position.clone(),
                     })
@@ -121,7 +123,8 @@ impl Interpreter {
         let table = table?;
 
         if table.is_empty() {
-            Err(InterpreterError {
+            Err(Message {
+                level: MessageLevel::Error,
                 message: "table must have at least 1 row".to_string(),
                 position: table_position.clone(),
             })
@@ -273,7 +276,8 @@ impl Interpreter {
                 if items.is_empty() {
                     return Ok(Value::Number(0.0));
                 }
-                let numbers = values_to_numbers(items).map_err(|err| InterpreterError {
+                let numbers = values_to_numbers(items).map_err(|err| Message {
+                    level: MessageLevel::Error,
                     message: format!("failed to convert vector element to number: {err:?}"),
                     position: arguments[0].position.clone(),
                 })?;
@@ -294,7 +298,8 @@ impl Interpreter {
     ) -> Result<Value> {
         let arguments = self.convert_args(&["v1", "v2"], arguments)?;
 
-        let v1 = arguments.get("v1").ok_or_else(|| InterpreterError {
+        let v1 = arguments.get("v1").ok_or_else(|| Message {
+            level: MessageLevel::Error,
             message: "missing 1st argument".to_string(),
             position: position.clone(),
         })?;
@@ -306,7 +311,8 @@ impl Interpreter {
             return Ok(Value::Undef);
         };
 
-        let v2 = arguments.get("v2").ok_or_else(|| InterpreterError {
+        let v2 = arguments.get("v2").ok_or_else(|| Message {
+            level: MessageLevel::Error,
             message: "missing 2nd argument".to_string(),
             position: position.clone(),
         })?;
@@ -513,7 +519,8 @@ impl Interpreter {
             arg.position
                 .source
                 .get_image(&filename)
-                .map_err(|err| InterpreterError {
+                .map_err(|err| Message {
+                    level: MessageLevel::Error,
                     message: format!("failed to get image \"{filename}\": {err:?}"),
                     position: position.clone(),
                 })?

@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
 use caustic_core::{
-    CameraBuilder, Node, Vector3,
+    CameraBuilder, Color, Node, Vector3,
+    material::{Dielectric, DiffuseLight, Lambertian, Material, Metal},
     object::{BoxPrimitive, ConeFrustum, Group, Quad, Rotate, Scale, Sphere, Translate},
 };
 
 use crate::{
-    interpreter::{Interpreter, InterpreterError, Result},
+    Message, MessageLevel, Position, Result,
+    interpreter::Interpreter,
     parser::{CallArgument, CallArgumentWithPosition, ModuleIdWithPosition, StatementWithPosition},
     value::Value,
 };
@@ -18,6 +20,8 @@ impl Interpreter {
         arguments: &[CallArgumentWithPosition],
         child_statements: &[StatementWithPosition],
     ) -> Result<Vec<Arc<dyn Node>>> {
+        let module_position = module_id.position.clone();
+
         if module_id.item == "color" {
             let m = self.create_color(arguments)?;
             self.material_stack.push(m);
@@ -57,13 +61,14 @@ impl Interpreter {
                 Ok(child_nodes)
             }
             "for" => panic!("already handled"),
-            "echo" => self.evaluate_echo(arguments, child_nodes).map(|_| vec![]),
-            other => {
-                return Err(InterpreterError {
-                    message: format!("unknown identifier \"{other}\""),
-                    position: module_id.position.clone(),
-                });
-            }
+            "echo" => self
+                .evaluate_echo(arguments, child_nodes, module_position)
+                .map(|_| vec![]),
+            other => Err(Message {
+                level: MessageLevel::Error,
+                message: format!("unknown identifier \"{other}\""),
+                position: module_id.position.clone(),
+            }),
         }
     }
 
@@ -407,6 +412,7 @@ impl Interpreter {
         &mut self,
         arguments: &[CallArgumentWithPosition],
         child_nodes: Vec<Arc<dyn Node>>,
+        position: Position,
     ) -> Result<()> {
         if !child_nodes.is_empty() {
             todo!("should not have children");
@@ -425,8 +431,98 @@ impl Interpreter {
             };
         }
 
-        self.output += &format!("{output}\n");
+        self.messages.push(Message {
+            level: MessageLevel::Echo,
+            message: output,
+            position,
+        });
 
         Ok(())
+    }
+
+    fn create_color(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+    ) -> Result<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["c", "alpha"], arguments)?;
+
+        if let Some(arg) = arguments.get("alpha") {
+            todo!("handle alpha {arg:?}");
+        }
+
+        if let Some(arg) = arguments.get("c") {
+            let color = arg.item.to_color()?;
+            return Ok(Arc::new(Lambertian::new_from_color(color)));
+        }
+
+        todo!("missing arg");
+    }
+
+    fn create_lambertian(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+    ) -> Result<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["c", "t"], arguments)?;
+
+        if let Some(arg) = arguments.get("c") {
+            let color = arg.item.to_color()?;
+            Ok(Arc::new(Lambertian::new_from_color(color)))
+        } else if let Some(arg) = arguments.get("t") {
+            match &arg.item {
+                Value::Texture(texture) => Ok(Arc::new(Lambertian::new(texture.clone()))),
+                _ => todo!("unhandled {arg:?}"),
+            }
+        } else {
+            todo!("missing arg");
+        }
+    }
+
+    fn create_dielectric(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+    ) -> Result<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["n"], arguments)?;
+
+        if let Some(arg) = arguments.get("n") {
+            let refraction_index = arg.item.to_number()?;
+            Ok(Arc::new(Dielectric::new(refraction_index)))
+        } else {
+            todo!("missing arg");
+        }
+    }
+
+    fn create_metal(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+    ) -> Result<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["c", "fuzz"], arguments)?;
+
+        let mut color = Color::WHITE;
+        let mut fuzz = 0.2;
+
+        if let Some(arg) = arguments.get("c") {
+            color = arg.item.to_color()?;
+        }
+
+        if let Some(arg) = arguments.get("fuzz") {
+            fuzz = arg.item.to_number()?;
+        }
+
+        Ok(Arc::new(Metal::new(color, fuzz)))
+    }
+
+    fn create_diffuse_light(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+    ) -> Result<Arc<dyn Material>> {
+        let arguments = self.convert_args(&["c"], arguments)?;
+
+        let mut color = Color::WHITE;
+
+        if let Some(arg) = arguments.get("c") {
+            color = arg.item.to_color()?;
+        }
+
+        Ok(Arc::new(DiffuseLight::new_from_color(color)))
     }
 }

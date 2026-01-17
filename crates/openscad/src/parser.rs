@@ -1,21 +1,10 @@
 use std::{sync::Arc, vec};
 
-use thiserror::Error;
-
 use crate::{
-    Position, WithPosition,
+    Message, MessageLevel, Position, Result, WithPosition,
     source::Source,
     tokenizer::{Token, TokenWithPosition},
 };
-
-#[derive(Error, Debug, PartialEq)]
-#[error("Tokenizer error: {message} {position}")]
-pub struct ParserError {
-    pub message: String,
-    pub position: Position,
-}
-
-pub type Result<T> = std::result::Result<T, ParserError>;
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
@@ -214,15 +203,15 @@ pub type ExprWithPosition = WithPosition<Expr>;
 
 #[derive(Debug)]
 pub struct ParseResult {
-    pub statements: Vec<StatementWithPosition>,
-    pub errors: Vec<ParserError>,
+    pub statements: Option<Vec<StatementWithPosition>>,
+    pub messages: Vec<Message>,
 }
 
 struct Parser {
     tokens: Vec<TokenWithPosition>,
     pos: usize,
     source: Arc<Box<dyn Source>>,
-    errors: Vec<ParserError>,
+    messages: Vec<Message>,
 }
 
 impl Parser {
@@ -231,7 +220,7 @@ impl Parser {
             tokens,
             pos: 0,
             source,
-            errors: vec![],
+            messages: vec![],
         }
     }
 
@@ -246,7 +235,8 @@ impl Parser {
     fn get_current(&self) -> Result<Position> {
         match self.current() {
             Some(current) => Ok(current.position.clone()),
-            None => Err(ParserError {
+            None => Err(Message {
+                level: MessageLevel::Error,
                 message: "no current token".to_owned(),
                 position: Position {
                     start: 0,
@@ -290,7 +280,8 @@ impl Parser {
 
     fn expect(&mut self, expected: Token) -> Result<()> {
         match self.current() {
-            None => Err(ParserError {
+            None => Err(Message {
+                level: MessageLevel::Error,
                 message: format!("Expected {:?}, found EOF", expected),
                 position: Position {
                     start: 0,
@@ -303,7 +294,8 @@ impl Parser {
                     self.advance();
                     Ok(())
                 } else {
-                    Err(ParserError {
+                    Err(Message {
+                        level: MessageLevel::Error,
                         message: format!("Expected {:?}, found {:?}", expected, tok.item),
                         position: tok.position.clone(),
                     })
@@ -314,7 +306,8 @@ impl Parser {
 
     fn expect_identifier(&mut self) -> Result<String> {
         match self.current() {
-            None => Err(ParserError {
+            None => Err(Message {
+                level: MessageLevel::Error,
                 message: "Expected identifier, found EOF".to_string(),
                 position: Position {
                     start: 0,
@@ -328,7 +321,8 @@ impl Parser {
                     self.advance();
                     Ok(identifier)
                 } else {
-                    Err(ParserError {
+                    Err(Message {
+                        level: MessageLevel::Error,
                         message: format!("Expected identifier, found {:?}", tok.item),
                         position: tok.position.clone(),
                     })
@@ -487,7 +481,8 @@ impl Parser {
                 other => {
                     let other = other.clone();
                     self.advance();
-                    return Err(ParserError {
+                    return Err(Message {
+                        level: MessageLevel::Error,
                         message: format!("Expected for or identifier but found: {other:?}"),
                         position: pos,
                     });
@@ -875,7 +870,8 @@ impl Parser {
 
             other => {
                 // TODO "let" <call_arguments> <expr>
-                return Err(ParserError {
+                return Err(Message {
+                    level: MessageLevel::Error,
                     message: format!("unhandled: {other:?}"),
                     position: pos,
                 });
@@ -940,13 +936,13 @@ impl Parser {
             }
             match self.parse_statement() {
                 Ok(stmt) => statements.push(stmt),
-                Err(err) => self.errors.push(err),
+                Err(err) => self.messages.push(err),
             }
         }
 
         ParseResult {
-            statements,
-            errors: self.errors,
+            statements: Some(statements),
+            messages: self.messages,
         }
     }
 
@@ -1143,16 +1139,17 @@ mod tests {
     use super::*;
 
     fn parse(source: Arc<Box<dyn Source>>) -> ParseResult {
-        openscad_parse(openscad_tokenize(source.clone()).unwrap(), source)
+        let tokens = openscad_tokenize(source.clone()).tokens.unwrap();
+        openscad_parse(tokens, source)
     }
 
     #[test]
     fn test_empty_statement() {
         let source: Arc<Box<dyn Source>> = Arc::new(Box::new(StringSource::new(";")));
         let result = parse(source.clone());
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
+        assert_eq!(Vec::<Message>::new(), result.messages);
         assert_eq!(
-            result.statements,
+            result.statements.unwrap(),
             vec![StatementWithPosition::new(
                 Statement::Empty,
                 Position {
@@ -1168,9 +1165,9 @@ mod tests {
     fn test_cube() {
         let source: Arc<Box<dyn Source>> = Arc::new(Box::new(StringSource::new("cube(10);")));
         let result = parse(source.clone());
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
+        assert_eq!(Vec::<Message>::new(), result.messages);
         assert_eq!(
-            result.statements,
+            result.statements.unwrap(),
             vec![StatementWithPosition::new(
                 Statement::ModuleInstantiation {
                     module_id: ModuleIdWithPosition::new(
@@ -1214,11 +1211,12 @@ mod tests {
         let source: Arc<Box<dyn Source>> =
             Arc::new(Box::new(StringSource::new("cube([20,30,50]);")));
         let result = parse(source.clone());
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        let statements = result.statements.unwrap();
+        assert_eq!(1, statements.len());
 
         // Statement::ModuleInstantiation
-        let stmt = &result.statements[0].item;
+        let stmt = &statements[0].item;
 
         let (module_id, call_arguments, child_statements) =
             if let Statement::ModuleInstantiation {
@@ -1260,8 +1258,8 @@ mod tests {
         let source: Arc<Box<dyn Source>> =
             Arc::new(Box::new(StringSource::new("cube([20,30,50],center=true);")));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
@@ -1270,16 +1268,16 @@ mod tests {
             "translate([0,0,5]) cube([20,30,50],center=true);",
         )));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
     fn test_binary_expression() {
         let source: Arc<Box<dyn Source>> = Arc::new(Box::new(StringSource::new("cube(20 - 0.1);")));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
@@ -1287,16 +1285,16 @@ mod tests {
         let source: Arc<Box<dyn Source>> =
             Arc::new(Box::new(StringSource::new("color([0,125,255]/255);")));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
     fn test_unary_expression() {
         let source: Arc<Box<dyn Source>> = Arc::new(Box::new(StringSource::new("cube(-20);")));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
@@ -1304,16 +1302,16 @@ mod tests {
         let source: Arc<Box<dyn Source>> =
             Arc::new(Box::new(StringSource::new("echo(-(20 + 3));")));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
     fn test_set_fa() {
         let source: Arc<Box<dyn Source>> = Arc::new(Box::new(StringSource::new("$fa = 1;")));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
@@ -1321,8 +1319,8 @@ mod tests {
         let source: Arc<Box<dyn Source>> =
             Arc::new(Box::new(StringSource::new("include <caustic.scad>")));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
@@ -1335,8 +1333,8 @@ mod tests {
             ",
         )));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
@@ -1344,8 +1342,8 @@ mod tests {
         let source: Arc<Box<dyn Source>> =
             Arc::new(Box::new(StringSource::new("for(a=[0:10]) sphere(r=a);")));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
@@ -1353,16 +1351,16 @@ mod tests {
         let source: Arc<Box<dyn Source>> =
             Arc::new(Box::new(StringSource::new("for(a=[0:2:10]) sphere(r=a);")));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
     fn test_variable_assignment() {
         let source: Arc<Box<dyn Source>> = Arc::new(Box::new(StringSource::new("a = 1;")));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
@@ -1370,8 +1368,8 @@ mod tests {
         let source: Arc<Box<dyn Source>> =
             Arc::new(Box::new(StringSource::new("choose_mat = rands(0,1,1)[0];")));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
@@ -1379,8 +1377,8 @@ mod tests {
         let source: Arc<Box<dyn Source>> =
             Arc::new(Box::new(StringSource::new("v = pt2[0][1] - pt1[0];")));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
@@ -1388,8 +1386,8 @@ mod tests {
         let s = "function distance(pt1, pt2) = sqrt(pow(pt2[0]-pt1[0], 2) + pow(pt2[1]-pt1[1], 2) + pow(pt2[2]-pt1[2], 2));";
         let source: Arc<Box<dyn Source>> = Arc::new(Box::new(StringSource::new(s)));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
@@ -1406,8 +1404,8 @@ mod tests {
         "#,
         )));
         let result = parse(source);
-        assert_eq!(Vec::<ParserError>::new(), result.errors);
-        assert_eq!(1, result.statements.len());
+        assert_eq!(Vec::<Message>::new(), result.messages);
+        assert_eq!(1, result.statements.unwrap().len());
     }
 
     #[test]
@@ -1421,7 +1419,7 @@ mod tests {
             "#,
         )));
         let result = parse(source);
-        assert_eq!(0, result.errors.len());
-        assert_eq!(1, result.statements.len());
+        assert_eq!(0, result.messages.len());
+        assert_eq!(1, result.statements.unwrap().len());
     }
 }

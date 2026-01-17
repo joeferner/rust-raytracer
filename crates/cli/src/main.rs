@@ -1,4 +1,3 @@
-use caustic_openscad::OpenscadError;
 use thread_priority::ThreadBuilderExt;
 use thread_priority::*;
 
@@ -13,8 +12,17 @@ use std::{
 use caustic_core::{Camera, Color, Node, RenderContext, random_new};
 use indicatif::{ProgressBar, ProgressStyle};
 use scene::Scene;
+use thiserror::Error;
 
 use crate::scene::get_scene;
+
+#[derive(Error, Debug)]
+pub enum CliError {
+    #[error("OpenSCAD")]
+    OpenscadError,
+}
+
+pub type Result<T> = core::result::Result<T, CliError>;
 
 const BLOCK_SIZE: u32 = 10;
 
@@ -60,22 +68,7 @@ fn main() -> ExitCode {
     let scene = match get_scene(&ctx, scene) {
         Ok(scene) => scene,
         Err(err) => {
-            match err {
-                OpenscadError::SourceError(err) => eprintln!("failed to get scene: {err}"),
-                OpenscadError::TokenizerError(err) => eprintln!("Tokenization error: {err}"),
-                OpenscadError::ParserErrors { errors } => {
-                    eprintln!("Parsing errors");
-                    for err in errors {
-                        eprintln!("{}: {}", err.message, err.position);
-                    }
-                }
-                OpenscadError::InterpreterErrors { errors } => {
-                    eprintln!("Interpreter errors");
-                    for err in errors {
-                        eprintln!("{}: {}", err.message, err.position);
-                    }
-                }
-            }
+            eprintln!("failed to get scene: {err}");
             return ExitCode::from(1);
         }
     };

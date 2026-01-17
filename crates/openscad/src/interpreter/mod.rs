@@ -9,13 +9,13 @@ use std::{cell::RefCell, collections::HashMap, sync::Arc};
 
 use caustic_core::{
     Camera, CameraBuilder, Color, Node, Random, SceneData, Vector3,
-    material::{Dielectric, DiffuseLight, Lambertian, Material, Metal},
+    material::{Lambertian, Material},
     object::BoundingVolumeHierarchy,
 };
 use rand_mt::Mt64;
 
 use crate::{
-    Position,
+    Message, MessageLevel, Position, Result,
     parser::{
         CallArgument, CallArgumentWithPosition, DeclArgument, DeclArgumentWithPosition,
         ExprWithPosition, Statement, StatementWithPosition,
@@ -60,26 +60,16 @@ pub enum ModuleArgument {
     NamedArgument { name: String, value: Value },
 }
 
-#[derive(Debug, PartialEq)]
-pub struct InterpreterError {
-    pub message: String,
-    pub position: Position,
-}
-
-impl From<ValueConversionError> for InterpreterError {
+impl From<ValueConversionError> for Message {
     fn from(value: ValueConversionError) -> Self {
         todo!("From<ValueConversionError> {value:?}");
     }
 }
 
-type Result<T> = std::result::Result<T, InterpreterError>;
-
 #[derive(Debug)]
 pub struct InterpreterResults {
-    pub scene_data: SceneData,
-    pub output: String,
-    pub warnings: Vec<InterpreterError>,
-    pub errors: Vec<InterpreterError>,
+    pub scene_data: Option<SceneData>,
+    pub messages: Vec<Message>,
 }
 
 #[derive(Debug)]
@@ -122,10 +112,9 @@ struct Interpreter {
     material_stack: Vec<Arc<dyn Material>>,
     variables: RefCell<Vec<HashMap<String, Value>>>,
     functions: HashMap<String, Function>,
-    output: String,
     random: Arc<dyn Random>,
     rng: Mt64,
-    warnings: Vec<InterpreterError>,
+    messages: Vec<Message>,
 }
 
 impl Interpreter {
@@ -164,22 +153,21 @@ impl Interpreter {
             world: vec![],
             lights: vec![],
             material_stack: vec![],
-            output: String::new(),
             random,
             rng: Mt64::new_unseeded(),
-            warnings: vec![],
+            messages: vec![],
         }
     }
 
     fn interpret(mut self, statements: Vec<StatementWithPosition>) -> InterpreterResults {
-        let mut errors: Vec<InterpreterError> = vec![];
+        let mut messages: Vec<Message> = vec![];
 
         for statement in statements {
             match self.process_statement(&statement) {
                 Ok(mut nodes) => {
                     self.world.append(&mut nodes);
                 }
-                Err(err) => errors.push(err),
+                Err(err) => messages.push(err),
             }
         }
 
@@ -210,10 +198,8 @@ impl Interpreter {
         };
 
         InterpreterResults {
-            scene_data,
-            output: self.output,
-            errors,
-            warnings: self.warnings,
+            scene_data: Some(scene_data),
+            messages: self.messages,
         }
     }
 
@@ -258,92 +244,6 @@ impl Interpreter {
     fn expr_to_string(&mut self, expr: &ExprWithPosition) -> Result<String> {
         let value = self.expr_to_value(expr)?;
         Ok(format!("{value}"))
-    }
-
-    fn create_color(
-        &mut self,
-        arguments: &[CallArgumentWithPosition],
-    ) -> Result<Arc<dyn Material>> {
-        let arguments = self.convert_args(&["c", "alpha"], arguments)?;
-
-        if let Some(arg) = arguments.get("alpha") {
-            todo!("handle alpha {arg:?}");
-        }
-
-        if let Some(arg) = arguments.get("c") {
-            let color = arg.item.to_color()?;
-            return Ok(Arc::new(Lambertian::new_from_color(color)));
-        }
-
-        todo!("missing arg");
-    }
-
-    fn create_lambertian(
-        &mut self,
-        arguments: &[CallArgumentWithPosition],
-    ) -> Result<Arc<dyn Material>> {
-        let arguments = self.convert_args(&["c", "t"], arguments)?;
-
-        if let Some(arg) = arguments.get("c") {
-            let color = arg.item.to_color()?;
-            Ok(Arc::new(Lambertian::new_from_color(color)))
-        } else if let Some(arg) = arguments.get("t") {
-            match &arg.item {
-                Value::Texture(texture) => Ok(Arc::new(Lambertian::new(texture.clone()))),
-                _ => todo!("unhandled {arg:?}"),
-            }
-        } else {
-            todo!("missing arg");
-        }
-    }
-
-    fn create_dielectric(
-        &mut self,
-        arguments: &[CallArgumentWithPosition],
-    ) -> Result<Arc<dyn Material>> {
-        let arguments = self.convert_args(&["n"], arguments)?;
-
-        if let Some(arg) = arguments.get("n") {
-            let refraction_index = arg.item.to_number()?;
-            Ok(Arc::new(Dielectric::new(refraction_index)))
-        } else {
-            todo!("missing arg");
-        }
-    }
-
-    fn create_metal(
-        &mut self,
-        arguments: &[CallArgumentWithPosition],
-    ) -> Result<Arc<dyn Material>> {
-        let arguments = self.convert_args(&["c", "fuzz"], arguments)?;
-
-        let mut color = Color::WHITE;
-        let mut fuzz = 0.2;
-
-        if let Some(arg) = arguments.get("c") {
-            color = arg.item.to_color()?;
-        }
-
-        if let Some(arg) = arguments.get("fuzz") {
-            fuzz = arg.item.to_number()?;
-        }
-
-        Ok(Arc::new(Metal::new(color, fuzz)))
-    }
-
-    fn create_diffuse_light(
-        &mut self,
-        arguments: &[CallArgumentWithPosition],
-    ) -> Result<Arc<dyn Material>> {
-        let arguments = self.convert_args(&["c"], arguments)?;
-
-        let mut color = Color::WHITE;
-
-        if let Some(arg) = arguments.get("c") {
-            color = arg.item.to_color()?;
-        }
-
-        Ok(Arc::new(DiffuseLight::new_from_color(color)))
     }
 
     fn process_for_loop(
@@ -528,8 +428,9 @@ impl Interpreter {
                 function_name: name.to_owned(),
             })
         } else {
-            self.warnings.push(InterpreterError {
-                message: format!("Ignoring unknown variable '${name}'"),
+            self.messages.push(Message {
+                level: MessageLevel::Warning,
+                message: format!("Ignoring unknown variable '{name}'"),
                 position: position.clone(),
             });
             Ok(Value::Undef)

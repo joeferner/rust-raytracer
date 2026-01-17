@@ -1,4 +1,5 @@
-use crate::interpreter::{Interpreter, Result};
+use crate::Result;
+use crate::interpreter::Interpreter;
 
 use crate::{
     parser::{BinaryOperator, Expr, ExprWithPosition, UnaryOperator},

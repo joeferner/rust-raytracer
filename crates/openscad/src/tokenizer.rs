@@ -1,18 +1,6 @@
 use std::sync::Arc;
 
-use thiserror::Error;
-
-use crate::{Position, WithPosition, source::Source};
-
-#[derive(Error, Debug, PartialEq)]
-#[error("Tokenizer error: {message} [{start}:{end}]")]
-pub struct TokenizerError {
-    pub message: String,
-    pub start: usize,
-    pub end: usize,
-}
-
-pub type Result<T> = std::result::Result<T, TokenizerError>;
+use crate::{Message, MessageLevel, Position, Result, WithPosition, source::Source};
 
 #[derive(Debug, Clone)]
 pub enum Token {
@@ -108,6 +96,11 @@ impl PartialEq for Token {
 
 pub type TokenWithPosition = WithPosition<Token>;
 
+pub struct TokenizerResults {
+    pub tokens: Option<Vec<TokenWithPosition>>,
+    pub messages: Vec<Message>,
+}
+
 struct Tokenizer {
     input: Vec<char>,
     pos: usize,
@@ -123,20 +116,34 @@ impl Tokenizer {
         }
     }
 
-    pub fn tokenize(mut self) -> Result<Vec<TokenWithPosition>> {
+    pub fn tokenize(mut self) -> TokenizerResults {
         let mut tokens = Vec::new();
-        while let Some(tok) = self.next()? {
-            tokens.push(tok);
+        loop {
+            match self.next() {
+                Ok(token) => match token {
+                    Some(token) => tokens.push(token),
+                    None => break,
+                },
+                Err(err) => {
+                    return TokenizerResults {
+                        messages: vec![err],
+                        tokens: None,
+                    };
+                }
+            }
         }
         tokens.push(TokenWithPosition::new(
             Token::Eof,
             Position {
                 start: self.pos,
                 end: self.pos,
-                source: self.source,
+                source: self.source.clone(),
             },
         ));
-        Ok(tokens)
+        TokenizerResults {
+            messages: vec![],
+            tokens: Some(tokens),
+        }
     }
 
     fn current(&self) -> Option<char> {
@@ -159,17 +166,25 @@ impl Tokenizer {
                 self.advance();
                 Ok(())
             } else {
-                Err(TokenizerError {
+                Err(Message {
+                    level: MessageLevel::Error,
                     message: format!("Expected '{expected_ch}' but found '{found_ch}'"),
-                    start,
-                    end: start,
+                    position: Position {
+                        start,
+                        end: start,
+                        source: self.source.clone(),
+                    },
                 })
             }
         } else {
-            Err(TokenizerError {
+            Err(Message {
+                level: MessageLevel::Error,
                 message: format!("Expected '{expected_ch}' but found EOF"),
-                start,
-                end: start,
+                position: Position {
+                    start,
+                    end: start,
+                    source: self.source.clone(),
+                },
             })
         }
     }
@@ -387,17 +402,25 @@ impl Tokenizer {
                         self.advance();
                         Token::AmpersandAmpersand
                     } else {
-                        return Err(TokenizerError {
+                        return Err(Message {
+                            level: MessageLevel::Error,
                             message: format!("Invalid character '{ch}'"),
-                            start,
-                            end: start + 1,
+                            position: Position {
+                                start,
+                                end: start + 1,
+                                source: self.source.clone(),
+                            },
                         });
                     }
                 } else {
-                    return Err(TokenizerError {
+                    return Err(Message {
+                        level: MessageLevel::Error,
                         message: "Invalid end of file".to_string(),
-                        start,
-                        end: start + 1,
+                        position: Position {
+                            start,
+                            end: start + 1,
+                            source: self.source.clone(),
+                        },
                     });
                 }
             }
@@ -408,17 +431,25 @@ impl Tokenizer {
                         self.advance();
                         Token::PipePipe
                     } else {
-                        return Err(TokenizerError {
+                        return Err(Message {
+                            level: MessageLevel::Error,
                             message: format!("Invalid character '{ch}'"),
-                            start,
-                            end: start + 1,
+                            position: Position {
+                                start,
+                                end: start + 1,
+                                source: self.source.clone(),
+                            },
                         });
                     }
                 } else {
-                    return Err(TokenizerError {
+                    return Err(Message {
+                        level: MessageLevel::Error,
                         message: "Invalid end of file".to_string(),
-                        start,
-                        end: start + 1,
+                        position: Position {
+                            start,
+                            end: start + 1,
+                            source: self.source.clone(),
+                        },
                     });
                 }
             }
@@ -496,10 +527,14 @@ impl Tokenizer {
                     Token::Number(number)
                 } else {
                     self.advance();
-                    return Err(TokenizerError {
+                    return Err(Message {
+                        level: MessageLevel::Error,
                         message: format!("Invalid character '{ch}'"),
-                        start,
-                        end: start + 1,
+                        position: Position {
+                            start,
+                            end: start + 1,
+                            source: self.source.clone(),
+                        },
                     });
                 }
             }
@@ -560,10 +595,14 @@ impl Tokenizer {
                     }
                     self.advance();
                 } else {
-                    return Err(TokenizerError {
+                    return Err(Message {
+                        level: MessageLevel::Error,
                         message: "Expected escape character but found EOF".to_string(),
-                        start: self.pos,
-                        end: self.pos,
+                        position: Position {
+                            start: self.pos,
+                            end: self.pos,
+                            source: self.source.clone(),
+                        },
                     });
                 }
             } else {
@@ -578,7 +617,7 @@ impl Tokenizer {
     }
 }
 
-pub fn openscad_tokenize(source: Arc<Box<dyn Source>>) -> Result<Vec<TokenWithPosition>> {
+pub fn openscad_tokenize(source: Arc<Box<dyn Source>>) -> TokenizerResults {
     let tokenizer = Tokenizer::new(source);
     tokenizer.tokenize()
 }
@@ -590,14 +629,19 @@ mod tests {
     use super::*;
 
     fn assert_tokens_with_pos(source: Arc<Box<dyn Source>>, expected: &[TokenWithPosition]) {
-        let found = openscad_tokenize(source).unwrap();
-        assert_eq!(found, expected);
+        let found = openscad_tokenize(source);
+        assert_eq!(found.tokens.unwrap(), expected);
     }
 
     fn assert_tokens(input: &str, expected: &[Token]) {
         let source: Arc<Box<dyn Source>> = Arc::new(Box::new(StringSource::new(input)));
-        let found = openscad_tokenize(source).unwrap();
-        let found_without_pos: Vec<Token> = found.iter().map(|tok| tok.item.clone()).collect();
+        let found = openscad_tokenize(source);
+        let found_without_pos: Vec<Token> = found
+            .tokens
+            .unwrap()
+            .iter()
+            .map(|tok| tok.item.clone())
+            .collect();
         assert_eq!(found_without_pos, expected);
     }
 

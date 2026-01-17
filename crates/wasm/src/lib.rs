@@ -1,4 +1,7 @@
 #![allow(clippy::vec_init_then_push)]
+
+pub mod types;
+
 use std::{any::Any, cell::RefCell, fmt::Debug, sync::Arc};
 
 use caustic_core::{
@@ -9,6 +12,8 @@ use js_sys::Uint8ClampedArray;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
+
+use crate::types::message::WasmMessage;
 
 thread_local! {
 static LOADED_SCENE_DATA: RefCell<Option<SceneData>> = const { RefCell::new(None) };
@@ -176,12 +181,18 @@ impl Debug for WasmImageAdapter {
 pub fn load_openscad(wasm_source: WasmSource) -> Result<LoadResults, JsValue> {
     let source: Arc<Box<dyn Source>> = Arc::new(Box::new(WasmSourceAdapter::new(wasm_source)?));
     let random = random_new();
-    let results =
-        run_openscad(source, random).map_err(|e| JsValue::from_str(&format!("{:?}", e)))?;
-    LOADED_SCENE_DATA.with(|data| *data.borrow_mut() = Some(results.scene_data));
-    Ok(LoadResults {
-        output: results.output,
-    })
+    let results = run_openscad(source, random);
+    let messages = results.messages.iter().map(|m| m.into()).collect();
+
+    let loaded = match results.scene_data {
+        Some(scene_data) => {
+            LOADED_SCENE_DATA.with(|data| *data.borrow_mut() = Some(scene_data));
+            true
+        }
+        None => false,
+    };
+
+    Ok(LoadResults { messages, loaded })
 }
 
 #[wasm_bindgen]
@@ -230,7 +241,8 @@ pub fn render(xmin: u32, xmax: u32, ymin: u32, ymax: u32) -> Result<Vec<Color>, 
 #[derive(Tsify, Serialize, Deserialize)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct LoadResults {
-    pub output: String,
+    pub messages: Vec<WasmMessage>,
+    pub loaded: bool,
 }
 
 #[derive(Tsify, Serialize, Deserialize)]

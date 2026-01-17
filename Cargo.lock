@@ -378,6 +378,7 @@ dependencies = [
  "image",
  "indicatif",
  "num_cpus",
+ "thiserror",
  "thread-priority",
 ]
 
@@ -399,7 +400,6 @@ dependencies = [
  "assert-eq-float",
  "caustic-core",
  "rand_mt",
- "thiserror",
 ]
 
 [[package]]

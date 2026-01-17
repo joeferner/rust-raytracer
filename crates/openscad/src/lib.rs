@@ -7,16 +7,11 @@ pub mod value;
 use std::fmt::Display;
 use std::sync::Arc;
 
-use caustic_core::Random;
-use thiserror::Error;
+use caustic_core::{Random, SceneData};
 
-use crate::interpreter::InterpreterError;
-use crate::parser::ParserError;
 use crate::source::Source;
 use crate::{
-    interpreter::{InterpreterResults, openscad_interpret},
-    parser::openscad_parse,
-    tokenizer::{TokenizerError, openscad_tokenize},
+    interpreter::openscad_interpret, parser::openscad_parse, tokenizer::openscad_tokenize,
 };
 
 #[derive(Debug, Clone)]
@@ -60,37 +55,65 @@ impl<T: PartialEq> PartialEq for WithPosition<T> {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum OpenscadError {
-    #[error("Source error: {0}")]
-    SourceError(String),
-    #[error("Tokenizer error: {0:?}")]
-    TokenizerError(#[from] TokenizerError),
-    #[error("Parser error: {errors:?}")]
-    ParserErrors { errors: Vec<ParserError> },
-    #[error("Tokenizer error: {errors:?}")]
-    InterpreterErrors { errors: Vec<InterpreterError> },
+#[derive(Debug, PartialEq)]
+pub enum MessageLevel {
+    Echo,
+    Warning,
+    Error,
 }
 
-pub fn run_openscad(
-    source: Arc<Box<dyn Source>>,
-    random: Arc<dyn Random>,
-) -> Result<InterpreterResults, OpenscadError> {
-    let tokens = openscad_tokenize(source.clone())?;
-    let parse_results = openscad_parse(tokens, source);
+#[derive(Debug, PartialEq)]
+pub struct Message {
+    pub level: MessageLevel,
+    pub message: String,
+    pub position: Position,
+}
 
-    if !parse_results.errors.is_empty() {
-        return Err(OpenscadError::ParserErrors {
-            errors: parse_results.errors,
-        });
+pub type Result<T> = core::result::Result<T, Message>;
+
+pub struct OpenscadResults {
+    pub scene_data: Option<SceneData>,
+    pub messages: Vec<Message>,
+}
+
+pub fn run_openscad(source: Arc<Box<dyn Source>>, random: Arc<dyn Random>) -> OpenscadResults {
+    let mut messages: Vec<Message> = vec![];
+
+    let mut tokenize_results = openscad_tokenize(source.clone());
+    messages.append(&mut tokenize_results.messages);
+    let tokens = if let Some(tokens) = tokenize_results.tokens {
+        tokens
+    } else {
+        return OpenscadResults {
+            scene_data: None,
+            messages,
+        };
+    };
+
+    let mut parse_results = openscad_parse(tokens, source);
+    messages.append(&mut parse_results.messages);
+    let statements = if let Some(statements) = parse_results.statements {
+        statements
+    } else {
+        return OpenscadResults {
+            scene_data: None,
+            messages,
+        };
+    };
+
+    let mut interpret_results = openscad_interpret(statements, random);
+    messages.append(&mut interpret_results.messages);
+    let scene_data = if let Some(scene_data) = interpret_results.scene_data {
+        scene_data
+    } else {
+        return OpenscadResults {
+            scene_data: None,
+            messages,
+        };
+    };
+
+    OpenscadResults {
+        scene_data: Some(scene_data),
+        messages,
     }
-
-    let interpret_results = openscad_interpret(parse_results.statements, random);
-    if !interpret_results.errors.is_empty() {
-        return Err(OpenscadError::InterpreterErrors {
-            errors: interpret_results.errors,
-        });
-    }
-
-    Ok(interpret_results)
 }
