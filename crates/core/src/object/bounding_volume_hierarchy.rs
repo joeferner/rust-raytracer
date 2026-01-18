@@ -44,6 +44,14 @@ impl BoundingVolumeHierarchy {
             AxisAlignedBoundingBox::new_from_bbox(*left.bounding_box(), *right.bounding_box());
         Self { left, right, bbox }
     }
+
+    pub fn get_left(&self) -> Arc<dyn Node> {
+        self.left.clone()
+    }
+
+    pub fn get_right(&self) -> Arc<dyn Node> {
+        self.right.clone()
+    }
 }
 
 impl Node for BoundingVolumeHierarchy {

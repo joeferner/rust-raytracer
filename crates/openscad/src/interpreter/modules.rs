@@ -3,7 +3,7 @@ use std::sync::Arc;
 use caustic_core::{
     CameraBuilder, Color, Node, Vector3,
     material::{Dielectric, DiffuseLight, Lambertian, Material, Metal},
-    object::{BoxPrimitive, ConeFrustum, Group, Quad, Rotate, Scale, Sphere, Translate},
+    object::{BoxPrimitive, ConeFrustum, Disc, Group, Quad, Rotate, Scale, Sphere, Translate},
 };
 
 use crate::{
@@ -44,6 +44,7 @@ impl Interpreter {
         let child_nodes = self.process_child_statements(child_statements)?;
 
         match module_id.item.as_str() {
+            "circle" => self.create_circle(arguments, child_nodes).map(|n| vec![n]),
             "cube" => self.create_cube(arguments, child_nodes).map(|n| vec![n]),
             "sphere" => self.create_sphere(arguments, child_nodes).map(|n| vec![n]),
             "cylinder" => self
@@ -70,6 +71,37 @@ impl Interpreter {
                 position: module_id.position.clone(),
             }),
         }
+    }
+
+    fn create_circle(
+        &mut self,
+        arguments: &[CallArgumentWithPosition],
+        child_nodes: Vec<Arc<dyn Node>>,
+    ) -> Result<Arc<dyn Node>> {
+        if !child_nodes.is_empty() {
+            todo!("should not have children");
+        }
+
+        let center = Vector3::ZERO;
+        let normal = Vector3::new(0.0, 1.0, 0.0);
+        let mut radius = 1.0;
+
+        let arguments = self.convert_args(&["r", "d"], arguments)?;
+
+        if let Some(arg) = arguments.get("r") {
+            radius = arg.item.to_number()?;
+        }
+
+        if let Some(arg) = arguments.get("d") {
+            radius = arg.item.to_number()? / 2.0;
+        }
+
+        Ok(Arc::new(Disc::new(
+            center,
+            radius,
+            normal,
+            self.current_material(),
+        )))
     }
 
     fn create_cube(

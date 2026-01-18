@@ -2,7 +2,10 @@
 mod tests {
     use std::sync::Arc;
 
-    use caustic_core::{object::Disc, random_new};
+    use caustic_core::{
+        object::{BoundingVolumeHierarchy, Disc},
+        random_new,
+    };
 
     use crate::{
         interpreter::{InterpreterResults, openscad_interpret},
@@ -47,7 +50,13 @@ mod tests {
         assert_eq!(results.messages.len(), 0);
 
         let scene_data = results.scene_data.unwrap();
-        let disc = scene_data.world.as_any().downcast_ref::<Disc>().unwrap();
+        let bvh = scene_data
+            .world
+            .as_any()
+            .downcast_ref::<BoundingVolumeHierarchy>()
+            .unwrap();
+        let left = bvh.get_left();
+        let disc = left.as_any().downcast_ref::<Disc>().unwrap();
         assert_eq!(disc.get_radius(), 20.0);
     }
 
