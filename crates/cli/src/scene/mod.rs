@@ -13,9 +13,10 @@ pub mod three_spheres;
 
 use std::{path::Path, sync::Arc};
 
+use ariadne::{Label, Report, ReportKind, Source as AriadneSource};
 use caustic_core::{RenderContext, SceneData};
 use caustic_openscad::{
-    MessageLevel, run_openscad,
+    Message, MessageLevel, run_openscad,
     source::{FileSource, Source},
 };
 
@@ -68,20 +69,40 @@ pub fn get_scene(ctx: &RenderContext, scene: Scene) -> Result<SceneData> {
             let source: Arc<Box<dyn Source>> = Arc::new(Box::new(source));
             let results = run_openscad(source, ctx.random.clone());
             for message in results.messages {
-                match message.level {
-                    MessageLevel::Echo => println!("ECHO {}", message.message),
-                    MessageLevel::Warning => {
-                        println!("WARNING {} ({})", message.message, message.position)
-                    }
-                    MessageLevel::Error => {
-                        eprintln!("ERROR {} ({})", message.message, message.position)
-                    }
-                }
+                print_message(&message);
             }
             match results.scene_data {
                 Some(scene_data) => Ok(scene_data),
                 None => Err(CliError::OpenscadError),
             }
         }
+    }
+}
+
+fn print_message(message: &Message) {
+    if message.level == MessageLevel::Echo {
+        println!("ECHO {}", message.message);
+    } else {
+        let filename = message.position.source.get_filename();
+        let span_start = message.position.start;
+        let span_end = message.position.end;
+        let code = message.position.source.get_code();
+        Report::build(to_kind(&message.level), (filename, span_start..span_end))
+            .with_message(message.message.to_owned())
+            .with_label(
+                Label::new((filename, span_start..span_end))
+                    .with_message(message.message.to_owned()),
+            )
+            .finish()
+            .eprint((filename, AriadneSource::from(code)))
+            .unwrap();
+    }
+}
+
+fn to_kind(level: &MessageLevel) -> ariadne::ReportKind<'static> {
+    match level {
+        MessageLevel::Echo => ReportKind::Advice,
+        MessageLevel::Warning => ReportKind::Warning,
+        MessageLevel::Error => ReportKind::Error,
     }
 }

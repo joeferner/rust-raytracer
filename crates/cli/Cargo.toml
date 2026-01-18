@@ -11,3 +11,4 @@ caustic-core = { path = "../core" }
 caustic-openscad = { path = "../openscad" }
 thread-priority = "3.0.0"
 thiserror = { workspace = true }
+ariadne = "0.6.0"
