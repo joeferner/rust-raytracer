@@ -9,6 +9,7 @@ import {
     BrowserMessageWriter,
     type InitializeParams,
     type InitializeResult,
+    type RequestMessage,
 } from 'vscode-languageserver/browser';
 import { initWasm, WasmLspServer } from '../wasm';
 
@@ -29,11 +30,27 @@ connection.onInitialize(async (params: InitializeParams): Promise<InitializeResu
 
     reader.listen((msg) => {
         console.log('WasmLspServer listen', msg);
-        void lspServer.notify_client_message(JSON.stringify(msg));
+        lspServer.notify_client_message(JSON.stringify(msg))
+            .then(result => { console.log('notify_client_message result', result); })
+            .catch((err: unknown) => { console.error('notify_client_message failed', err); });
     });
 
-    const results = JSON.parse(await lspServer.initialize(JSON.stringify(params)));
-    return results.result;
+    const request: RequestMessage = {
+        id: 0,
+        jsonrpc: "2.0",
+        method: "initialize",
+        params
+    };
+    try {
+        const result = await lspServer.notify_client_message(JSON.stringify(request));
+        if (!result) {
+            throw new Error('initialize failed');
+        }
+        return JSON.parse(result).result as InitializeResult;
+    } catch (err) {
+        console.error('initialize failed', err);
+        throw err;
+    }
 });
 
 connection.listen();

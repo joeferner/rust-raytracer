@@ -7,9 +7,9 @@ import type {
     WasmImage,
     WasmSource,
     WasmMessage,
-} from './wasm/release/caustic_wasm';
-import init, { load_openscad, get_camera_info, render } from './wasm/release/caustic_wasm.js';
-export { WasmLspServer } from './wasm/release/caustic_wasm.js';
+} from './wasm/debug/caustic_wasm';
+import init, { load_openscad, get_camera_info, render } from './wasm/debug/caustic_wasm.js';
+export { WasmLspServer } from './wasm/debug/caustic_wasm.js';
 
 export type { CameraInfo, Color, WasmMessage };
 

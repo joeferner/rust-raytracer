@@ -7,6 +7,8 @@ edition = "2024"
 rand_mt = "5.0.0"
 caustic-core = { path = "../core" }
 tower-lsp = "0.20.0"
+tokio = { version = "1.49.0", features = [] }
 
 [dev-dependencies]
 assert-eq-float = { workspace = true }
+tokio = { version = "1.49.0", features = ["full", "test-util"] }

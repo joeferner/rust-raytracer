@@ -461,6 +461,7 @@ dependencies = [
  "assert-eq-float",
  "caustic-core",
  "rand_mt",
+ "tokio",
  "tower-lsp",
 ]
 
