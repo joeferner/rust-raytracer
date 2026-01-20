@@ -28,7 +28,7 @@ export async function initializeMonaco(): Promise<void> {
     (self as any).MonacoEnvironment = {
         getWorker: (): Worker => {
             return new LanguageServerWorker();
-        }
+        },
     };
 
     loader.config({ monaco });
@@ -70,7 +70,8 @@ export function registerOpenscadLanguage(): void {
     const languages = monaco.languages;
 
     languages.register({
-        id: LANGUAGE_ID, extensions: ['.scad'],
+        id: LANGUAGE_ID,
+        extensions: ['.scad'],
         aliases: ['OpenSCAD', 'openscad'],
         mimetypes: ['text/x-openscad'],
     });

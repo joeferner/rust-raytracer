@@ -28,6 +28,12 @@ pub struct Position {
     pub source: Arc<Box<dyn Source>>,
 }
 
+impl Position {
+    pub fn contains_pos(&self, pos: usize) -> bool {
+        pos >= self.start && pos < self.end
+    }
+}
+
 impl Display for Position {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.source.to_string(self.start, self.end))

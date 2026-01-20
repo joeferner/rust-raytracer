@@ -68,6 +68,50 @@ pub fn line_and_column_at_offset(s: &str, offset: usize) -> Option<(usize, usize
     Some((line_num, col))
 }
 
+pub fn line_offset_to_position(s: &str, line: usize, offset: usize) -> Option<usize> {
+    let mut current_line = 0;
+    let mut line_start = 0;
+
+    for (i, ch) in s.char_indices() {
+        if current_line == line {
+            // We're on the target line, now find the offset
+            let mut current_offset = 0;
+            for (j, _) in s[line_start..].char_indices() {
+                if current_offset == offset {
+                    return Some(line_start + j);
+                }
+                current_offset += 1;
+            }
+            // If offset is at the end of the line
+            if current_offset == offset {
+                return Some(s.len());
+            }
+            return None; // offset out of bounds
+        }
+
+        if ch == '\n' {
+            current_line += 1;
+            line_start = i + 1;
+        }
+    }
+
+    // Check if we're on the last line
+    if current_line == line {
+        let mut current_offset = 0;
+        for (j, _) in s[line_start..].char_indices() {
+            if current_offset == offset {
+                return Some(line_start + j);
+            }
+            current_offset += 1;
+        }
+        if current_offset == offset {
+            return Some(s.len());
+        }
+    }
+
+    None // line out of bounds
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

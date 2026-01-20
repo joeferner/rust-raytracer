@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -16,30 +17,23 @@ const reader = new BrowserMessageReader(self);
 const writer = new BrowserMessageWriter(self);
 const connection = createConnection(reader, writer);
 
-connection.onInitialize(async (params: InitializeParams): Promise<InitializeResult> => {
-    console.log('onInitialize');
+let lspServer: WasmLspServer | null = null;
 
+connection.onInitialize(async (params: InitializeParams): Promise<InitializeResult> => {
     await initWasm();
 
-    const lspServer = new WasmLspServer((msg: string) => {
-        console.log('WasmLspServer message', msg);
+    lspServer = new WasmLspServer((msg: string) => {
         const json = JSON.parse(msg);
         void writer.write(json);
     });
 
-    reader.listen((msg) => {
-        console.log('WasmLspServer listen', msg);
-        lspServer.notify_client_message(JSON.stringify(msg))
-            .then(result => { console.log('notify_client_message result', result); })
-            .catch((err: unknown) => { console.error('notify_client_message failed', err); });
-    });
-
     const request: RequestMessage = {
         id: 0,
-        jsonrpc: "2.0",
-        method: "initialize",
-        params
+        jsonrpc: '2.0',
+        method: 'initialize',
+        params,
     };
+
     try {
         const result = await lspServer.notify_client_message(JSON.stringify(request));
         if (!result) {
@@ -50,6 +44,29 @@ connection.onInitialize(async (params: InitializeParams): Promise<InitializeResu
         console.error('initialize failed', err);
         throw err;
     }
+});
+
+// Proxy all other requests to the WASM server
+connection.onRequest(async (method, params) => {
+    if (!lspServer) {
+        throw new Error('LSP server not initialized');
+    }
+
+    const request = {
+        id: Math.floor(Date.now() + Math.random()),
+        jsonrpc: '2.0',
+        method,
+        params,
+    };
+
+    const result = await lspServer.notify_client_message(JSON.stringify(request));
+    if (!result) {
+        return null;
+    }
+
+    const response = JSON.parse(result);
+    console.log('LSP response', response);
+    return response.result;
 });
 
 connection.listen();
