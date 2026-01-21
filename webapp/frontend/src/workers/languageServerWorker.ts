@@ -1,72 +1,42 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
 import {
-    createConnection,
     BrowserMessageReader,
     BrowserMessageWriter,
-    type InitializeParams,
-    type InitializeResult,
-    type RequestMessage,
+    Message
 } from 'vscode-languageserver/browser';
 import { initWasm, WasmLspServer } from '../wasm';
 
 const reader = new BrowserMessageReader(self);
 const writer = new BrowserMessageWriter(self);
-const connection = createConnection(reader, writer);
 
-let lspServer: WasmLspServer | null = null;
+const lspServerPromise = new Promise<WasmLspServer>((resolve, reject) => {
+    async function startServer(): Promise<WasmLspServer> {
+        await initWasm();
 
-connection.onInitialize(async (params: InitializeParams): Promise<InitializeResult> => {
-    await initWasm();
+        return new WasmLspServer((msg: string) => {
+            console.log('LSP', msg);
+            const json = JSON.parse(msg) as Message;
+            void writer.write(json);
+        });
+    }
 
-    lspServer = new WasmLspServer((msg: string) => {
-        const json = JSON.parse(msg);
-        void writer.write(json);
-    });
+    startServer().then(resolve).catch(reject);
+});
 
-    const request: RequestMessage = {
-        id: 0,
-        jsonrpc: '2.0',
-        method: 'initialize',
-        params,
-    };
+reader.listen((msg: Message) => {
+    void processMessage(msg);
+});
 
+async function processMessage(msg: Message): Promise<void> {
     try {
-        const result = await lspServer.notify_client_message(JSON.stringify(request));
-        if (!result) {
-            throw new Error('initialize failed');
+        console.log('LSP request', JSON.stringify(msg));
+        const lspServer = await lspServerPromise;
+        const resultStr = await lspServer.notify_client_message(JSON.stringify(msg));
+        if (resultStr) {
+            const result = JSON.parse(resultStr) as Message;
+            console.log('LSP result', JSON.stringify(result));
+            await writer.write(result);
         }
-        return JSON.parse(result).result as InitializeResult;
-    } catch (err) {
-        console.error('initialize failed', err);
-        throw err;
+    } catch (err: unknown) {
+        console.error('failed to process message', err);
     }
-});
-
-// Proxy all other requests to the WASM server
-connection.onRequest(async (method, params) => {
-    if (!lspServer) {
-        throw new Error('LSP server not initialized');
-    }
-
-    const request = {
-        id: Math.floor(Date.now() + Math.random()),
-        jsonrpc: '2.0',
-        method,
-        params,
-    };
-
-    const result = await lspServer.notify_client_message(JSON.stringify(request));
-    if (!result) {
-        return null;
-    }
-
-    const response = JSON.parse(result);
-    console.log('LSP response', response);
-    return response.result;
-});
-
-connection.listen();
+}

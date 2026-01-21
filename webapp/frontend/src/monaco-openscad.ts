@@ -24,18 +24,18 @@ export async function initializeMonaco(): Promise<void> {
 
     registerOpenscadLanguage();
 
+    // Create a web worker for the language server
+    const worker = new LanguageServerWorker();
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     (self as any).MonacoEnvironment = {
         getWorker: (): Worker => {
-            return new LanguageServerWorker();
+            return worker;
         },
     };
 
     loader.config({ monaco });
     await loader.init();
-
-    // Create a web worker for the language server
-    const worker = new LanguageServerWorker();
 
     // Set up message passing
     const reader = new BrowserMessageReader(worker);

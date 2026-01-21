@@ -67,13 +67,19 @@ impl LanguageServerBackend {
     ) -> Option<Hover> {
         if module_id.position.contains_pos(pos) {
             let help = match module_id.item.as_str() {
+                "translate" => {
+                    Some("Translates (moves) its child elements along the specified vector.")
+                }
                 "circle" => Some("Creates a circle at the origin"),
                 _ => None,
             };
 
             if let Some(help) = help {
                 return Some(Hover {
-                    contents: HoverContents::Scalar(MarkedString::String(help.to_string())),
+                    contents: HoverContents::Markup(MarkupContent {
+                        kind: MarkupKind::Markdown,
+                        value: help.to_string(),
+                    }),
                     range: None,
                 });
             }
@@ -81,13 +87,13 @@ impl LanguageServerBackend {
 
         for call_argument in call_arguments {
             if call_argument.position.contains_pos(pos) {
-                todo!();
+                // TODO
             }
         }
 
         for child_statement in child_statements {
             if child_statement.position.contains_pos(pos) {
-                todo!();
+                // TODO
             }
         }
 
@@ -154,22 +160,22 @@ impl LanguageServer for LanguageServerBackend {
         for statement in statements {
             if statement.position.contains_pos(pos) {
                 let result = match statement.item {
-                    Statement::Empty => todo!(),
+                    Statement::Empty => None,
                     Statement::Assignment {
                         identifier: _,
                         expr: _,
-                    } => todo!(),
-                    Statement::Include { filename: _ } => todo!(),
+                    } => None,
+                    Statement::Include { filename: _ } => None,
                     Statement::FunctionDecl {
                         function_name: _,
                         arguments: _,
                         expr: _,
-                    } => todo!(),
+                    } => None,
                     Statement::If {
                         expr: _,
                         true_statements: _,
                         false_statements: _,
-                    } => todo!(),
+                    } => None,
                     Statement::ModuleInstantiation {
                         module_id,
                         call_arguments,
