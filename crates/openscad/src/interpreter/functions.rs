@@ -465,7 +465,7 @@ impl Interpreter {
     fn evaluate_checker(&mut self, arguments: &[CallArgumentWithPosition]) -> Result<Value> {
         let arguments = self.convert_args(&["scale", "even", "odd"], arguments)?;
 
-        let mut scale: f64 = 0.0;
+        let mut scale: f64 = 1.0;
         let mut even: Arc<dyn Texture> = Arc::new(SolidColor::new(Color::new(0.0, 0.0, 0.0)));
         let mut odd: Arc<dyn Texture> = Arc::new(SolidColor::new(Color::new(1.0, 1.0, 1.0)));
 

@@ -148,7 +148,10 @@ pub mod test {
         match hover.contents {
             HoverContents::Markup(MarkupContent { kind, value }) => {
                 assert_eq!(kind, MarkupKind::Markdown);
-                assert_eq!(value, "**Description:** Creates a circle at the origin");
+                assert_eq!(
+                    value,
+                    "**Description:** Creates a circle at the origin. All parameters, except r, must be named.\n\n### Arguments:\n- `r` circle radius. r name is the only one optional with circle.\n- `d` circle diameter.\n\n### Examples:\n```\ncircle(10);\ncircle(r=10);\ncircle(d=20);\n```"
+                );
             }
             _ => panic!("Expected scalar string"),
         }

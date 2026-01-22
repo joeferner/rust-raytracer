@@ -85,7 +85,7 @@ impl LanguageServerBackend {
         }
 
         for child_statement in child_statements {
-            if let Some(result) = self.hover_statement(&child_statement, pos) {
+            if let Some(result) = self.hover_statement(child_statement, pos) {
                 return Some(result);
             }
         }
