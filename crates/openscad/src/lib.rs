@@ -5,6 +5,7 @@ pub mod parser;
 pub mod source;
 pub mod tokenizer;
 pub mod value;
+pub mod docs_builtin;
 
 use std::fmt::Display;
 use std::sync::Arc;
