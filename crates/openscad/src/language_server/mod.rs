@@ -1,3 +1,5 @@
+mod hover;
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -6,10 +8,7 @@ use tower_lsp::LanguageServer;
 use tower_lsp::jsonrpc::{Error, ErrorCode, Result};
 use tower_lsp::lsp_types::*;
 
-use crate::parser::{
-    CallArgumentWithPosition, ModuleIdWithPosition, Statement, StatementWithPosition,
-    openscad_parse,
-};
+use crate::parser::{StatementWithPosition, openscad_parse};
 use crate::source::{Source, StringSource};
 use crate::tokenizer::openscad_tokenize;
 
@@ -56,48 +55,6 @@ impl LanguageServerBackend {
             })?;
 
         Ok((text.to_owned(), statements))
-    }
-
-    fn hover_module_instantiation(
-        &self,
-        pos: usize,
-        module_id: ModuleIdWithPosition,
-        call_arguments: Vec<CallArgumentWithPosition>,
-        child_statements: Vec<StatementWithPosition>,
-    ) -> Option<Hover> {
-        if module_id.position.contains_pos(pos) {
-            let help = match module_id.item.as_str() {
-                "translate" => {
-                    Some("Translates (moves) its child elements along the specified vector.")
-                }
-                "circle" => Some("Creates a circle at the origin"),
-                _ => None,
-            };
-
-            if let Some(help) = help {
-                return Some(Hover {
-                    contents: HoverContents::Markup(MarkupContent {
-                        kind: MarkupKind::Markdown,
-                        value: help.to_string(),
-                    }),
-                    range: None,
-                });
-            }
-        }
-
-        for call_argument in call_arguments {
-            if call_argument.position.contains_pos(pos) {
-                // TODO
-            }
-        }
-
-        for child_statement in child_statements {
-            if child_statement.position.contains_pos(pos) {
-                // TODO
-            }
-        }
-
-        None
     }
 
     #[cfg(test)]
@@ -157,43 +114,7 @@ impl LanguageServer for LanguageServerBackend {
             return Ok(None);
         };
 
-        for statement in statements {
-            if statement.position.contains_pos(pos) {
-                let result = match statement.item {
-                    Statement::Empty => None,
-                    Statement::Assignment {
-                        identifier: _,
-                        expr: _,
-                    } => None,
-                    Statement::Include { filename: _ } => None,
-                    Statement::FunctionDecl {
-                        function_name: _,
-                        arguments: _,
-                        expr: _,
-                    } => None,
-                    Statement::If {
-                        expr: _,
-                        true_statements: _,
-                        false_statements: _,
-                    } => None,
-                    Statement::ModuleInstantiation {
-                        module_id,
-                        call_arguments,
-                        child_statements,
-                    } => self.hover_module_instantiation(
-                        pos,
-                        module_id,
-                        call_arguments,
-                        child_statements,
-                    ),
-                };
-                if let Some(result) = result {
-                    return Ok(Some(result));
-                }
-            }
-        }
-
-        Ok(None)
+        self.handle_hover(statements, pos)
     }
 }
 
@@ -227,7 +148,7 @@ pub mod test {
         match hover.contents {
             HoverContents::Markup(MarkupContent { kind, value }) => {
                 assert_eq!(kind, MarkupKind::Markdown);
-                assert_eq!(value, "Creates a circle at the origin");
+                assert_eq!(value, "**Description:** Creates a circle at the origin");
             }
             _ => panic!("Expected scalar string"),
         }
